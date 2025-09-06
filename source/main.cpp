@@ -1,8 +1,6 @@
-// main.cpp
-// C++14, OpenGL + GLFW + GLEW, OpenVR
-// Renders scene into HMD (left/right). Also blits left eye to GLFW window for debug.
-// Shows a floating rectangle, controller rays, computes ray-rectangle intersection,
-// and prints clicked coordinate on trigger rising edge.
+// SPDX-FileCopyrightText: 2025 QuantumHole <QuantumHole@github.com>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <iostream>
 #include <vector>
@@ -28,10 +26,10 @@ inline Vec3 operator*(const Vec3&a,float s){return {a.x*s,a.y*s,a.z*s};}
 inline float dot(const Vec3&a,const Vec3&b){return a.x*b.x + a.y*b.y + a.z*b.z;}
 inline Vec3 cross(const Vec3&a,const Vec3&b){return {a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x};}
 inline float length(const Vec3&a){return std::sqrt(dot(a,a));}
-inline Vec3 normalize(const Vec3&a){float l=length(a); if(l==0) return a; return a*(1.0f/l);}
+inline Vec3 normalize(const Vec3&a){float l=length(a); if(l<=0) return a; return a*(1.0f/l);}
 
 // Convert OpenVR 3x4 to Mat4 (column-major)
-Mat4 SteamMatrixToMat4(const vr::HmdMatrix34_t &mat)
+static Mat4 SteamMatrixToMat4(const vr::HmdMatrix34_t &mat)
 {
     Mat4 r;
     r.m[0] = mat.m[0][0]; r.m[1] = mat.m[1][0]; r.m[2] = mat.m[2][0]; r.m[3] = 0.0f;
@@ -41,7 +39,7 @@ Mat4 SteamMatrixToMat4(const vr::HmdMatrix34_t &mat)
     return r;
 }
 
-Vec3 transformPoint(const Mat4 &m, const Vec3 &p){
+static Vec3 transformPoint(const Mat4 &m, const Vec3 &p){
     return {
         m.m[0]*p.x + m.m[4]*p.y + m.m[8]*p.z + m.m[12],
         m.m[1]*p.x + m.m[5]*p.y + m.m[9]*p.z + m.m[13],
@@ -49,7 +47,7 @@ Vec3 transformPoint(const Mat4 &m, const Vec3 &p){
     };
 }
 
-Vec3 transformDirection(const Mat4 &m, const Vec3 &d){
+static Vec3 transformDirection(const Mat4 &m, const Vec3 &d){
     return {
         m.m[0]*d.x + m.m[4]*d.y + m.m[8]*d.z,
         m.m[1]*d.x + m.m[5]*d.y + m.m[9]*d.z,
@@ -58,7 +56,7 @@ Vec3 transformDirection(const Mat4 &m, const Vec3 &d){
 }
 
 // Shader helpers
-GLuint CompileShader(const char*src, GLenum type){
+static GLuint CompileShader(const char*src, GLenum type){
     GLuint s = glCreateShader(type);
     glShaderSource(s,1,&src,nullptr);
     glCompileShader(s);
@@ -66,7 +64,7 @@ GLuint CompileShader(const char*src, GLenum type){
     if(!ok){ char buf[1024]; glGetShaderInfoLog(s,1024,nullptr,buf); std::cerr<<"Shader compile error: "<<buf<<"\n"; }
     return s;
 }
-GLuint CreateProgram(const char*vs,const char*fs){
+static GLuint CreateProgram(const char*vs,const char*fs){
     GLuint P = glCreateProgram();
     GLuint a = CompileShader(vs,GL_VERTEX_SHADER);
     GLuint b = CompileShader(fs,GL_FRAGMENT_SHADER);
@@ -100,10 +98,10 @@ struct Rect {
     Vec3 right, up;
 };
 
-bool RayIntersectRect(const Vec3& rayOrig, const Vec3& rayDir, const Rect& R, Vec3 &hitPoint, float &u, float &v) {
+static bool RayIntersectRect(const Vec3& rayOrig, const Vec3& rayDir, const Rect& R, Vec3 &hitPoint, float &u, float &v) {
     Vec3 normal = normalize(cross(R.right, R.up));
     float denom = dot(normal, rayDir);
-    if (fabs(denom) < 1e-6f) return false;
+    if (fabsf(denom) < 1e-6f) return false;
     float t = dot(normal, R.center - rayOrig) / denom;
     if (t < 0) return false;
     hitPoint = rayOrig + rayDir * t;
@@ -111,7 +109,7 @@ bool RayIntersectRect(const Vec3& rayOrig, const Vec3& rayDir, const Rect& R, Ve
     Vec3 rnorm = normalize(R.right), unorm = normalize(R.up);
     float projU = dot(local, rnorm);
     float projV = dot(local, unorm);
-    if (fabs(projU) <= R.width*0.5f && fabs(projV) <= R.height*0.5f) {
+    if (fabsf(projU) <= R.width*0.5f && fabsf(projV) <= R.height*0.5f) {
         u = (projU / (R.width*0.5f) + 1.0f) * 0.5f;
         v = (projV / (R.height*0.5f) + 1.0f) * 0.5f;
         return true;
@@ -120,7 +118,7 @@ bool RayIntersectRect(const Vec3& rayOrig, const Vec3& rayDir, const Rect& R, Ve
 }
 
 // Matrix multiply (column-major)
-Mat4 mat4Mul(const Mat4&a,const Mat4&b){
+static Mat4 mat4Mul(const Mat4&a,const Mat4&b){
     Mat4 r;
     for(int i=0;i<4;i++){
         for(int j=0;j<4;j++){
@@ -132,7 +130,8 @@ Mat4 mat4Mul(const Mat4&a,const Mat4&b){
     return r;
 }
 
-Mat4 perspective_from_fovy(float fovy, float aspect, float zn, float zf){
+static Mat4 perspective_from_fovy(float fovy, float aspect, float zn, float zf)__attribute__((unused));
+static Mat4 perspective_from_fovy(float fovy, float aspect, float zn, float zf){
     float f = 1.0f / tanf(fovy*0.5f);
     Mat4 m = {};
     m.m[0] = f/aspect; m.m[5] = f; m.m[10] = (zf+zn)/(zn-zf); m.m[11] = -1.0f;
@@ -217,8 +216,8 @@ int main(){
     glBufferData(GL_ARRAY_BUFFER,sizeof(rectVerts),rectVerts,GL_STATIC_DRAW);
     glGenBuffers(1,&rectEbo); glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,rectEbo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(rectIdx),rectIdx,GL_STATIC_DRAW);
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)0); glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)(3*sizeof(float))); glEnableVertexAttribArray(1);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,6*sizeof(float),nullptr); glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,6*sizeof(float),reinterpret_cast<void*>(3*sizeof(float))); glEnableVertexAttribArray(1);
     glBindVertexArray(0);
 
     // Temporary VBOs for lines/points will be created on the fly (simple)
@@ -288,7 +287,7 @@ int main(){
             Mat4 mvpRect = mat4Mul(vpEye, model);
             glUniformMatrix4fv(uMVP,1,GL_FALSE,mvpRect.m);
             glBindVertexArray(rectVao);
-            glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,0);
+            glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,nullptr);
             glBindVertexArray(0);
 
             // Render controllers and do picking (use world-space vpEye)
@@ -311,8 +310,8 @@ int main(){
                 glGenVertexArrays(1,&tmpVao); glBindVertexArray(tmpVao);
                 glGenBuffers(1,&tmpVbo); glBindBuffer(GL_ARRAY_BUFFER,tmpVbo);
                 glBufferData(GL_ARRAY_BUFFER,sizeof(lineVerts),lineVerts,GL_DYNAMIC_DRAW);
-                glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)0); glEnableVertexAttribArray(0);
-                glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)(3*sizeof(float))); glEnableVertexAttribArray(1);
+                glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,6*sizeof(float),nullptr); glEnableVertexAttribArray(0);
+                glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,6*sizeof(float),reinterpret_cast<void*>(3*sizeof(float))); glEnableVertexAttribArray(1);
                 Mat4 identity = {};
                 for(int i=0;i<16;i++) identity.m[i] = (i%5==0)?1.0f:0.0f;
                 Mat4 mvpLine = mat4Mul(vpEye, identity);
@@ -331,8 +330,8 @@ int main(){
                     glGenVertexArrays(1,&pVao); glBindVertexArray(pVao);
                     glGenBuffers(1,&pVbo); glBindBuffer(GL_ARRAY_BUFFER,pVbo);
                     glBufferData(GL_ARRAY_BUFFER,sizeof(pvert),pvert,GL_DYNAMIC_DRAW);
-                    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)0); glEnableVertexAttribArray(0);
-                    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)(3*sizeof(float))); glEnableVertexAttribArray(1);
+                    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,6*sizeof(float),nullptr); glEnableVertexAttribArray(0);
+                    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,6*sizeof(float),reinterpret_cast<void*>(3*sizeof(float))); glEnableVertexAttribArray(1);
                     Mat4 mvpP = mat4Mul(vpEye, identity);
                     glUniformMatrix4fv(uMVP,1,GL_FALSE,mvpP.m);
                     glPointSize(8.0f);
@@ -368,7 +367,7 @@ int main(){
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
             // Submit eye texture to compositor
-            vr::Texture_t tex = { (void*)(uintptr_t)eyeRT[eye].texture, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
+            vr::Texture_t tex = { reinterpret_cast<void*>(static_cast<intptr_t>(eyeRT[eye].texture)), vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
             vr::EVRCompositorError compErr = vr::VRCompositor()->Submit(e, &tex);
             if (compErr != vr::VRCompositorError_None) {
                 std::cerr << "VRCompositor submit error: " << compErr << "\n";
