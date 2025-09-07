@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2025 QuantumHole <QuantumHole@github.com>
 //
-// SPDX-License-Identifier: GPL-3.0
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <iostream>
@@ -20,15 +19,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-static bool g_Running = true;
-static GLFWwindow* g_Window = nullptr;
-static vr::IVRSystem* g_VRSystem = nullptr;
-static vr::IVRCompositor* g_VRCompositor = nullptr;
+#include "opengl/shader_set.h"
 
 struct GLTexture
 {
 	GLuint tex;
-	int width, height;
+	int width;
+	int height;
 };
 
 struct FramebufferDesc
@@ -43,16 +40,24 @@ struct FramebufferDesc
 // Render a rectangle (centered at origin, size 1x1 in XY plane)
 struct Mesh
 {
-	GLuint vao = 0, vbo = 0, ebo = 0;
+	GLuint vao = 0;
+	GLuint vbo = 0;
+	GLuint ebo = 0;
 	int idxCount = 0;
 };
 
-Mesh g_RectMesh;
-Mesh g_LineMesh;
-Mesh g_PointMesh;
-GLuint g_Prog = 0;
+static bool g_Running = true;
+static GLFWwindow* g_Window = nullptr;
+static vr::IVRSystem* g_VRSystem = nullptr;
+static vr::IVRCompositor* g_VRCompositor = nullptr;
 
-static FramebufferDesc leftEyeDesc, rightEyeDesc;
+static Mesh g_RectMesh;
+static Mesh g_LineMesh;
+static Mesh g_PointMesh;
+static ShaderSet g_shaders;
+
+static FramebufferDesc leftEyeDesc;
+static FramebufferDesc rightEyeDesc;
 
 // helper: print VR errors
 static void PrintVRError(const std::string& prefix, vr::EVRInitError err)
@@ -61,64 +66,6 @@ static void PrintVRError(const std::string& prefix, vr::EVRInitError err)
 	{
 		std::cerr << prefix << ": " << vr::VR_GetVRInitErrorAsEnglishDescription(err) << "\n";
 	}
-}
-
-// shader helpers (very simple)
-static GLuint CompileShader(const char* src, GLenum type)
-{
-	GLuint s = glCreateShader(type);
-
-	glShaderSource(s, 1, &src, NULL);
-	glCompileShader(s);
-	GLint ok;
-	glGetShaderiv(s, GL_COMPILE_STATUS, &ok);
-
-	if (!ok)
-	{
-		char buf[1024];
-		glGetShaderInfoLog(s, sizeof(buf), NULL, buf);
-		std::cerr << "Shader compile error: " << buf << "\n";
-		return 0;
-	}
-	return s;
-}
-
-static GLuint CreateSimpleProg()
-{
-	const char* vs =
-		"#version 330 core\n"
-		"layout(location=0) in vec3 pos;\n"
-		"layout(location=1) in vec3 color;\n"
-		"uniform mat4 u_mvp;\n"
-		"out vec3 vColor;\n"
-		"void main(){ vColor=color; gl_Position=u_mvp*vec4(pos,1.0); }\n";
-
-	const char* fs =
-		"#version 330 core\n"
-		"in vec3 vColor;\n"
-		"out vec4 outColor;\n"
-		"void main(){ outColor=vec4(vColor,1.0); }\n";
-
-	GLuint vsid = CompileShader(vs, GL_VERTEX_SHADER);
-	GLuint fsid = CompileShader(fs, GL_FRAGMENT_SHADER);
-	GLuint prog = glCreateProgram();
-
-	glAttachShader(prog, vsid);
-	glAttachShader(prog, fsid);
-	glLinkProgram(prog);
-	GLint ok;
-	glGetProgramiv(prog, GL_LINK_STATUS, &ok);
-
-	if (!ok)
-	{
-		char buf[1024];
-		glGetProgramInfoLog(prog, sizeof(buf), NULL, buf);
-		std::cerr << "Program link error: " << buf << "\n";
-		return 0;
-	}
-	glDeleteShader(vsid);
-	glDeleteShader(fsid);
-	return prog;
 }
 
 // Create framebuffer for eye
@@ -276,9 +223,8 @@ static void CreatePointMesh()
 // Draw helpers
 static void DrawMesh(const Mesh& m, const glm::mat4& mvp)
 {
-	glUseProgram(g_Prog);
-	GLint loc = glGetUniformLocation(g_Prog, "u_mvp");
-	glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mvp));
+	g_shaders.activate();
+	g_shaders.set_uniform("u_mvp", mvp);
 	glBindVertexArray(m.vao);
 	glDrawElements(GL_TRIANGLES, m.idxCount, GL_UNSIGNED_INT, nullptr);
 	glBindVertexArray(0);
@@ -286,9 +232,8 @@ static void DrawMesh(const Mesh& m, const glm::mat4& mvp)
 
 static void DrawLines(const Mesh& m, const glm::mat4& mvp)
 {
-	glUseProgram(g_Prog);
-	GLint loc = glGetUniformLocation(g_Prog, "u_mvp");
-	glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mvp));
+	g_shaders.activate();
+	g_shaders.set_uniform("u_mvp", mvp);
 	glBindVertexArray(m.vao);
 	glDrawArrays(GL_LINES, 0, m.idxCount);
 	glBindVertexArray(0);
@@ -296,9 +241,8 @@ static void DrawLines(const Mesh& m, const glm::mat4& mvp)
 
 static void DrawPoints(const Mesh& m, const glm::mat4& mvp)
 {
-	glUseProgram(g_Prog);
-	GLint loc = glGetUniformLocation(g_Prog, "u_mvp");
-	glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mvp));
+	g_shaders.activate();
+	g_shaders.set_uniform("u_mvp", mvp);
 	glBindVertexArray(m.vao);
 	glPointSize(8.0f);
 	glDrawArrays(GL_POINTS, 0, m.idxCount);
@@ -431,11 +375,11 @@ int main()
 	// Get recommended render target size
 	uint32_t renderWidth = 0, renderHeight = 0;
 	g_VRSystem->GetRecommendedRenderTargetSize(&renderWidth, &renderHeight);
-	CreateFrameBuffer(renderWidth, renderHeight, leftEyeDesc);
-	CreateFrameBuffer(renderWidth, renderHeight, rightEyeDesc);
+	CreateFrameBuffer(static_cast<int>(renderWidth), static_cast<int>(renderHeight), leftEyeDesc);
+	CreateFrameBuffer(static_cast<int>(renderWidth), static_cast<int>(renderHeight), rightEyeDesc);
 
 	// create simple shader & geometry
-	g_Prog = CreateSimpleProg();
+	g_shaders.load_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
 	CreateRectMesh();
 	CreateLineMesh();
 	CreatePointMesh();
@@ -559,14 +503,14 @@ int main()
 		vr::Texture_t rightEyeTexture = {reinterpret_cast<void*>(static_cast<uintptr_t>(rightEyeDesc.m_nRenderTextureId)), vr::TextureType_OpenGL, vr::ColorSpace_Gamma};
 		vr::EVRCompositorError compErr;
 		compErr = vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture);
+
 		if (compErr != 0)
 		{
-
 		}
 		compErr = vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture);
+
 		if (compErr != 0)
 		{
-
 		}
 
 		// blit left eye RT to GLFW window for debug

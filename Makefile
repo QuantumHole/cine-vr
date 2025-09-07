@@ -12,6 +12,7 @@ TARGET = cine-vr
 
 OBJECTS = \
 	$(BUILD_DIR)/main.o \
+	$(BUILD_DIR)/shader_set.o \
 
 all: $(TARGET)
 
