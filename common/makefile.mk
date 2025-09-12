@@ -8,5 +8,5 @@ LINTERS += lint_makefile
 .PHONY: lint_makefile
 
 lint_makefile:
-	if [ "$$(find . \( -name '*.mk' -o -name 'Makefile' \) -exec grep -e '^ ' {} \;)" != "" ]; then echo "ERROR: line in Makefile starts with space character."; exit 1; fi
-	if [ "$$(find . \( -name '*.mk' -o -name 'Makefile' \) -exec grep -e '\r' {} \;)" != "" ]; then echo "ERROR: CR character in Makefile."; exit 1; fi
+	@if [ "$$(find . \( -name '*.mk' -o -name 'Makefile' \) -exec grep -e '^ ' {} \;)" != "" ]; then echo "ERROR: line in Makefile starts with space character."; exit 1; fi
+	@if [ "$$(find . \( -name '*.mk' -o -name 'Makefile' \) -exec grep -e '\\r' {} \;)" != "" ]; then echo "ERROR: CR character in Makefile."; exit 1; fi

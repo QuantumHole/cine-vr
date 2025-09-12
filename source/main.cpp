@@ -20,6 +20,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "opengl/shader_set.h"
+#include "openvr_interface.h"
 
 struct GLTexture
 {
@@ -48,8 +49,7 @@ struct Mesh
 
 static bool g_Running = true;
 static GLFWwindow* g_Window = nullptr;
-static vr::IVRSystem* g_VRSystem = nullptr;
-static vr::IVRCompositor* g_VRCompositor = nullptr;
+static OpenVRInterface g_vr;
 
 static Mesh g_RectMesh;
 static Mesh g_LineMesh;
@@ -58,15 +58,6 @@ static ShaderSet g_shaders;
 
 static FramebufferDesc leftEyeDesc;
 static FramebufferDesc rightEyeDesc;
-
-// helper: print VR errors
-static void PrintVRError(const std::string& prefix, vr::EVRInitError err)
-{
-	if (err != vr::VRInitError_None)
-	{
-		std::cerr << prefix << ": " << vr::VR_GetVRInitErrorAsEnglishDescription(err) << "\n";
-	}
-}
 
 // Create framebuffer for eye
 static bool CreateFrameBuffer(int width, int height, FramebufferDesc& framebufferDesc)
@@ -97,48 +88,6 @@ static bool CreateFrameBuffer(int width, int height, FramebufferDesc& framebuffe
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	return true;
-}
-
-// Convert OpenVR matrix to glm
-static glm::mat4 ConvertSteamVRMatrixToGLMMat(const vr::HmdMatrix34_t& matPose)
-{
-	glm::mat4 matrixObj(
-		matPose.m[0][0], matPose.m[1][0], matPose.m[2][0], 0.0,
-		matPose.m[0][1], matPose.m[1][1], matPose.m[2][1], 0.0,
-		matPose.m[0][2], matPose.m[1][2], matPose.m[2][2], 0.0,
-		matPose.m[0][3], matPose.m[1][3], matPose.m[2][3], 1.0f
-		);
-
-	return matrixObj;
-}
-
-static glm::mat4 ConvertSteamVRMatrixToGLMMat(const vr::HmdMatrix44_t& mat)
-{
-	glm::mat4 m;
-
-	for (int r = 0; r < 4; ++r)
-	{
-		for (int c = 0; c < 4; ++c)
-		{
-			m[c][r] = mat.m[r][c];
-		}
-	}
-	return m;
-}
-
-// Get eye projection & eye-to-head transform
-static glm::mat4 GetHMDProjection(vr::Hmd_Eye eye, float nearClip, float farClip)
-{
-	vr::HmdMatrix44_t proj = g_VRSystem->GetProjectionMatrix(eye, nearClip, farClip);
-
-	return ConvertSteamVRMatrixToGLMMat(proj);
-}
-
-static glm::mat4 GetHMDEyeToHead(vr::Hmd_Eye eye)
-{
-	vr::HmdMatrix34_t eye2head = g_VRSystem->GetEyeToHeadTransform(eye);
-
-	return ConvertSteamVRMatrixToGLMMat(eye2head);
 }
 
 static void CreateRectMesh()
@@ -228,6 +177,7 @@ static void DrawMesh(const Mesh& m, const glm::mat4& mvp)
 	glBindVertexArray(m.vao);
 	glDrawElements(GL_TRIANGLES, m.idxCount, GL_UNSIGNED_INT, nullptr);
 	glBindVertexArray(0);
+	g_shaders.deactivate();
 }
 
 static void DrawLines(const Mesh& m, const glm::mat4& mvp)
@@ -237,6 +187,7 @@ static void DrawLines(const Mesh& m, const glm::mat4& mvp)
 	glBindVertexArray(m.vao);
 	glDrawArrays(GL_LINES, 0, m.idxCount);
 	glBindVertexArray(0);
+	g_shaders.deactivate();
 }
 
 static void DrawPoints(const Mesh& m, const glm::mat4& mvp)
@@ -247,6 +198,7 @@ static void DrawPoints(const Mesh& m, const glm::mat4& mvp)
 	glPointSize(8.0f);
 	glDrawArrays(GL_POINTS, 0, m.idxCount);
 	glBindVertexArray(0);
+	g_shaders.deactivate();
 }
 
 // Update dynamic line buffer (controller ray)
@@ -306,14 +258,6 @@ static bool RayIntersectsRectangle(const glm::vec3& rayOrig, const glm::vec3& ra
 	return true;
 }
 
-// Get device poses
-static void GetPoses(std::vector<vr::TrackedDevicePose_t>& poses) __attribute__((unused));
-static void GetPoses(std::vector<vr::TrackedDevicePose_t>& poses)
-{
-	poses.resize(vr::k_unMaxTrackedDeviceCount);
-	vr::VRCompositor()->WaitGetPoses(poses.data(), static_cast<uint32_t>(poses.size()), nullptr, 0);
-}
-
 // Main
 int main()
 {
@@ -325,7 +269,7 @@ int main()
 	}
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	g_Window = glfwCreateWindow(1280, 720, "OpenVR Example", nullptr, nullptr);
+	g_Window = glfwCreateWindow(1280, 720, "Cine-VR", nullptr, nullptr);
 
 	if (!g_Window)
 	{
@@ -344,39 +288,11 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 
 	// Initialize OpenVR
-	vr::EVRInitError eError = vr::VRInitError_None;
-	g_VRSystem = vr::VR_Init(&eError, vr::VRApplication_Scene);
+	g_vr.init();
+	glm::uvec2 render_size = g_vr.render_target_size();
 
-	if (eError != vr::VRInitError_None)
-	{
-		PrintVRError("VR_Init failed", eError);
-		return -1;
-	}
-
-	// Ensure compositor present
-	if (!vr::VRCompositor())
-	{
-		std::cerr << "Compositor init failed\n";
-		// try to init compositor explicitly
-		g_VRCompositor = vr::VRCompositor();
-
-		if (!g_VRCompositor)
-		{
-			std::cerr << "Failed to get IVRCompositor\n";
-			vr::VR_Shutdown();
-			return -1;
-		}
-	}
-	else
-	{
-		g_VRCompositor = vr::VRCompositor();
-	}
-
-	// Get recommended render target size
-	uint32_t renderWidth = 0, renderHeight = 0;
-	g_VRSystem->GetRecommendedRenderTargetSize(&renderWidth, &renderHeight);
-	CreateFrameBuffer(static_cast<int>(renderWidth), static_cast<int>(renderHeight), leftEyeDesc);
-	CreateFrameBuffer(static_cast<int>(renderWidth), static_cast<int>(renderHeight), rightEyeDesc);
+	CreateFrameBuffer(static_cast<int>(render_size.x), static_cast<int>(render_size.y), leftEyeDesc);
+	CreateFrameBuffer(static_cast<int>(render_size.x), static_cast<int>(render_size.y), rightEyeDesc);
 
 	// create simple shader & geometry
 	g_shaders.load_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
@@ -403,17 +319,7 @@ int main()
 			break;
 		}
 
-		// Get poses (WaitGetPoses also updates compositor)
-		std::vector<vr::TrackedDevicePose_t> poses(vr::k_unMaxTrackedDeviceCount);
-		vr::VRCompositor()->WaitGetPoses(poses.data(), static_cast<uint32_t>(poses.size()), nullptr, 0);
-
-		// Get HMD pose
-		glm::mat4 hmdPose = glm::mat4(1.0f);
-
-		if (poses[vr::k_unTrackedDeviceIndex_Hmd].bPoseIsValid)
-		{
-			hmdPose = ConvertSteamVRMatrixToGLMMat(poses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking);
-		}
+		g_vr.read_poses();
 
 		// For each eye: render scene to texture
 		for (int eye = 0; eye < 2; ++eye)
@@ -426,9 +332,8 @@ int main()
 
 			// compute view/proj
 			vr::Hmd_Eye e = (eye == 0) ? vr::Eye_Left : vr::Eye_Right;
-			glm::mat4 proj = GetHMDProjection(e, 0.1f, 100.0f);
-			glm::mat4 eyeToHead = GetHMDEyeToHead(e);
-			glm::mat4 view = glm::inverse(hmdPose * eyeToHead);
+			glm::mat4 proj = g_vr.projection(e);
+			glm::mat4 view = g_vr.view(e);
 
 			// draw rectangle at position in front of HMD at (0,0,-2), rotated slightly
 			glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
@@ -437,20 +342,18 @@ int main()
 			DrawMesh(g_RectMesh, mvp);
 
 			// For each controller: render simple ray and do intersection with rectangle
-			for (vr::TrackedDeviceIndex_t dev = 0; dev < vr::k_unMaxTrackedDeviceCount; ++dev)
+			std::set<vr::TrackedDeviceIndex_t> devices = g_vr.devices();
+			for (std::set<vr::TrackedDeviceIndex_t>::const_iterator dev = devices.begin(); dev != devices.end(); ++dev)
 			{
-				if (!poses[dev].bPoseIsValid)
-				{
-					continue;
-				}
-				vr::ETrackedDeviceClass devClass = g_VRSystem->GetTrackedDeviceClass(dev);
+				vr::ETrackedDeviceClass devClass = g_vr.device_class(*dev);
 
 				if ((devClass != vr::TrackedDeviceClass_Controller) && (devClass != vr::TrackedDeviceClass_GenericTracker))
 				{
 					continue;
 				}
 
-				glm::mat4 devPose = ConvertSteamVRMatrixToGLMMat(poses[dev].mDeviceToAbsoluteTracking);
+				glm::mat4 devPose = g_vr.pose(*dev);
+
 				// controller ray: origin = device position, direction = forward -Z in device space transformed to world
 				glm::vec4 origin4 = devPose * glm::vec4(0, 0, 0, 1);
 				glm::vec4 forward4 = devPose * glm::vec4(0, 0, -1, 0);
@@ -478,20 +381,17 @@ int main()
 				}
 
 				// handle controller input: check trigger press
-				vr::VRControllerState_t state;
+				vr::VRControllerState_t state = g_vr.controller_state(*dev);
 
-				if (g_VRSystem->GetControllerState(dev, &state, sizeof(state)))
+				// typical trigger bit: analog in 'rAxis' or touch; we check trigger button press bit
+				bool triggerPressed = (state.ulButtonPressed & vr::ButtonMaskFromId(vr::k_EButton_SteamVR_Trigger)) != 0;
+
+				if (triggerPressed && hit)
 				{
-					// typical trigger bit: analog in 'rAxis' or touch; we check trigger button press bit
-					bool triggerPressed = (state.ulButtonPressed & vr::ButtonMaskFromId(vr::k_EButton_SteamVR_Trigger)) != 0;
-
-					if (triggerPressed && hit)
-					{
-						// hitLocal in rectangle local coords -> map to texture or 0..1 coords
-						float u = (hitLocal.x + 0.5f);
-						float v = (hitLocal.y + 0.5f);
-						std::cout << "Controller " << dev << " clicked rectangle at local coords (u,v)=(" << u << "," << v << ")\n";
-					}
+					// hitLocal in rectangle local coords -> map to texture or 0..1 coords
+					float u = (hitLocal.x + 0.5f);
+					float v = (hitLocal.y + 0.5f);
+					std::cout << "Controller " << *dev << " clicked rectangle at local coords (u,v)=(" << u << "," << v << ")\n";
 				}
 			}
 
@@ -499,22 +399,12 @@ int main()
 		} // eyes
 
 		// Submit textures to compositor
-		vr::Texture_t leftEyeTexture = {reinterpret_cast<void*>(static_cast<uintptr_t>(leftEyeDesc.m_nRenderTextureId)), vr::TextureType_OpenGL, vr::ColorSpace_Gamma};
-		vr::Texture_t rightEyeTexture = {reinterpret_cast<void*>(static_cast<uintptr_t>(rightEyeDesc.m_nRenderTextureId)), vr::TextureType_OpenGL, vr::ColorSpace_Gamma};
-		vr::EVRCompositorError compErr;
-		compErr = vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture);
-
-		if (compErr != 0)
-		{
-		}
-		compErr = vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture);
-
-		if (compErr != 0)
-		{
-		}
+		g_vr.submit(vr::Eye_Left, leftEyeDesc.m_nRenderTextureId);
+		g_vr.submit(vr::Eye_Right, rightEyeDesc.m_nRenderTextureId);
 
 		// blit left eye RT to GLFW window for debug
-		int w, h;
+		int w;
+		int h;
 		glfwGetFramebufferSize(g_Window, &w, &h);
 		glViewport(0, 0, w, h);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, leftEyeDesc.m_nRenderFramebufferId);
@@ -525,11 +415,10 @@ int main()
 		glfwSwapBuffers(g_Window);
 
 		// Let compositor run
-		vr::VRCompositor()->PostPresentHandoff();
+		g_vr.handoff();
 	}
 
 	// Cleanup
-	vr::VR_Shutdown();
 	glfwTerminate();
 	return 0;
 }

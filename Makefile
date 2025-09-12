@@ -7,12 +7,14 @@ DEPENDENCIES = "glfw3 openvr glew"
 
 include common/cplusplus.mk
 include common/license.mk
+include common/makefile.mk
 
 TARGET = cine-vr
 
 OBJECTS = \
 	$(BUILD_DIR)/main.o \
 	$(BUILD_DIR)/shader_set.o \
+	$(BUILD_DIR)/openvr_interface.o \
 
 all: $(TARGET)
 
