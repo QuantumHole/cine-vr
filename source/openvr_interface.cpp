@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 QuantumHole <QuantumHole@github.com>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "openvr_interface.h"
 #include <stdexcept>
 
