@@ -15,12 +15,19 @@ OBJECTS = \
 	$(BUILD_DIR)/main.o \
 	$(BUILD_DIR)/shader_set.o \
 	$(BUILD_DIR)/openvr_interface.o \
+	$(BUILD_DIR)/framebuffer.o \
+	$(BUILD_DIR)/enum_iterator.o \
 
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	@echo "[$(LD)] $@"
 	@$(CXX) $(LDFLAGS) -o $@ $^ -s $(LDLIBS)
+
+lint:
+	$(MAKE) format
+	-$(MAKE) license-annotate
+	$(MAKE) license-lint
 
 kill:
 	killall -9 vrserver vrcompositor vrdashboard $(TARGET)

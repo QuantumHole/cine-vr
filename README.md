@@ -21,3 +21,9 @@ and prints clicked coordinate on trigger rising edge.
 # Building
 
 `make clean && make -j all && ./cine-vr`
+
+# Contribution
+
+Before committing, please take care of source code format and proper license information.
+
+`make format && make license-annotate && make license-lint`

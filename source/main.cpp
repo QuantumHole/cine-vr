@@ -20,22 +20,17 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "opengl/shader_set.h"
+#include "opengl/framebuffer.h"
 #include "openvr_interface.h"
+#include "enum_iterator.h"
+
+typedef EnumIterator<vr::Hmd_Eye, vr::Eye_Left, vr::Eye_Right> Eyes;
 
 struct GLTexture
 {
 	GLuint tex;
 	int width;
 	int height;
-};
-
-struct FramebufferDesc
-{
-	GLuint m_nRenderFramebufferId;
-	GLuint m_nRenderTextureId;
-	GLuint m_nDepthBufferId;
-	int m_nRenderWidth;
-	int m_nRenderHeight;
 };
 
 // Render a rectangle (centered at origin, size 1x1 in XY plane)
@@ -56,39 +51,7 @@ static Mesh g_LineMesh;
 static Mesh g_PointMesh;
 static ShaderSet g_shaders;
 
-static FramebufferDesc leftEyeDesc;
-static FramebufferDesc rightEyeDesc;
-
-// Create framebuffer for eye
-static bool CreateFrameBuffer(int width, int height, FramebufferDesc& framebufferDesc)
-{
-	framebufferDesc.m_nRenderWidth = width;
-	framebufferDesc.m_nRenderHeight = height;
-	glGenFramebuffers(1, &framebufferDesc.m_nRenderFramebufferId);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebufferDesc.m_nRenderFramebufferId);
-
-	glGenTextures(1, &framebufferDesc.m_nRenderTextureId);
-	glBindTexture(GL_TEXTURE_2D, framebufferDesc.m_nRenderTextureId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, framebufferDesc.m_nRenderWidth, framebufferDesc.m_nRenderHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebufferDesc.m_nRenderTextureId, 0);
-
-	glGenRenderbuffers(1, &framebufferDesc.m_nDepthBufferId);
-	glBindRenderbuffer(GL_RENDERBUFFER, framebufferDesc.m_nDepthBufferId);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, framebufferDesc.m_nRenderWidth, framebufferDesc.m_nRenderHeight);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, framebufferDesc.m_nDepthBufferId);
-
-	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-
-	if (status != GL_FRAMEBUFFER_COMPLETE)
-	{
-		std::cerr << "Framebuffer incomplete: " << status << "\n";
-		return false;
-	}
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	return true;
-}
+static std::vector<Framebuffer> g_framebuffer(Eyes::size());
 
 static void CreateRectMesh()
 {
@@ -291,22 +254,16 @@ int main()
 	g_vr.init();
 	glm::uvec2 render_size = g_vr.render_target_size();
 
-	CreateFrameBuffer(static_cast<int>(render_size.x), static_cast<int>(render_size.y), leftEyeDesc);
-	CreateFrameBuffer(static_cast<int>(render_size.x), static_cast<int>(render_size.y), rightEyeDesc);
+	for (std::vector<Framebuffer>::iterator iter = g_framebuffer.begin(); iter != g_framebuffer.end(); ++iter)
+	{
+		iter->init(render_size);
+	}
 
 	// create simple shader & geometry
 	g_shaders.load_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
 	CreateRectMesh();
 	CreateLineMesh();
 	CreatePointMesh();
-
-	// Create screen quad program if needed (skipped, simple blit via textured quad not implemented)
-	// We'll blit the eye textures by rendering textured quads in the window (simpler path omitted to keep code concise)
-
-	// glm::mat4 projLeft = GetHMDProjection(vr::Eye_Left, 0.1f, 100.0f);
-	// glm::mat4 projRight = GetHMDProjection(vr::Eye_Right, 0.1f, 100.0f);
-	// glm::mat4 eyeLeft = GetHMDEyeToHead(vr::Eye_Left);
-	// glm::mat4 eyeRight = GetHMDEyeToHead(vr::Eye_Right);
 
 	// main loop
 	while (!glfwWindowShouldClose(g_Window) && g_Running)
@@ -322,18 +279,18 @@ int main()
 		g_vr.read_poses();
 
 		// For each eye: render scene to texture
-		for (int eye = 0; eye < 2; ++eye)
+		for (vr::Hmd_Eye eye : Eyes())
+		// for (vr::Hmd_Eye eye = Eyes.begin(); eye != Eyes.end(); eye++)
 		{
-			FramebufferDesc& fb = (eye == 0) ? leftEyeDesc : rightEyeDesc;
-			glBindFramebuffer(GL_FRAMEBUFFER, fb.m_nRenderFramebufferId);
-			glViewport(0, 0, fb.m_nRenderWidth, fb.m_nRenderHeight);
+			Framebuffer& fb = g_framebuffer[eye];
+			fb.bind(GL_FRAMEBUFFER);
+			glViewport(0, 0, static_cast<GLsizei>(fb.size().x), static_cast<GLsizei>(fb.size().y));
 			glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			// compute view/proj
-			vr::Hmd_Eye e = (eye == 0) ? vr::Eye_Left : vr::Eye_Right;
-			glm::mat4 proj = g_vr.projection(e);
-			glm::mat4 view = g_vr.view(e);
+			glm::mat4 proj = g_vr.projection(eye);
+			glm::mat4 view = g_vr.view(eye);
 
 			// draw rectangle at position in front of HMD at (0,0,-2), rotated slightly
 			glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
@@ -395,22 +352,25 @@ int main()
 				}
 			}
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			fb.unbind(GL_FRAMEBUFFER);
 		} // eyes
 
 		// Submit textures to compositor
-		g_vr.submit(vr::Eye_Left, leftEyeDesc.m_nRenderTextureId);
-		g_vr.submit(vr::Eye_Right, rightEyeDesc.m_nRenderTextureId);
+		for (vr::Hmd_Eye eye : Eyes())
+		{
+			g_vr.submit(eye, g_framebuffer[eye].texture());
+		}
 
 		// blit left eye RT to GLFW window for debug
 		int w;
 		int h;
 		glfwGetFramebufferSize(g_Window, &w, &h);
 		glViewport(0, 0, w, h);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, leftEyeDesc.m_nRenderFramebufferId);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glBlitFramebuffer(0, 0, leftEyeDesc.m_nRenderWidth, leftEyeDesc.m_nRenderHeight, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		Framebuffer& fb = *g_framebuffer.begin();
+		fb.bind(GL_READ_FRAMEBUFFER);
+		fb.unbind(GL_DRAW_FRAMEBUFFER);
+		glBlitFramebuffer(0, 0, fb.size().x, fb.size().y, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		fb.unbind(GL_READ_FRAMEBUFFER);
 
 		glfwSwapBuffers(g_Window);
 
