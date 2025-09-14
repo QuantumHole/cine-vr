@@ -26,12 +26,18 @@
 
 typedef EnumIterator<vr::Hmd_Eye, vr::Eye_Left, vr::Eye_Right> Eyes;
 
-struct GLTexture
+typedef struct
 {
-	GLuint tex;
-	int width;
-	int height;
-};
+	glm::vec3 origin;
+	glm::vec3 direction;
+} ray_t;
+
+typedef struct
+{
+	bool hit;
+	glm::vec3 global;
+	glm::vec2 local;    // texture coordinates
+} intersection_t;
 
 // Render a rectangle (centered at origin, size 1x1 in XY plane)
 struct Mesh
@@ -56,7 +62,8 @@ static std::vector<Framebuffer> g_framebuffer(Eyes::size());
 static void CreateRectMesh()
 {
 	// positions: rectangle in XY plane centered at 0, z=0
-	float hw = 0.5f, hh = 0.5f;
+	float hw = 0.5f;
+	float hh = 0.5f;
 	struct V
 	{
 		float x, y, z;
@@ -197,28 +204,54 @@ static void UpdatePointBuffer(const glm::vec3& a, const glm::vec3& color)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-// Ray-plane intersection: plane z=0 in rectangle local space (rect centered at origin, size +/-0.5)
-static bool RayIntersectsRectangle(const glm::vec3& rayOrig, const glm::vec3& rayDir, glm::vec3& outHitLocal)
+static ray_t PointingDirection(const glm::mat4& pose)
 {
+	ray_t ray;
+
+	// controller ray: origin = device position, direction = forward -Z in device space transformed to world
+	ray.origin = glm::vec3(pose * glm::vec4(0, 0, 0, 1));
+	ray.direction = glm::normalize(glm::vec3(pose * glm::vec4(0, 0, -1, 0)));
+
+	return ray;
+}
+
+static intersection_t ControllerRectangleIntersection(const ray_t& ray, const glm::mat4& model)
+{
+	intersection_t isec = {false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
+
+	// Transform ray into rectangle local space.
+	// Afterwards, collision can be checked by intersection with the x/y plane at z=0.
+	glm::mat4 modelInv = glm::inverse(model);
+	ray_t local = {
+		glm::vec3(modelInv * glm::vec4(ray.origin, 1.0f)),
+		glm::normalize(glm::vec3(modelInv * glm::vec4(ray.direction, 0.0f))) // ignore offset/translation with 0.0
+	};
+
+	// Ray-plane intersection: plane z=0 in rectangle local space (rect centered at origin, size +/-0.5)
 	// rectangle in local coordinates lies on plane z=0
-	if (fabsf(rayDir.z) < 1e-6f)
-	{
-		return false;
-	}
-	float t = -rayOrig.z / rayDir.z;
 
-	if (t < 0)
+	// ray parallel to z=0 plane.
+	if (fabsf(local.direction.z) < std::numeric_limits<float>::epsilon())
 	{
-		return false;
+		return isec;
 	}
-	glm::vec3 p = rayOrig + t * rayDir;
 
-	if ((p.x < -0.5f) || (p.x > 0.5f) || (p.y < -0.5f) || (p.y > 0.5f))
-	{
-		return false;
-	}
-	outHitLocal = p;
-	return true;
+	const float t = -local.origin.z / local.direction.z;
+
+	// point of intersection in local coordinates
+	// check if it lies within the object boundaries
+	const glm::vec2 size(1.0f, 1.0f);
+	isec.global = local.origin + t * local.direction;
+	isec.local = (glm::vec2(isec.global) + 0.5f * size) / size;
+
+	isec.hit = ((t > 0) &&   // target plane must be in positive direction
+		(isec.global.x >= -0.5f * size.x) && (isec.global.x <= 0.5f * size.x) &&
+		(isec.global.y >= -0.5f * size.y) && (isec.global.y <= 0.5f * size.y));
+
+	// transform back into global coordinate system
+	isec.global = glm::vec3(model * glm::vec4(isec.global, 1.0f));
+
+	return isec;
 }
 
 // Main
@@ -227,7 +260,7 @@ int main()
 	// GLFW init
 	if (!glfwInit())
 	{
-		std::cerr << "GLFW init failed\n";
+		std::cerr << "GLFW init failed" << std::endl;
 		return -1;
 	}
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -236,7 +269,7 @@ int main()
 
 	if (!g_Window)
 	{
-		std::cerr << "Failed to create window\n";
+		std::cerr << "Failed to create window" << std::endl;
 		glfwTerminate();
 		return -1;
 	}
@@ -245,7 +278,7 @@ int main()
 
 	if (glewInit() != GLEW_OK)
 	{
-		std::cerr << "GLEW init failed\n";
+		std::cerr << "GLEW init failed" << std::endl;
 		return -1;
 	}
 	glEnable(GL_DEPTH_TEST);
@@ -295,6 +328,7 @@ int main()
 			// draw rectangle at position in front of HMD at (0,0,-2), rotated slightly
 			glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
 			model = glm::rotate(model, glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			model = glm::translate(model, glm::vec3(-2.0f, 1.0f, -1.0f));
 			glm::mat4 mvp = proj * view * model;
 			DrawMesh(g_RectMesh, mvp);
 
@@ -309,32 +343,20 @@ int main()
 					continue;
 				}
 
-				glm::mat4 devPose = g_vr.pose(*dev);
-
-				// controller ray: origin = device position, direction = forward -Z in device space transformed to world
-				glm::vec4 origin4 = devPose * glm::vec4(0, 0, 0, 1);
-				glm::vec4 forward4 = devPose * glm::vec4(0, 0, -1, 0);
-				glm::vec3 origin = glm::vec3(origin4);
-				glm::vec3 forward = glm::normalize(glm::vec3(forward4));
-
-				// Transform ray into rectangle local space:
-				glm::mat4 modelInv = glm::inverse(model);
-				glm::vec3 rayOrigLocal = glm::vec3(modelInv * glm::vec4(origin, 1.0f));
-				glm::vec3 rayDirLocal = glm::normalize(glm::vec3(modelInv * glm::vec4(origin + forward, 1.0f) - glm::vec4(rayOrigLocal, 1.0f)));
-
-				glm::vec3 hitLocal;
-				bool hit = RayIntersectsRectangle(rayOrigLocal, rayDirLocal, hitLocal);
+				const glm::mat4 devPose = g_vr.pose(*dev);
+				const ray_t devRay = PointingDirection(devPose);
+				const intersection_t isec = ControllerRectangleIntersection(devRay, model);
 
 				// draw ray (in world space)
-				UpdateLineBuffer(origin, origin + forward * 5.0f, glm::vec3(0.1f, 0.9f, 0.1f));
+				UpdateLineBuffer(devRay.origin, devRay.origin + devRay.direction * 5.0f, glm::vec3(0.1f, 0.9f, 0.1f));
 				glm::mat4 mvpLine = proj * view * glm::mat4(1.0f);
 				DrawLines(g_LineMesh, mvpLine);
 
 				// draw point on panel
-				if (hit)
+				if (isec.hit)
 				{
-					UpdatePointBuffer(hitLocal, glm::vec3(0.2f, 1.0f, 0.2f));
-					DrawPoints(g_PointMesh, mvp);
+					UpdatePointBuffer(isec.global, glm::vec3(0.2f, 1.0f, 0.2f));
+					DrawPoints(g_PointMesh, mvpLine);
 				}
 
 				// handle controller input: check trigger press
@@ -343,12 +365,10 @@ int main()
 				// typical trigger bit: analog in 'rAxis' or touch; we check trigger button press bit
 				bool triggerPressed = (state.ulButtonPressed & vr::ButtonMaskFromId(vr::k_EButton_SteamVR_Trigger)) != 0;
 
-				if (triggerPressed && hit)
+				if (triggerPressed && isec.hit)
 				{
-					// hitLocal in rectangle local coords -> map to texture or 0..1 coords
-					float u = (hitLocal.x + 0.5f);
-					float v = (hitLocal.y + 0.5f);
-					std::cout << "Controller " << *dev << " clicked rectangle at local coords (u,v)=(" << u << "," << v << ")\n";
+					// hit in rectangle local coords mapped to texture or 0..1 coords
+					std::cout << "Controller " << *dev << " clicked rectangle at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
 				}
 			}
 
