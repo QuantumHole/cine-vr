@@ -23,6 +23,7 @@
 #include "opengl/framebuffer.h"
 #include "openvr_interface.h"
 #include "enum_iterator.h"
+#include "opengl/shape.h"
 
 typedef EnumIterator<vr::Hmd_Eye, vr::Eye_Left, vr::Eye_Right> Eyes;
 
@@ -30,88 +31,76 @@ typedef struct
 {
 	glm::vec3 origin;
 	glm::vec3 direction;
-} ray_t;
+}
+ray_t;
 
 typedef struct
 {
 	bool hit;
 	glm::vec3 global;
 	glm::vec2 local;    // texture coordinates
-} intersection_t;
+}
+intersection_t;
 
 // Render a rectangle (centered at origin, size 1x1 in XY plane)
-struct Mesh
+typedef struct
 {
-	GLuint vao = 0;
-	GLuint vbo = 0;
-	GLuint ebo = 0;
-	int idxCount = 0;
-};
+	GLuint vao;
+	GLuint vbo;
+	GLuint ebo;
+	int idxCount;
+}
+mesh_t;
 
 static bool g_Running = true;
 static GLFWwindow* g_Window = nullptr;
 static OpenVRInterface g_vr;
-
-static Mesh g_RectMesh;
-static Mesh g_LineMesh;
-static Mesh g_PointMesh;
 static ShaderSet g_shaders;
+static Shape g_shape_rect;
+static Shape g_shape_line;
+static Shape g_shape_point;
+
+static mesh_t g_LineMesh;
+static mesh_t g_PointMesh;
 
 static std::vector<Framebuffer> g_framebuffer(Eyes::size());
 
 static void CreateRectMesh()
 {
 	// positions: rectangle in XY plane centered at 0, z=0
-	float hw = 0.5f;
-	float hh = 0.5f;
-	struct V
-	{
-		float x, y, z;
-		float r, g, b;
-	};
-	std::vector<V> verts = {
-		{-hw, -hh, 0.0f, 0.8f, 0.2f, 0.2f},
-		{ hw, -hh, 0.0f, 0.2f, 0.8f, 0.2f},
-		{ hw, hh, 0.0f, 0.2f, 0.2f, 0.8f},
-		{-hw, hh, 0.0f, 0.8f, 0.8f, 0.2f}
-	};
-	std::vector<GLuint> idx = {0, 1, 2, 2, 3, 0};
+	glm::vec2 size(1.0f, 1.0f);
 
-	glGenVertexArrays(1, &g_RectMesh.vao);
-	glBindVertexArray(g_RectMesh.vao);
-	glGenBuffers(1, &g_RectMesh.vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, g_RectMesh.vbo);
-	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(V), verts.data(), GL_STATIC_DRAW);
-	glGenBuffers(1, &g_RectMesh.ebo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_RectMesh.ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx.size() * sizeof(GLuint), idx.data(), GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0); // pos
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(V), nullptr);
-	glEnableVertexAttribArray(1); // color
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(V), reinterpret_cast<void*>(3 * sizeof(float)));
-	g_RectMesh.idxCount = static_cast<int>(idx.size());
-	glBindVertexArray(0);
+	const std::vector<Vertex> vertices = {
+		Vertex(glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.8f, 0.2f, 0.2f),   glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3( 0.5f * size.x,  0.5f * size.y, 0.0), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.2f, 0.8f, 0.2f),   glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.5f * size.x,  0.5f * size.y, 0.0), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.2f, 0.2f, 0.8f),   glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3( 0.5f * size.x, -0.5f * size.y, 0.0), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.8f, 0.8f, 0.2f),   glm::vec2(1.0f, 1.0f)),
+	};
+
+	const std::vector<GLuint> indices = {
+		0, 1, 2,
+		0, 3, 1,
+	};
+
+	g_shape_rect.init_vertices(vertices, indices);
 }
 
 static void CreateLineMesh()
 {
 	// simple line with two vertices, will update dynamically
-	struct LV
-	{
-		float x, y, z;
-		float r, g, b;
-	};
-	std::vector<LV> verts(2);
+	std::vector<Vertex> verts(2);
 
 	glGenVertexArrays(1, &g_LineMesh.vao);
 	glBindVertexArray(g_LineMesh.vao);
 	glGenBuffers(1, &g_LineMesh.vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, g_LineMesh.vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(LV) * 2, nullptr, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * 2, nullptr, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(LV), nullptr);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(LV), reinterpret_cast<void*>(3 * sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(3 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(6 * sizeof(float)));
 	g_LineMesh.idxCount = 2;
 	glBindVertexArray(0);
 }
@@ -119,38 +108,42 @@ static void CreateLineMesh()
 static void CreatePointMesh()
 {
 	// simple line with two vertices, will update dynamically
-	struct PV
-	{
-		float x, y, z;
-		float r, g, b;
-	};
-	std::vector<PV> verts(1);
+	std::vector<Vertex> verts(1);
 
 	glGenVertexArrays(1, &g_PointMesh.vao);
 	glBindVertexArray(g_PointMesh.vao);
 	glGenBuffers(1, &g_PointMesh.vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, g_PointMesh.vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(PV), nullptr, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(PV), nullptr);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(PV), reinterpret_cast<void*>(3 * sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(3 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(6 * sizeof(float)));
 	g_PointMesh.idxCount = 1;
 	glBindVertexArray(0);
 }
 
 // Draw helpers
-static void DrawMesh(const Mesh& m, const glm::mat4& mvp)
+static void DrawMesh(const glm::mat4& projview, const glm::mat4& model)
 {
 	g_shaders.activate();
-	g_shaders.set_uniform("u_mvp", mvp);
-	glBindVertexArray(m.vao);
-	glDrawElements(GL_TRIANGLES, m.idxCount, GL_UNSIGNED_INT, nullptr);
-	glBindVertexArray(0);
+	g_shaders.set_uniform("u_mvp", projview * model);
+
+	// g_shaders.set_uniform("view", projview);
+	// g_shaders.set_uniform("texture_offset", glm::vec2(0.0f, 0.0f));
+	// g_shaders.set_uniform("texture_scale", glm::vec2(1.0f, 1.0f));
+	// g_shaders.set_uniform("cursor_location", glm::vec2(0.0f, 0.0f));
+	// g_shaders.set_uniform("arrow_size", glm::vec2(1.0f, 1.0f));
+	// g_shaders.set_uniform("diffuse0", 0);
+	// g_shaders.set_uniform("arrow_texture", 1);
+
+	g_shape_rect.draw();
 	g_shaders.deactivate();
 }
 
-static void DrawLines(const Mesh& m, const glm::mat4& mvp)
+static void DrawLines(const mesh_t& m, const glm::mat4& mvp)
 {
 	g_shaders.activate();
 	g_shaders.set_uniform("u_mvp", mvp);
@@ -160,7 +153,7 @@ static void DrawLines(const Mesh& m, const glm::mat4& mvp)
 	g_shaders.deactivate();
 }
 
-static void DrawPoints(const Mesh& m, const glm::mat4& mvp)
+static void DrawPoints(const mesh_t& m, const glm::mat4& mvp)
 {
 	g_shaders.activate();
 	g_shaders.set_uniform("u_mvp", mvp);
@@ -174,33 +167,23 @@ static void DrawPoints(const Mesh& m, const glm::mat4& mvp)
 // Update dynamic line buffer (controller ray)
 static void UpdateLineBuffer(const glm::vec3& a, const glm::vec3& b, const glm::vec3& color)
 {
-	struct LV
-	{
-		float x, y, z;
-		float r, g, b;
+	std::vector<Vertex> vert = {
+		Vertex(a, glm::vec3(0.0f, 0.0f, 0.0f), color, glm::vec2(0.0f, 0.0f)),
+		Vertex(b, glm::vec3(0.0f, 0.0f, 0.0f), color, glm::vec2(0.0f, 0.0f))
 	};
-	LV d[2];
 
-	d[0] = {a.x, a.y, a.z, color.r, color.g, color.b};
-	d[1] = {b.x, b.y, b.z, color.r, color.g, color.b};
 	glBindBuffer(GL_ARRAY_BUFFER, g_LineMesh.vbo);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(d), d);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, vert.size() * sizeof(Vertex), vert.data());
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 // Update dynamic point buffer (controller plane intersection)
 static void UpdatePointBuffer(const glm::vec3& a, const glm::vec3& color)
 {
-	struct PV
-	{
-		float x, y, z;
-		float r, g, b;
-	};
-	PV d[1];
+	Vertex vert(a, glm::vec3(0.0f, 0.0f, 0.0f), color, glm::vec2(0.0f, 0.0f));
 
-	d[0] = {a.x, a.y, a.z, color.r, color.g, color.b};
 	glBindBuffer(GL_ARRAY_BUFFER, g_PointMesh.vbo);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(d), d);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex), &vert);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
@@ -245,8 +228,8 @@ static intersection_t ControllerRectangleIntersection(const ray_t& ray, const gl
 	isec.local = (glm::vec2(isec.global) + 0.5f * size) / size;
 
 	isec.hit = ((t > 0) &&   // target plane must be in positive direction
-		(isec.global.x >= -0.5f * size.x) && (isec.global.x <= 0.5f * size.x) &&
-		(isec.global.y >= -0.5f * size.y) && (isec.global.y <= 0.5f * size.y));
+	            (isec.global.x >= -0.5f * size.x) && (isec.global.x <= 0.5f * size.x) &&
+	            (isec.global.y >= -0.5f * size.y) && (isec.global.y <= 0.5f * size.y));
 
 	// transform back into global coordinate system
 	isec.global = glm::vec3(model * glm::vec4(isec.global, 1.0f));
@@ -313,7 +296,6 @@ int main()
 
 		// For each eye: render scene to texture
 		for (vr::Hmd_Eye eye : Eyes())
-		// for (vr::Hmd_Eye eye = Eyes.begin(); eye != Eyes.end(); eye++)
 		{
 			Framebuffer& fb = g_framebuffer[eye];
 			fb.bind(GL_FRAMEBUFFER);
@@ -329,8 +311,9 @@ int main()
 			glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
 			model = glm::rotate(model, glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			model = glm::translate(model, glm::vec3(-2.0f, 1.0f, -1.0f));
-			glm::mat4 mvp = proj * view * model;
-			DrawMesh(g_RectMesh, mvp);
+			g_shape_rect.set_transform(model);
+
+			DrawMesh(proj * view, model);
 
 			// For each controller: render simple ray and do intersection with rectangle
 			std::set<vr::TrackedDeviceIndex_t> devices = g_vr.devices();

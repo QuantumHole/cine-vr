@@ -17,6 +17,11 @@ OBJECTS = \
 	$(BUILD_DIR)/openvr_interface.o \
 	$(BUILD_DIR)/framebuffer.o \
 	$(BUILD_DIR)/enum_iterator.o \
+    $(BUILD_DIR)/ebo.o \
+    $(BUILD_DIR)/vao.o \
+    $(BUILD_DIR)/vbo.o \
+    $(BUILD_DIR)/vertex.o \
+    $(BUILD_DIR)/shape.o \
 
 all: $(TARGET)
 
