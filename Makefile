@@ -22,6 +22,7 @@ OBJECTS = \
     $(BUILD_DIR)/vbo.o \
     $(BUILD_DIR)/vertex.o \
     $(BUILD_DIR)/shape.o \
+    $(BUILD_DIR)/button.o \
 
 all: $(TARGET)
 

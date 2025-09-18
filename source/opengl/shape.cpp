@@ -19,6 +19,27 @@ Shape::Shape(void) :
 {
 }
 
+Shape::Shape(const Shape& s) :
+	m_vao(s.m_vao),
+	m_vbo(s.m_vbo),
+	m_ebo(s.m_ebo),
+	m_vbo_instances(s.m_vbo_instances),
+	m_instances(s.m_instances),
+	m_shape_type(s.m_shape_type)
+{
+}
+
+Shape& Shape::operator=(const Shape& s)
+{
+	m_vao = s.m_vao;
+	m_vbo = s.m_vbo;
+	m_ebo = s.m_ebo;
+	m_vbo_instances = s.m_vbo_instances;
+	m_instances = s.m_instances;
+	m_shape_type = s.m_shape_type;
+	return *this;
+}
+
 Shape::~Shape(void)
 {
 	remove();

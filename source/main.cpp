@@ -24,58 +24,50 @@
 #include "openvr_interface.h"
 #include "enum_iterator.h"
 #include "opengl/shape.h"
+#include "button.h"
 
 typedef EnumIterator<vr::Hmd_Eye, vr::Eye_Left, vr::Eye_Right> Eyes;
-
-typedef struct
-{
-	glm::vec3 origin;
-	glm::vec3 direction;
-}
-ray_t;
-
-typedef struct
-{
-	bool hit;
-	glm::vec3 global;
-	glm::vec2 local;    // texture coordinates
-}
-intersection_t;
 
 static bool g_Running = true;
 static GLFWwindow* g_Window = nullptr;
 static OpenVRInterface g_vr;
 static ShaderSet g_shaders;
-static Shape g_shape_rect;
+static std::vector<Button> g_button;
 static Shape g_shape_line;
 static Shape g_shape_point;
 static std::vector<Framebuffer> g_framebuffer(Eyes::size());
 
-static void CreateRectMesh(const glm::vec2& size, const glm::mat4& model)
+static void CreateRectMesh(const glm::vec2& size, const size_t num)
 {
-	// positions: rectangle in XY plane centered at 0, z=0
-	const std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.8f, 0.2f, 0.2f),   glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3( 0.5f * size.x,  0.5f * size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.2f, 0.8f, 0.2f),   glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.5f * size.x,  0.5f * size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.2f, 0.2f, 0.8f),   glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3( 0.5f * size.x, -0.5f * size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.8f, 0.8f, 0.2f),   glm::vec2(1.0f, 1.0f)),
-	};
+	const float range = 0.5f * glm::pi<float>();
+	const float step = range / static_cast<float>(num);
 
-	const std::vector<GLuint> indices = {
-		0, 1, 2,
-		0, 3, 1,
-	};
+	g_vr.read_poses();
+	const glm::mat4 hmdPose = g_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
 
-	g_shape_rect.init_vertices(vertices, indices, GL_TRIANGLES);
-	g_shape_rect.set_transform(model);
+	g_button.resize(num);
+	float angle = 0.5f * step - 0.5f * range;
+	for (std::vector<Button>::iterator iter = g_button.begin(); iter != g_button.end(); ++iter)
+	{
+		glm::mat4 pose = glm::mat4(1.0f);
+		pose = glm::rotate(pose, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+		pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
+		pose = glm::rotate(pose, -0.2f * glm::pi<float>(), glm::vec3(0.1f, 0.0f, 0.0f));   // tilt panels
+		pose = hmdPose * pose;
+
+		iter->init(size);
+		iter->set_transform(pose);
+
+		angle += step;
+	}
 }
 
 static void CreateLineMesh()
 {
 	// simple line with two vertices, will update dynamically
 	std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(0.0f, 0.0f,  0.0f), glm::vec3(0.0f, 0.0f,  1.0f), glm::vec3(0.1f, 0.9f, 0.1f),   glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.1f, 0.9f, 0.1f),   glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.1f, 0.9f, 0.1f), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.1f, 0.9f, 0.1f), glm::vec2(0.0f, 0.0f)),
 	};
 
 	const std::vector<GLuint> indices = {
@@ -89,7 +81,7 @@ static void CreatePointMesh()
 {
 	// simple line with two vertices, will update dynamically
 	std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 1.0f, 0.2f),   glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 1.0f, 0.2f), glm::vec2(0.0f, 0.0f)),
 	};
 	const std::vector<GLuint> indices = {
 		0,
@@ -113,55 +105,6 @@ static void DrawMesh(Shape& shape, const glm::mat4& projview)
 
 	shape.draw();
 	g_shaders.deactivate();
-}
-
-static ray_t PointingDirection(const glm::mat4& pose)
-{
-	ray_t ray;
-
-	// controller ray: origin = device position, direction = forward -Z in device space transformed to world
-	ray.origin = glm::vec3(pose * glm::vec4(0, 0, 0, 1));
-	ray.direction = glm::normalize(glm::vec3(pose * glm::vec4(0, 0, -1, 0)));
-
-	return ray;
-}
-
-static intersection_t ControllerRectangleIntersection(const ray_t& ray, const glm::mat4& model, const glm::vec2& size)
-{
-	intersection_t isec = {false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
-
-	// Transform ray into rectangle local space.
-	// Afterwards, collision can be checked by intersection with the x/y plane at z=0.
-	glm::mat4 modelInv = glm::inverse(model);
-	ray_t local = {
-		glm::vec3(modelInv * glm::vec4(ray.origin, 1.0f)),
-		glm::normalize(glm::vec3(modelInv * glm::vec4(ray.direction, 0.0f))) // ignore offset/translation with 0.0
-	};
-
-	// Ray-plane intersection: plane z=0 in rectangle local space (rect centered at origin, size +/-0.5)
-	// rectangle in local coordinates lies on plane z=0
-
-	// ray parallel to z=0 plane.
-	if (fabsf(local.direction.z) < std::numeric_limits<float>::epsilon())
-	{
-		return isec;
-	}
-
-	const float t = -local.origin.z / local.direction.z;
-
-	// point of intersection in local coordinates
-	// check if it lies within the object boundaries
-	isec.global = local.origin + t * local.direction;
-	isec.local = (glm::vec2(isec.global) + 0.5f * size) / size;
-
-	isec.hit = ((t > 0) &&   // target plane must be in positive direction
-	            (isec.global.x >= -0.5f * size.x) && (isec.global.x <= 0.5f * size.x) &&
-	            (isec.global.y >= -0.5f * size.y) && (isec.global.y <= 0.5f * size.y));
-
-	// transform back into global coordinate system
-	isec.global = glm::vec3(model * glm::vec4(isec.global, 1.0f));
-
-	return isec;
 }
 
 // Main
@@ -209,9 +152,9 @@ int main()
 	const glm::vec2 panel_size(1.0f, 1.0f);
 	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
 	model = glm::rotate(model, glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	model = glm::translate(model, glm::vec3(-2.0f, 1.0f, -1.0f));
+	model = glm::translate(model, glm::vec3(-3.0f, 1.5f, 0.0f));
 
-	CreateRectMesh(panel_size, model);
+	CreateRectMesh(panel_size, 5);
 	CreateLineMesh();
 	CreatePointMesh();
 
@@ -242,7 +185,13 @@ int main()
 			glm::mat4 proj = g_vr.projection(eye);
 			glm::mat4 view = g_vr.view(eye);
 
-			DrawMesh(g_shape_rect, proj * view);
+			g_shaders.activate();
+			g_shaders.set_uniform("projview", proj * view);
+			for (std::vector<Button>::iterator iter = g_button.begin(); iter != g_button.end(); ++iter)
+			{
+				iter->draw();
+			}
+			g_shaders.deactivate();
 
 			// For each controller: render simple ray and do intersection with rectangle
 			std::set<vr::TrackedDeviceIndex_t> devices = g_vr.devices();
@@ -259,27 +208,29 @@ int main()
 				g_shape_line.set_transform(devPose);
 				DrawMesh(g_shape_line, proj * view);
 
-				const ray_t devRay = PointingDirection(devPose);
-				const intersection_t isec = ControllerRectangleIntersection(devRay, model, panel_size);
-
-				// draw point on panel
-				if (isec.hit)
-				{
-					const glm::mat4 popo = glm::translate(glm::mat4(1.0f), isec.global);
-					g_shape_point.set_transform(popo);
-					DrawMesh(g_shape_point, proj * view);
-				}
-
 				// handle controller input: check trigger press
 				vr::VRControllerState_t state = g_vr.controller_state(*dev);
 
 				// typical trigger bit: analog in 'rAxis' or touch; we check trigger button press bit
 				bool triggerPressed = (state.ulButtonPressed & vr::ButtonMaskFromId(vr::k_EButton_SteamVR_Trigger)) != 0;
 
-				if (triggerPressed && isec.hit)
+				for (std::vector<Button>::iterator iter = g_button.begin(); iter != g_button.end(); ++iter)
 				{
-					// hit in rectangle local coords mapped to texture or 0..1 coords
-					std::cout << "Controller " << *dev << " clicked rectangle at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
+					const Button::intersection_t isec = iter->intersection(devPose);
+
+					// draw point on panel
+					if (isec.hit)
+					{
+						const glm::mat4 popo = glm::translate(glm::mat4(1.0f), isec.global);
+						g_shape_point.set_transform(popo);
+						DrawMesh(g_shape_point, proj * view);
+					}
+
+					if (triggerPressed && isec.hit)
+					{
+						// hit in rectangle local coords mapped to texture or 0..1 coords
+						std::cout << "Controller " << *dev << " clicked button at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
+					}
 				}
 			}
 

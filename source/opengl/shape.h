@@ -24,6 +24,8 @@ class Shape
 
 	public:
 		explicit Shape(void);
+		Shape(const Shape&);
+		Shape& operator=(const Shape&);
 		virtual ~Shape(void);
 
 		void set_instances(const size_t instances);
