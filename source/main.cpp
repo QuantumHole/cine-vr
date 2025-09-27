@@ -221,6 +221,7 @@ int main(void)
 
 			g_shaders.activate();
 			g_shaders.set_uniform("projview", proj * view);
+			g_shaders.set_uniform("diffuse0", 0);
 			for (std::vector<Button>::iterator iter = g_button.begin(); iter != g_button.end(); ++iter)
 			{
 				iter->shape().draw();
