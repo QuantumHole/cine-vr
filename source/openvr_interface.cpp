@@ -97,6 +97,24 @@ std::set<vr::TrackedDeviceIndex_t> OpenVRInterface::devices(void) const
 	return devices;
 }
 
+std::string OpenVRInterface::name(const vr::TrackedDeviceIndex_t device) const
+{
+	uint32_t unRequiredBufferLen = vr::VRSystem()->GetStringTrackedDeviceProperty(device, vr::Prop_RenderModelName_String, nullptr, 0, nullptr);
+
+	if (unRequiredBufferLen == 0)
+	{
+		return "";
+	}
+
+	char* pchBuffer = new char[ unRequiredBufferLen ];
+
+	unRequiredBufferLen = vr::VRSystem()->GetStringTrackedDeviceProperty(device, vr::Prop_RenderModelName_String, pchBuffer, unRequiredBufferLen, nullptr);
+	std::string name = pchBuffer;
+
+	delete [] pchBuffer;
+	return name;
+}
+
 glm::mat4 OpenVRInterface::projection(const vr::Hmd_Eye eye) const
 {
 	vr::HmdMatrix44_t proj = m_system->GetProjectionMatrix(eye, m_clip_near, m_clip_far);

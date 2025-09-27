@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 QuantumHole <QuantumHole@github.com>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "id.h"
 
 ID* ID::m_instance = nullptr;
@@ -11,6 +15,7 @@ ID::ID(void) :
 size_t ID::unique_id(void)
 {
 	const std::lock_guard<std::mutex> lock(m_mutex);
+
 	if (m_instance == nullptr)
 	{
 		m_instance = new ID();

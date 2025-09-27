@@ -47,13 +47,13 @@ static void CreateRectMesh(const glm::vec2& size, const size_t num)
 	g_vr.read_poses();
 	const glm::mat4 hmdPose = g_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
 
-	g_button.resize(num);
+	g_button.resize(num + 1);
 	float angle = 0.5f * step - 0.5f * range;
 	for (std::vector<Button>::iterator iter = g_button.begin(); iter != g_button.end(); ++iter)
 	{
 		glm::mat4 pose = glm::mat4(1.0f);
 		pose = glm::rotate(pose, angle, glm::vec3(0.0f, 1.0f, 0.0f));
-		pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, (fabsf(angle) > 0.0f) ? -5.0f : -3.0f));
+		pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 		pose = glm::rotate(pose, -0.2f * glm::pi<float>(), glm::vec3(0.1f, 0.0f, 0.0f));   // tilt panels
 		pose = hmdPose * pose;
 
@@ -62,6 +62,13 @@ static void CreateRectMesh(const glm::vec2& size, const size_t num)
 
 		angle += step;
 	}
+
+	glm::mat4 pose = glm::mat4(1.0f);
+	pose = glm::rotate(pose, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -3.0f));
+	pose = glm::rotate(pose, -0.2f * glm::pi<float>(), glm::vec3(0.1f, 0.0f, 0.0f));   // tilt panels
+	pose = hmdPose * pose;
+	g_button[num].set_transform(pose);
 }
 
 static void CreatePointMesh(void)
@@ -153,11 +160,14 @@ int main(void)
 			}
 
 			std::map<vr::TrackedDeviceIndex_t, Controller>::iterator control = g_controller.find(*dev);
+
 			if (control == g_controller.end())
 			{
 				std::pair<const vr::TrackedDeviceIndex_t, Controller> p(*dev, Controller());
 				control = g_controller.insert(p).first;
-				control->second.init();
+
+				const std::string name = g_vr.name(*dev);
+				control->second.init(name);
 			}
 
 			const glm::mat4 devPose = g_vr.pose(*dev);
@@ -180,8 +190,9 @@ int main(void)
 				// draw point on panel
 				if (isec.hit)
 				{
+					// std::cout << "panel hit at (" << isec.global.x << ", " << isec.global.y << ", " << isec.global.z << ")" << std::endl;
 					const size_t num_points = g_points.instances();
-					g_points.set_instances(num_points+1);
+					g_points.set_instances(num_points + 1);
 					const glm::mat4 popo = glm::translate(glm::mat4(1.0f), isec.global);
 					g_points.set_transform(popo, num_points);
 				}

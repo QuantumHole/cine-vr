@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 PROJECT_ROOT := .
-DEPENDENCIES = "glfw3 openvr glew"
+DEPENDENCIES = "glfw3 openvr glew libpng libjpeg"
 
 include common/cplusplus.mk
 include common/license.mk
@@ -17,14 +17,17 @@ OBJECTS = \
 	$(BUILD_DIR)/openvr_interface.o \
 	$(BUILD_DIR)/framebuffer.o \
 	$(BUILD_DIR)/enum_iterator.o \
-    $(BUILD_DIR)/ebo.o \
-    $(BUILD_DIR)/vao.o \
-    $(BUILD_DIR)/vbo.o \
-    $(BUILD_DIR)/vertex.o \
-    $(BUILD_DIR)/shape.o \
-    $(BUILD_DIR)/button.o \
-    $(BUILD_DIR)/controller.o \
-    $(BUILD_DIR)/id.o \
+	$(BUILD_DIR)/ebo.o \
+	$(BUILD_DIR)/vao.o \
+	$(BUILD_DIR)/vbo.o \
+	$(BUILD_DIR)/vertex.o \
+	$(BUILD_DIR)/shape.o \
+	$(BUILD_DIR)/button.o \
+	$(BUILD_DIR)/controller.o \
+	$(BUILD_DIR)/id.o \
+	$(BUILD_DIR)/texture.o \
+	$(BUILD_DIR)/image_data.o \
+	$(BUILD_DIR)/render_model.o \
 
 all: $(TARGET)
 
@@ -36,6 +39,9 @@ lint:
 	$(MAKE) format
 	-$(MAKE) license-annotate
 	$(MAKE) license-lint
+
+run:
+	clear && $(MAKE) clean && $(MAKE) -j gnu && $(MAKE) clean && $(MAKE) -j llvm && ./$(TARGET)
 
 kill:
 	killall -9 vrserver vrcompositor vrdashboard $(TARGET)

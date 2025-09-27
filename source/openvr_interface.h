@@ -37,6 +37,7 @@ class OpenVRInterface
 		glm::uvec2 render_target_size(void) const;
 		void read_poses(void);
 		std::set<vr::TrackedDeviceIndex_t> devices(void) const;
+		std::string name(const vr::TrackedDeviceIndex_t device) const;
 		glm::mat4 projection(const vr::Hmd_Eye eye) const;
 		glm::mat4 view(const vr::Hmd_Eye eye) const;
 		glm::mat4 pose(const vr::TrackedDeviceIndex_t device) const;

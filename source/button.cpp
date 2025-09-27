@@ -80,7 +80,7 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 
 // void Button::draw(void) const
 // {
-// 	m_shape.draw();
+// m_shape.draw();
 // }
 
 const Shape& Button::shape(void) const

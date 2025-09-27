@@ -1,4 +1,9 @@
+// SPDX-FileCopyrightText: 2025 QuantumHole <QuantumHole@github.com>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "controller.h"
+#include <iostream>
 
 Controller::Controller(void) :
 	m_body(),
@@ -10,7 +15,6 @@ Controller::Controller(const Controller& c) :
 	m_body(c.m_body),
 	m_line(c.m_line)
 {
-
 }
 
 Controller& Controller::operator=(const Controller& c)
@@ -35,19 +39,21 @@ void Controller::init_line(void)
 	m_line.init_vertices(vertices, indices, GL_LINES);
 }
 
-void Controller::init(void)
+void Controller::init(const std::string& model_name)
 {
+	std::cout << "init model name: " << model_name << std::endl;
+	m_body.init_openvr_model(model_name);
 	init_line();
 }
 
 void Controller::set_transform(const glm::mat4& pose)
 {
-	// m_body.set_transform(pose);
+	m_body.set_transform(pose);
 	m_line.set_transform(pose);
 }
 
 void Controller::draw(void) const
 {
-	// m_body.draw();
+	m_body.draw();
 	m_line.draw();
 }
