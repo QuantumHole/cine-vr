@@ -10,6 +10,7 @@
 class Button
 {
 	private:
+		const size_t m_id;
 		Shape m_shape;
 		glm::vec2 m_size;
 		glm::mat4 m_pose;
@@ -17,6 +18,7 @@ class Button
 	public:
 		typedef struct
 		{
+			size_t button_id;
 			bool hit;
 			glm::vec3 global;
 			glm::vec2 local;    // texture coordinates
@@ -27,7 +29,7 @@ class Button
 		void init(const glm::vec2& size);
 		void set_transform(const glm::mat4& pose);
 		intersection_t intersection(const glm::mat4& pose) const;
-		void draw(void) const;
+		const Shape& shape(void) const;
 };
 
 #endif

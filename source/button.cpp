@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "button.h"
+#include "id.h"
 
 Button::Button(void) :
+	m_id(ID::unique_id()),
 	m_shape(),
 	m_size(0.0f, 0.0f),
 	m_pose(1.0f)
@@ -42,7 +44,7 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 	glm::vec3 origin = glm::vec3(pose * glm::vec4(0, 0, 0, 1));
 	glm::vec3 direction = glm::normalize(glm::vec3(pose * glm::vec4(0, 0, -1, 0)));
 
-	intersection_t isec = {false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
+	intersection_t isec = {m_id, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
 
 	// Transform ray into rectangle local space.
 	// Afterwards, collision can be checked by intersection with the x/y plane at z=0.
@@ -76,7 +78,12 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 	return isec;
 }
 
-void Button::draw(void) const
+// void Button::draw(void) const
+// {
+// 	m_shape.draw();
+// }
+
+const Shape& Button::shape(void) const
 {
-	m_shape.draw();
+	return m_shape;
 }

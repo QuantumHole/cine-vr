@@ -23,6 +23,8 @@ OBJECTS = \
     $(BUILD_DIR)/vertex.o \
     $(BUILD_DIR)/shape.o \
     $(BUILD_DIR)/button.o \
+    $(BUILD_DIR)/controller.o \
+    $(BUILD_DIR)/id.o \
 
 all: $(TARGET)
 
