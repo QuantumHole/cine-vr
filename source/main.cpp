@@ -65,7 +65,7 @@ static void CreateRectMesh(const glm::vec2& size, const size_t num)
 
 	glm::mat4 pose = glm::mat4(1.0f);
 	pose = glm::rotate(pose, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -3.0f));
+	pose = glm::translate(pose, glm::vec3(0.0f, -0.5f, -3.0f));
 	pose = glm::rotate(pose, -0.2f * glm::pi<float>(), glm::vec3(0.1f, 0.0f, 0.0f));   // tilt panels
 	pose = hmdPose * pose;
 	g_button[num].set_transform(pose);
@@ -84,7 +84,6 @@ static void CreatePointMesh(void)
 	g_points.init_vertices(vertices, indices, GL_POINTS);
 }
 
-// Main
 int main(void)
 {
 	// GLFW init
@@ -127,10 +126,6 @@ int main(void)
 
 	// draw rectangle at position in front of HMD at (0,0,-2), rotated slightly
 	const glm::vec2 panel_size(1.0f, 1.0f);
-	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
-	model = glm::rotate(model, glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	model = glm::translate(model, glm::vec3(-3.0f, 1.5f, 0.0f));
-
 	CreateRectMesh(panel_size, 5);
 	CreatePointMesh();
 
@@ -148,7 +143,7 @@ int main(void)
 		g_vr.read_poses();
 
 		// For each controller: render simple ray and do intersection with rectangle
-		g_points.set_instances(0);
+		std::vector<glm::vec3> intersections;
 		std::set<vr::TrackedDeviceIndex_t> devices = g_vr.devices();
 		for (std::set<vr::TrackedDeviceIndex_t>::const_iterator dev = devices.begin(); dev != devices.end(); ++dev)
 		{
@@ -191,10 +186,7 @@ int main(void)
 				if (isec.hit)
 				{
 					// std::cout << "panel hit at (" << isec.global.x << ", " << isec.global.y << ", " << isec.global.z << ")" << std::endl;
-					const size_t num_points = g_points.instances();
-					g_points.set_instances(num_points + 1);
-					const glm::mat4 popo = glm::translate(glm::mat4(1.0f), isec.global);
-					g_points.set_transform(popo, num_points);
+					intersections.push_back(isec.global);
 				}
 
 				if (triggerPressed && isec.hit)
@@ -203,6 +195,14 @@ int main(void)
 					std::cout << "Controller " << *dev << " clicked button " << isec.button_id << " at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
 				}
 			}
+		}
+
+		// define all intersection points
+		g_points.set_instances(intersections.size());
+		for (size_t i = 0; i < intersections.size(); i++)
+		{
+			const glm::mat4 popo = glm::translate(glm::mat4(1.0f), intersections[i]);
+			g_points.set_transform(popo, i);
 		}
 
 		// For each eye: render scene to texture
