@@ -1,0 +1,147 @@
+{
+   "controller_type" : "vive_controller",
+   "description" : "Bindings for CineVR for the Vive controller",
+   "name" : "CineVR bindings for Vive Controller",
+   "bindings" : {
+      "/actions/cinevr" : {
+         "haptics" : [
+            {
+               "output" : "/actions/cinevr/out/haptic_right",
+               "path" : "/user/hand/right/output/haptic"
+            },
+            {
+               "output" : "/actions/cinevr/out/haptic_left",
+               "path" : "/user/hand/left/output/haptic"
+            }
+         ],
+         "sources" : [
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/PadClick"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/trackpad"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/PadClick"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/trackpad"
+            },
+            {
+               "inputs" : {
+                  "position" : {
+                     "output" : "/actions/cinevr/in/AnalogInput"
+                  }
+               },
+               "mode" : "trackpad",
+               "path" : "/user/hand/right/input/trackpad"
+            },
+            {
+               "inputs" : {
+                  "position" : {
+                     "output" : "/actions/cinevr/in/AnalogInput"
+                  }
+               },
+               "mode" : "trackpad",
+               "path" : "/user/hand/left/input/trackpad"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/Grip"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/grip"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/Grip"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/grip"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/Menu"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/application_menu"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/Menu"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/application_menu"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/System"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/system"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/System"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/system"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/Trigger"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/trigger"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/Trigger"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/trigger"
+            },
+            {
+               "inputs" : {
+                  "position" : {
+                     "output" : "/actions/cinevr/in/TriggerValue"
+                  }
+               },
+               "mode" : "vector1",
+               "path" : "/user/hand/left/input/trigger/value"
+            },
+            {
+               "inputs" : {
+                  "position" : {
+                     "output" : "/actions/cinevr/in/TriggerValue"
+                  }
+               },
+               "mode" : "vector1",
+               "path" : "/user/hand/right/input/trigger/value"
+            }
+         ]
+      }
+   }
+}

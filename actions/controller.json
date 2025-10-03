@@ -1,0 +1,114 @@
+// Test Comment
+
+{
+      "default_bindings": [
+         {
+            "controller_type" : "vive_controller",
+            "binding_url" : "bindings_vive.json"
+         },
+         {
+            "controller_type" : "generic",
+            "binding_url" : "bindings_generic.json"
+         }
+      ],
+  "actions": [
+    {
+      "name": "/actions/cinevr/in/PadClick",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/cinevr/in/Grip",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/cinevr/in/Trigger",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/cinevr/in/TriggerValue",
+      "type": "vector1"
+    },
+    {
+      "name": "/actions/cinevr/in/Menu",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/cinevr/in/System",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/cinevr/in/AnalogInput",
+      "type": "vector2"
+    },
+    {
+      "name": "/actions/cinevr/out/haptic_left",
+      "type": "vibration"
+    },
+    {
+      "name": "/actions/cinevr/out/haptic_right",
+      "type": "vibration"
+    }
+	],
+  "action_sets": [
+    {
+      "name": "/actions/cinevr",
+      "usage": "single"
+    }
+  ],
+  "localization" : [
+        {
+            "language_tag": "en_US",
+            "/actions/cinevr/in/HideControls" :    "Hide Controls",
+            "/actions/cinevr/in/HideSubtitles" :   "Hide Subtitles",
+            "/actions/cinevr/in/Recenter" :        "recenter",
+            "/actions/cinevr/in/Pause" :           "Pause",
+            "/actions/cinevr/in/SeekForward" :     "Seek forward",
+            "/actions/cinevr/in/SeekBackward" :    "Seek backward",
+            "/actions/cinevr/in/Quit" :            "quit",
+            "/actions/cinevr/in/ZoomIn" :          "zoom in",
+            "/actions/cinevr/in/ZoomOut" :         "zoom out",
+            "/actions/cinevr/in/AngleUp" :         "increase angle",
+            "/actions/cinevr/in/AngleDown" :       "decrease angle",
+            "/actions/cinevr/in/CycleProjection" : "Cycle through Projection Modes",
+            "/actions/cinevr/in/CycleLayout" :     "Cycle through Layout Modes",
+            "/actions/cinevr/in/Monoscopic" :      "force Monoscopic Display",
+            "/actions/cinevr/in/Stretch" :         "stretch content",
+            "/actions/cinevr/in/SwitchEyes" :      "switch eyes",
+            "/actions/cinevr/in/VolumeUp" :        "increase volume",
+            "/actions/cinevr/in/VolumeDown" :      "decrease volume",
+            "/actions/cinevr/in/Mute" :            "mute",
+            "/actions/cinevr/in/AnalogInput" :     "Analog Input",
+            "/actions/cinevr/in/Hand_Right" :      "Right Hand Pose",
+            "/actions/cinevr/in/Hand_Left" :       "Left Hand Pose",
+            "/actions/cinevr/out/haptic_left" :    "Left Haptic Feedback",
+            "/actions/cinevr/out/haptic_right" :   "Right Haptic Feedback"
+        },
+        {
+            "language_tag": "de_DE",
+            "/actions/cinevr/in/HideControls" :    "Bedienelemente verstecken",
+            "/actions/cinevr/in/HideSubtitles" :   "Untertitel verstecken",
+            "/actions/cinevr/in/Recenter" :        "Zentrieren",
+            "/actions/cinevr/in/Pause" :           "Pause",
+            "/actions/cinevr/in/SeekForward" :     "vorspulen",
+            "/actions/cinevr/in/SeekBackward" :    "zurückspulen",
+            "/actions/cinevr/in/Quit" :            "beenden",
+            "/actions/cinevr/in/ZoomIn" :          "hineinzoomen",
+            "/actions/cinevr/in/ZoomOut" :         "herauszoomen",
+            "/actions/cinevr/in/AngleUp" :         "Winkel vergrößern",
+            "/actions/cinevr/in/AngleDown" :       "Winkel verkleinern",
+            "/actions/cinevr/in/CycleProjection" : "durch Projektionsmoden rotieren",
+            "/actions/cinevr/in/CycleLayout" :     "durch Layouts rotieren",
+            "/actions/cinevr/in/Monoscopic" :      "monoskopische Anzeige",
+            "/actions/cinevr/in/Stretch" :         "Bild strecken",
+            "/actions/cinevr/in/SwitchEyes" :      "Augen vertauschen",
+            "/actions/cinevr/in/VolumeUp" :        "Lautstärke erhöhen",
+            "/actions/cinevr/in/VolumeDown" :      "Lautstärke verringern",
+            "/actions/cinevr/in/Mute" :            "stumm",
+            "/actions/cinevr/in/AnalogInput" :     "Analoge Eingabe",
+            "/actions/cinevr/in/Hand_Right" :      "Anzeige der rechten Hand",
+            "/actions/cinevr/in/Hand_Left" :       "Anzeige der linken Hand",
+            "/actions/cinevr/out/haptic_left" :    "Haptische Rückmeldung der linken Hand",
+            "/actions/cinevr/out/haptic_right" :   "Haptische Rückmeldung der rechten Hand"
+        }
+    ]
+}

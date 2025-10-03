@@ -1,0 +1,103 @@
+{{
+   "controller_type" : "generic",
+   "description" : "Bindings for CineVR for a generic controller",
+   "name" : "CineVR bindings for a generic controller",
+   "bindings" : {
+      "/actions/cinevr" : {
+         "poses" : [
+            {
+               "output" : "/actions/cinevr/in/Hand_Left",
+               "path" : "/user/hand/left/pose/raw"
+            },
+            {
+               "output" : "/actions/cinevr/in/Hand_Right",
+               "path" : "/user/hand/right/pose/raw"
+            }
+         ],
+         "haptics" : [
+            {
+               "output" : "/actions/cinevr/out/haptic_right",
+               "path" : "/user/hand/right/output/haptic"
+            },
+            {
+               "output" : "/actions/cinevr/out/haptic_left",
+               "path" : "/user/hand/left/output/haptic"
+            }
+         ],
+         "sources" : [
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/Recenter"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/trigger"
+            },
+            {
+               "inputs" : {
+                  "position" : {
+                     "output" : "/actions/cinevr/in/AnalogInput"
+                  }
+               },
+               "mode" : "trackpad",
+               "path" : "/user/hand/right/input/trackpad"
+            },
+            {
+               "inputs" : {
+                  "position" : {
+                     "output" : "/actions/cinevr/in/AnalogInput"
+                  }
+               },
+               "mode" : "trackpad",
+               "path" : "/user/hand/left/input/trackpad"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/Pause"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/grip"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/Recenter"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/trigger"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/Pause"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/grip"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/HideControls"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/application_menu"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/cinevr/in/HideControls"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/application_menu"
+            }
+         ]
+      }
+   }
+}

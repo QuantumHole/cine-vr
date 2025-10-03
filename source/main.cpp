@@ -30,7 +30,7 @@
 typedef EnumIterator<vr::Hmd_Eye, vr::Eye_Left, vr::Eye_Right> Eyes;
 
 static bool g_Running = true;
-static bool g_show_controls = true;
+static bool g_show_controls = false;
 static GLFWwindow* g_Window = nullptr;
 static OpenVRInterface g_vr;
 static ShaderSet g_shaders;
@@ -125,8 +125,8 @@ int main(void)
 	g_shaders.load_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
 
 	// draw rectangle at position in front of HMD at (0,0,-2), rotated slightly
-	const glm::vec2 panel_size(1.0f, 1.0f);
-	CreateRectMesh(panel_size, 5);
+	// const glm::vec2 panel_size(1.0f, 1.0f);
+	// CreateRectMesh(panel_size, 5);
 	CreatePointMesh();
 
 	// main loop
@@ -140,9 +140,54 @@ int main(void)
 			break;
 		}
 
+		// read user inputs
+		g_vr.update();
 		g_vr.read_poses();
 
-		// For each controller: render simple ray and do intersection with rectangle
+		bool triggerPressed = false;
+
+		if (g_vr.getButtonAction(OpenVRInterface::ACTION_PADCLICK))
+		{
+			std::cout << "action: pad click" << std::endl;
+		}
+
+		if (g_vr.getButtonAction(OpenVRInterface::ACTION_MENU))
+		{
+			std::cout << "action: menu" << std::endl;
+		}
+
+		if (g_vr.getButtonAction(OpenVRInterface::ACTION_SYSTEM))
+		{
+			std::cout << "action: system" << std::endl;
+		}
+
+		if (g_vr.getButtonAction(OpenVRInterface::ACTION_GRIP))
+		{
+			std::cout << "action: grip" << std::endl;
+		}
+
+		if (g_vr.getButtonAction(OpenVRInterface::ACTION_TRIGGER))
+		{
+			std::cout << "action: trigger" << std::endl;
+			triggerPressed = true;
+			g_vr.haptic(OpenVRInterface::ACTION_HAPTIC_LEFT);
+			g_vr.haptic(OpenVRInterface::ACTION_HAPTIC_RIGHT);
+		}
+
+		glm::vec3 trackpad = g_vr.getButtonPosition(OpenVRInterface::ACTION_ANALOG);
+
+		if (glm::length(trackpad) > 0.0f)
+		{
+			std::cout << "action: analog: " << trackpad.x << " / " << trackpad.y << std::endl;
+		}
+		glm::vec3 trigger = g_vr.getButtonPosition(OpenVRInterface::ACTION_TRIGGER_VALUE);
+
+		if (glm::length(trigger) > 0.0f)
+		{
+			std::cout << "action: trigger: " << trigger.x << std::endl;
+		}
+
+		bool buttonHit = false;
 		std::vector<glm::vec3> intersections;
 		std::set<vr::TrackedDeviceIndex_t> devices = g_vr.devices();
 		for (std::set<vr::TrackedDeviceIndex_t>::const_iterator dev = devices.begin(); dev != devices.end(); ++dev)
@@ -168,16 +213,6 @@ int main(void)
 			const glm::mat4 devPose = g_vr.pose(*dev);
 			control->second.set_transform(devPose);
 
-			// handle controller input: check trigger press
-			vr::VRControllerState_t state = g_vr.controller_state(*dev);
-
-			// typical trigger bit: analog in 'rAxis' or touch; we check trigger button press bit
-			bool triggerPressed = (state.ulButtonPressed & vr::ButtonMaskFromId(vr::k_EButton_SteamVR_Trigger)) != 0;
-
-			if (triggerPressed)
-			{
-				g_show_controls = true;
-			}
 			for (std::vector<Button>::iterator iter = g_button.begin(); iter != g_button.end(); ++iter)
 			{
 				const Button::intersection_t isec = iter->intersection(devPose);
@@ -185,6 +220,7 @@ int main(void)
 				// draw point on panel
 				if (isec.hit)
 				{
+					buttonHit |= isec.hit;
 					// std::cout << "panel hit at (" << isec.global.x << ", " << isec.global.y << ", " << isec.global.z << ")" << std::endl;
 					intersections.push_back(isec.global);
 				}
@@ -197,6 +233,23 @@ int main(void)
 			}
 		}
 
+		// perform user actions
+		if (triggerPressed)
+		{
+			if (!g_show_controls)
+			{
+				g_show_controls = true;
+				const glm::vec2 panel_size(1.0f, 1.0f);
+				CreateRectMesh(panel_size, 5);
+			}
+			else if (!buttonHit)
+			{
+				g_show_controls = false;
+				g_button.clear();
+			}
+		}
+
+		// update scene objects
 		// define all intersection points
 		g_points.set_instances(intersections.size());
 		for (size_t i = 0; i < intersections.size(); i++)

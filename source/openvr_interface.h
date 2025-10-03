@@ -15,21 +15,25 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <set>
 #include <vector>
+#include <map>
 
 class OpenVRInterface
 {
-	private:
-		const float m_clip_near;
-		const float m_clip_far;
-		std::vector<vr::TrackedDevicePose_t> m_poses;
-
-		vr::IVRSystem* m_system;
-		vr::IVRCompositor* m_compositor;
-
-		OpenVRInterface(const OpenVRInterface&);
-		OpenVRInterface operator=(const OpenVRInterface&);
-
 	public:
+		typedef enum
+		{
+			ACTION_GRIP,
+			ACTION_MENU,
+			ACTION_SYSTEM,
+			ACTION_PADCLICK,
+			ACTION_ANALOG,
+			ACTION_TRIGGER,
+			ACTION_TRIGGER_VALUE,
+			ACTION_HAPTIC_LEFT,
+			ACTION_HAPTIC_RIGHT
+		}
+		input_action_t;
+
 		OpenVRInterface(void);
 		~OpenVRInterface(void);
 
@@ -45,6 +49,27 @@ class OpenVRInterface
 		vr::ETrackedDeviceClass device_class(const vr::TrackedDeviceIndex_t device) const;
 		void submit(const vr::Hmd_Eye eye, const GLuint texture_id) const;
 		void handoff(void) const;
+
+		void update(void) const;
+		bool getButtonAction(const input_action_t action, const bool debounce = true) const;
+		glm::vec3 getButtonPosition(const input_action_t action) const;
+		void haptic(const input_action_t input) const;
+
+	private:
+		const float m_clip_near;
+		const float m_clip_far;
+		std::vector<vr::TrackedDevicePose_t> m_poses;
+		vr::VRActionSetHandle_t m_actionset;
+		std::map<input_action_t, vr::VRInputValueHandle_t> m_input_handle;
+
+		vr::IVRSystem* m_system;
+		vr::IVRInput* m_input;
+		vr::IVRCompositor* m_compositor;
+
+		OpenVRInterface(const OpenVRInterface&);
+		OpenVRInterface operator=(const OpenVRInterface&);
+
+		void initActionHandle(const input_action_t input, const std::string& path);
 };
 
 #endif

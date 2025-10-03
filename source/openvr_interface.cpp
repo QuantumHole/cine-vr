@@ -4,6 +4,9 @@
 
 #include "openvr_interface.h"
 #include <stdexcept>
+#include <fstream>
+#include <unistd.h>
+#include <iostream>
 
 // Convert OpenVR matrix to glm
 static glm::mat4 ConvertSteamVRMatrixToGLMMat(const vr::HmdMatrix34_t& matPose)
@@ -36,7 +39,10 @@ OpenVRInterface::OpenVRInterface(void) :
 	m_clip_near(0.1f),
 	m_clip_far(100.0f),
 	m_poses(vr::k_unMaxTrackedDeviceCount),
+	m_actionset(vr::k_ulInvalidActionSetHandle),
+	m_input_handle(),
 	m_system(nullptr),
+	m_input(nullptr),
 	m_compositor(nullptr)
 {
 }
@@ -46,16 +52,61 @@ OpenVRInterface::~OpenVRInterface(void)
 	vr::VR_Shutdown();
 }
 
+void OpenVRInterface::initActionHandle(const input_action_t input, const std::string& path)
+{
+	vr::EVRInputError status = vr::VRInput()->GetActionHandle(path.c_str(), &m_input_handle[input]);
+	if (status != vr::VRInputError_None)
+	{
+		throw std::runtime_error("failed importing action handle '" + path + "': " + std::to_string(status));
+	}
+}
+
 void OpenVRInterface::init(void)
 {
-	vr::EVRInitError eError = vr::VRInitError_None;
-
-	m_system = vr::VR_Init(&eError, vr::VRApplication_Scene);
-
-	if (eError != vr::VRInitError_None)
+	vr::EVRInitError initstatus = vr::VRInitError_None;
+	m_system = vr::VR_Init(&initstatus, vr::VRApplication_Scene);
+	if (initstatus != vr::VRInitError_None)
 	{
-		throw std::runtime_error(std::string("VR_Init failed: ") + vr::VR_GetVRInitErrorAsEnglishDescription(eError));
+		throw std::runtime_error(std::string("VR_Init failed: ") + vr::VR_GetVRInitErrorAsEnglishDescription(initstatus));
 	}
+
+	m_input = vr::VRInput();
+	if (!m_input)
+	{
+		throw std::runtime_error("Fehler beim Abrufen des IVRInput-Interfaces.");
+	}
+
+	char action_manifest_path[PATH_MAX];
+	realpath("actions/controller.json", action_manifest_path);
+
+	if (access(action_manifest_path, F_OK) == -1)
+	{
+		throw std::runtime_error("Unable to find controller.json!");
+	}
+
+	std::cerr << "Using openvr config file: " << action_manifest_path << std::endl;
+
+	vr::EVRInputError status = vr::VRInput()->SetActionManifestPath(action_manifest_path);
+	if (status != vr::VRInputError_None)
+	{
+		throw std::runtime_error("failed importing action manifest: " + std::to_string(status));
+	}
+
+	status = vr::VRInput()->GetActionSetHandle("/actions/cinevr", &m_actionset);
+	if (status != vr::VRInputError_None)
+	{
+		throw std::runtime_error("failed importing action set: " + std::to_string(status));
+	}
+
+	initActionHandle(ACTION_PADCLICK, "/actions/cinevr/in/PadClick");
+	initActionHandle(ACTION_GRIP, "/actions/cinevr/in/Grip");
+	initActionHandle(ACTION_TRIGGER, "/actions/cinevr/in/Trigger");
+	initActionHandle(ACTION_MENU, "/actions/cinevr/in/Menu");
+	initActionHandle(ACTION_SYSTEM, "/actions/cinevr/in/System");
+	initActionHandle(ACTION_TRIGGER_VALUE, "/actions/cinevr/in/TriggerValue");
+	initActionHandle(ACTION_ANALOG, "/actions/cinevr/in/AnalogInput");
+	initActionHandle(ACTION_HAPTIC_LEFT, "/actions/cinevr/out/haptic_left");
+	initActionHandle(ACTION_HAPTIC_RIGHT, "/actions/cinevr/out/haptic_right");
 
 	// Ensure compositor present
 	// try to init compositor explicitly
@@ -178,4 +229,72 @@ void OpenVRInterface::submit(const vr::Hmd_Eye eye, const GLuint texture_id) con
 void OpenVRInterface::handoff(void) const
 {
 	m_compositor->PostPresentHandoff();
+}
+
+void OpenVRInterface::update(void) const
+{
+	vr::VRActiveActionSet_t actionSet = { m_actionset, vr::k_ulInvalidInputValueHandle, 0, 0, 0 };
+	vr::EVRInputError error = vr::VRInput()->UpdateActionState(&actionSet, sizeof(vr::VRActiveActionSet_t), 1);
+
+	if (error != vr::VRInputError_None)
+	{
+		throw std::runtime_error("failed updating action status: " + std::to_string(error));
+	}
+}
+
+bool OpenVRInterface::getButtonAction(const input_action_t action, const bool debounce) const
+{
+	std::map<input_action_t, vr::VRInputValueHandle_t>::const_iterator iter = m_input_handle.find(action);
+	if (iter == m_input_handle.end())
+	{
+		throw std::runtime_error("invalid input action");
+	}
+
+	vr::InputDigitalActionData_t data;
+	vr::EVRInputError error = vr::VRInput()->GetDigitalActionData(iter->second, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);
+
+	if (error != vr::VRInputError_None)
+	{
+		throw std::runtime_error("failed reading digital action status: " + std::to_string(error));
+	}
+
+	return data.bActive && data.bState && ((debounce && data.bChanged) || !debounce);
+}
+
+glm::vec3 OpenVRInterface::getButtonPosition(const input_action_t action) const
+{
+	std::map<input_action_t, vr::VRInputValueHandle_t>::const_iterator iter = m_input_handle.find(action);
+	if (iter == m_input_handle.end())
+	{
+		throw std::runtime_error("invalid input action");
+	}
+
+	vr::InputAnalogActionData_t data;
+	vr::EVRInputError error = vr::VRInput()->GetAnalogActionData(iter->second, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);
+	if (error != vr::VRInputError_None)
+	{
+		throw std::runtime_error("failed reading analog action status: " + std::to_string(error));
+	}
+
+	if (data.bActive)
+	{
+		return glm::vec3(data.x, data.y, data.z);
+	}
+
+	return glm::vec3(0.0f, 0.0f, 0.0f);
+}
+
+void OpenVRInterface::haptic(const input_action_t action) const
+{
+	std::map<input_action_t, vr::VRInputValueHandle_t>::const_iterator iter = m_input_handle.find(action);
+	if (iter == m_input_handle.end())
+	{
+		throw std::runtime_error("invalid input action");
+	}
+
+	const float start_time = 0.0f;
+	const float duration = 0.1f;
+	const float frequency = 4.0f;
+	const float amplitude = 0.5f;
+	vr::VRInput()->TriggerHapticVibrationAction(iter->second, start_time, duration, frequency, amplitude, vr::k_ulInvalidInputValueHandle);
 }
