@@ -10,6 +10,7 @@ include common/license.mk
 include common/makefile.mk
 
 TARGET = cine-vr
+IMAGE_DIR = images
 
 OBJECTS = \
 	$(BUILD_DIR)/main.o \
@@ -29,10 +30,27 @@ OBJECTS = \
 	$(BUILD_DIR)/image_data.o \
 	$(BUILD_DIR)/render_model.o \
 
-IMAGE_DIR = images
+IMAGES = \
+	$(IMAGE_DIR)/backwards.png \
+	$(IMAGE_DIR)/cube-mono.png \
+	$(IMAGE_DIR)/cube-stereo.png \
+	$(IMAGE_DIR)/cylinder.png \
+	$(IMAGE_DIR)/delete.png \
+	$(IMAGE_DIR)/fisheye.png \
+	$(IMAGE_DIR)/flat.png \
+	$(IMAGE_DIR)/forwards.png \
+	$(IMAGE_DIR)/leftright.png \
+	$(IMAGE_DIR)/mono.png \
+	$(IMAGE_DIR)/next.png \
+	$(IMAGE_DIR)/open.png \
+	$(IMAGE_DIR)/pause.png \
+	$(IMAGE_DIR)/play.png \
+	$(IMAGE_DIR)/power.png \
+	$(IMAGE_DIR)/previous.png \
+	$(IMAGE_DIR)/sphere.png \
+	$(IMAGE_DIR)/topbottom.png \
 
-
-all: $(TARGET)
+all: $(TARGET) $(IMAGES)
 
 $(TARGET): $(OBJECTS)
 	@echo "[$(LD)] $@"
@@ -53,23 +71,5 @@ clean-images:
 	rm -f $(IMAGE_DIR)/*.png
 
 $(IMAGE_DIR)/%.png: $(IMAGE_DIR)/%.svg
-	magick $< $@
-
-images: $(IMAGE_DIR)/backwards.png \
-	$(IMAGE_DIR)/cube-mono.png \
-	$(IMAGE_DIR)/cube-stereo.png \
-	$(IMAGE_DIR)/cylinder.png \
-	$(IMAGE_DIR)/delete.png \
-	$(IMAGE_DIR)/fisheye.png \
-	$(IMAGE_DIR)/flat.png \
-	$(IMAGE_DIR)/forwards.png \
-	$(IMAGE_DIR)/leftright.png \
-	$(IMAGE_DIR)/mono.png \
-	$(IMAGE_DIR)/next.png \
-	$(IMAGE_DIR)/open.png \
-	$(IMAGE_DIR)/pause.png \
-	$(IMAGE_DIR)/play.png \
-	$(IMAGE_DIR)/power.png \
-	$(IMAGE_DIR)/previous.png \
-	$(IMAGE_DIR)/sphere.png \
-	$(IMAGE_DIR)/topbottom.png \
+	@echo "[magick] $@"
+	@magick -background none $< $@

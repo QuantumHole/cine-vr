@@ -39,16 +39,26 @@ static std::map<vr::TrackedDeviceIndex_t, Controller> g_controller;
 static std::vector<Framebuffer> g_framebuffer(Eyes::size());
 static Shape g_points;
 
-static void CreateRectMesh(const glm::vec2& size, const size_t num)
+static void CreateRectMesh(const glm::vec2& size)
 {
-	const float range = 0.5f * glm::pi<float>();
-	const float step = range / static_cast<float>(num);
+	std::vector<std::pair<Button::button_action_t, std::string> > images = {
+		{Button::BUTTON_PREVIOUS, "images/previous.png"},
+		{Button::BUTTON_BACKWARD, "images/backwards.png"},
+		{Button::BUTTON_PLAY, "images/play.png"},
+		{Button::BUTTON_FORWARD, "images/forwards.png"},
+		{Button::BUTTON_NEXT, "images/next.png"},
+		{Button::BUTTON_POWER, "images/power.png"}
+	};
 
-	g_vr.read_poses();
+	const float range = 0.5f * glm::pi<float>();
+	const float step = range / static_cast<float>(images.size());
+
+	// g_vr.read_poses();
 	const glm::mat4 hmdPose = g_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
 
-	g_button.resize(num + 1);
-	float angle = 0.5f * step - 0.5f * range;
+	g_button.resize(images.size());
+	float angle = 0.5f * range - 0.5f * step;
+	size_t i = 0;
 	for (std::vector<Button>::iterator iter = g_button.begin(); iter != g_button.end(); ++iter)
 	{
 		glm::mat4 pose = glm::mat4(1.0f);
@@ -57,18 +67,13 @@ static void CreateRectMesh(const glm::vec2& size, const size_t num)
 		pose = glm::rotate(pose, -0.2f * glm::pi<float>(), glm::vec3(0.1f, 0.0f, 0.0f));   // tilt panels
 		pose = hmdPose * pose;
 
-		iter->init(size);
+		iter->init(size, images[i].first);
 		iter->set_transform(pose);
+		iter->set_texture(images[i].second);
 
-		angle += step;
+		angle -= step;
+		i++;
 	}
-
-	glm::mat4 pose = glm::mat4(1.0f);
-	pose = glm::rotate(pose, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-	pose = glm::translate(pose, glm::vec3(0.0f, -0.5f, -3.0f));
-	pose = glm::rotate(pose, -0.2f * glm::pi<float>(), glm::vec3(0.1f, 0.0f, 0.0f));   // tilt panels
-	pose = hmdPose * pose;
-	g_button[num].set_transform(pose);
 }
 
 static void CreatePointMesh(void)
@@ -82,6 +87,52 @@ static void CreatePointMesh(void)
 	};
 
 	g_points.init_vertices(vertices, indices, GL_POINTS);
+}
+
+static void handleButtonAction(const Button::button_action_t action)
+{
+	switch (action)
+	{
+		case Button::BUTTON_BACKWARD:
+			break;
+		case Button::BUTTON_CUBE_MONO:
+			break;
+		case Button::BUTTON_CUBE_STEREO:
+			break;
+		case Button::BUTTON_CYLINDER:
+			break;
+		case Button::BUTTON_DELETE:
+			break;
+		case Button::BUTTON_FISHEYE:
+			break;
+		case Button::BUTTON_FLAT:
+			break;
+		case Button::BUTTON_FORWARD:
+			break;
+		case Button::BUTTON_LEFT_RIGHT:
+			break;
+		case Button::BUTTON_MONO:
+			break;
+		case Button::BUTTON_NEXT:
+			break;
+		case Button::BUTTON_OPEN:
+			break;
+		case Button::BUTTON_PAUSE:
+			break;
+		case Button::BUTTON_PLAY:
+			break;
+		case Button::BUTTON_POWER:
+			g_Running = false;
+			break;
+		case Button::BUTTON_PREVIOUS:
+			break;
+		case Button::BUTTON_SPHERE:
+			break;
+		case Button::BUTTON_TOP_BOTTOM:
+			break;
+		default:
+			break;
+	}
 }
 
 int main(void)
@@ -130,16 +181,8 @@ int main(void)
 	CreatePointMesh();
 
 	// main loop
-	while (!glfwWindowShouldClose(g_Window) && g_Running)
+	while (g_Running)
 	{
-		glfwPollEvents();
-
-		// handle simple close
-		if (glfwGetKey(g_Window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		{
-			break;
-		}
-
 		// read user inputs
 		g_vr.update();
 		g_vr.read_poses();
@@ -229,6 +272,7 @@ int main(void)
 				{
 					// hit in rectangle local coords mapped to texture or 0..1 coords
 					std::cout << "Controller " << *dev << " clicked button " << isec.button_id << " at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
+					handleButtonAction(isec.action_id);
 				}
 			}
 		}
@@ -240,7 +284,7 @@ int main(void)
 			{
 				g_show_controls = true;
 				const glm::vec2 panel_size(1.0f, 1.0f);
-				CreateRectMesh(panel_size, 5);
+				CreateRectMesh(panel_size);
 			}
 			else if (!buttonHit)
 			{
@@ -277,7 +321,7 @@ int main(void)
 			g_shaders.set_uniform("diffuse0", 0);
 			for (std::vector<Button>::iterator iter = g_button.begin(); iter != g_button.end(); ++iter)
 			{
-				iter->shape().draw();
+				iter->draw();
 			}
 
 			// For each controller: render simple ray and do intersection with rectangle

@@ -7,21 +7,24 @@
 
 Button::Button(void) :
 	m_id(ID::unique_id()),
+	m_action(BUTTON_NONE),
 	m_shape(),
+	m_tex(),
 	m_size(0.0f, 0.0f),
 	m_pose(1.0f)
 {
 }
 
-void Button::init(const glm::vec2& size)
+void Button::init(const glm::vec2& size, const button_action_t action)
 {
 	m_size = size;
+	m_action = action;
 	// positions: rectangle in XY plane centered at 0, z=0
 	const std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(-0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.8f, 0.2f, 0.2f), glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3(0.5f * m_size.x, 0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.2f, 0.8f, 0.2f), glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.5f * m_size.x, 0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.2f, 0.2f, 0.8f), glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3(0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.8f, 0.8f, 0.2f), glm::vec2(1.0f, 1.0f)),
+		Vertex(glm::vec3(-0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3( 0.5f * m_size.x,  0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.5f * m_size.x,  0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3( 0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f)),
 	};
 
 	const std::vector<GLuint> indices = {
@@ -38,13 +41,18 @@ void Button::set_transform(const glm::mat4& pose)
 	m_shape.set_transform(pose);
 }
 
+void Button::set_texture(const std::string& file_name)
+{
+	m_tex.init_file(file_name, GL_TEXTURE_2D, 0);
+}
+
 Button::intersection_t Button::intersection(const glm::mat4& pose) const
 {
 	// pointing ray: origin = device position, direction = forward -Z in device space transformed to world
 	glm::vec3 origin = glm::vec3(pose * glm::vec4(0, 0, 0, 1));
 	glm::vec3 direction = glm::normalize(glm::vec3(pose * glm::vec4(0, 0, -1, 0)));
 
-	intersection_t isec = {m_id, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
+	intersection_t isec = {m_id, m_action, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
 
 	// Transform ray into rectangle local space.
 	// Afterwards, collision can be checked by intersection with the x/y plane at z=0.
@@ -78,12 +86,19 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 	return isec;
 }
 
-// void Button::draw(void) const
-// {
-// m_shape.draw();
-// }
+void Button::draw(void) const
+{
+	m_tex.bind();
+	m_shape.draw();
+	m_tex.unbind();
+}
 
 const Shape& Button::shape(void) const
 {
 	return m_shape;
+}
+
+const Texture& Button::texture(void) const
+{
+	return m_tex;
 }
