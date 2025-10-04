@@ -31,15 +31,15 @@ OBJECTS = \
 	$(BUILD_DIR)/render_model.o \
 
 IMAGES = \
-	$(IMAGE_DIR)/backwards.png \
+	$(IMAGE_DIR)/backward.png \
 	$(IMAGE_DIR)/cube-mono.png \
 	$(IMAGE_DIR)/cube-stereo.png \
 	$(IMAGE_DIR)/cylinder.png \
 	$(IMAGE_DIR)/delete.png \
 	$(IMAGE_DIR)/fisheye.png \
 	$(IMAGE_DIR)/flat.png \
-	$(IMAGE_DIR)/forwards.png \
-	$(IMAGE_DIR)/leftright.png \
+	$(IMAGE_DIR)/forward.png \
+	$(IMAGE_DIR)/left-right.png \
 	$(IMAGE_DIR)/mono.png \
 	$(IMAGE_DIR)/next.png \
 	$(IMAGE_DIR)/open.png \
@@ -48,7 +48,7 @@ IMAGES = \
 	$(IMAGE_DIR)/power.png \
 	$(IMAGE_DIR)/previous.png \
 	$(IMAGE_DIR)/sphere.png \
-	$(IMAGE_DIR)/topbottom.png \
+	$(IMAGE_DIR)/top-bottom.png \
 
 all: $(TARGET) $(IMAGES)
 

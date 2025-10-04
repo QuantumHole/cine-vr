@@ -39,24 +39,16 @@ static std::map<vr::TrackedDeviceIndex_t, Controller> g_controller;
 static std::vector<Framebuffer> g_framebuffer(Eyes::size());
 static Shape g_points;
 
-static void CreateRectMesh(const glm::vec2& size)
+static void CreateButtonRow(const float size, const std::vector<Button::button_action_t>& actions)
 {
-	std::vector<std::pair<Button::button_action_t, std::string> > images = {
-		{Button::BUTTON_PREVIOUS, "images/previous.png"},
-		{Button::BUTTON_BACKWARD, "images/backwards.png"},
-		{Button::BUTTON_PLAY, "images/play.png"},
-		{Button::BUTTON_FORWARD, "images/forwards.png"},
-		{Button::BUTTON_NEXT, "images/next.png"},
-		{Button::BUTTON_POWER, "images/power.png"}
-	};
-
+	const size_t num = actions.size();
 	const float range = 0.5f * glm::pi<float>();
-	const float step = range / static_cast<float>(images.size());
+	const float step = range / static_cast<float>(num);
 
 	// g_vr.read_poses();
 	const glm::mat4 hmdPose = g_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
 
-	g_button.resize(images.size());
+	g_button.resize(num);
 	float angle = 0.5f * range - 0.5f * step;
 	size_t i = 0;
 	for (std::vector<Button>::iterator iter = g_button.begin(); iter != g_button.end(); ++iter)
@@ -67,9 +59,8 @@ static void CreateRectMesh(const glm::vec2& size)
 		pose = glm::rotate(pose, -0.2f * glm::pi<float>(), glm::vec3(0.1f, 0.0f, 0.0f));   // tilt panels
 		pose = hmdPose * pose;
 
-		iter->init(size, images[i].first);
+		iter->init(size, actions[i]);
 		iter->set_transform(pose);
-		iter->set_texture(images[i].second);
 
 		angle -= step;
 		i++;
@@ -283,8 +274,14 @@ int main(void)
 			if (!g_show_controls)
 			{
 				g_show_controls = true;
-				const glm::vec2 panel_size(1.0f, 1.0f);
-				CreateRectMesh(panel_size);
+				CreateButtonRow(1.0f, {
+					Button::BUTTON_PREVIOUS,
+					Button::BUTTON_BACKWARD,
+					Button::BUTTON_PLAY,
+					Button::BUTTON_FORWARD,
+					Button::BUTTON_NEXT,
+					Button::BUTTON_POWER
+				});
 			}
 			else if (!buttonHit)
 			{

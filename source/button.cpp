@@ -8,6 +8,7 @@
 Button::Button(void) :
 	m_id(ID::unique_id()),
 	m_action(BUTTON_NONE),
+	m_active(true),
 	m_shape(),
 	m_tex(),
 	m_size(0.0f, 0.0f),
@@ -15,16 +16,16 @@ Button::Button(void) :
 {
 }
 
-void Button::init(const glm::vec2& size, const button_action_t action)
+void Button::init(const float size, const button_action_t action)
 {
-	m_size = size;
+	m_size = glm::vec2(size, size);
 	m_action = action;
 	// positions: rectangle in XY plane centered at 0, z=0
 	const std::vector<Vertex> vertices = {
 		Vertex(glm::vec3(-0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3( 0.5f * m_size.x,  0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.5f * m_size.x,  0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3( 0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f)),
+		Vertex(glm::vec3(0.5f * m_size.x, 0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.5f * m_size.x, 0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3(0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f)),
 	};
 
 	const std::vector<GLuint> indices = {
@@ -33,6 +34,39 @@ void Button::init(const glm::vec2& size, const button_action_t action)
 	};
 
 	m_shape.init_vertices(vertices, indices, GL_TRIANGLES);
+
+	std::map<Button::button_action_t, std::string> images = {
+		{Button::BUTTON_BACKWARD, "images/backward.png"},
+		{Button::BUTTON_CUBE_MONO, "images/cube-mono.png"},
+		{Button::BUTTON_CUBE_STEREO, "images/cube-stereo.png"},
+		{Button::BUTTON_CYLINDER, "images/cylinder.png"},
+		{Button::BUTTON_DELETE, "images/delete.png"},
+		{Button::BUTTON_FISHEYE, "images/fisheye.png"},
+		{Button::BUTTON_FLAT, "images/flat.png"},
+		{Button::BUTTON_FORWARD, "images/forward.png"},
+		{Button::BUTTON_LEFT_RIGHT, "images/left-right.png"},
+		{Button::BUTTON_MONO, "images/mono.png"},
+		{Button::BUTTON_NEXT, "images/next.png"},
+		{Button::BUTTON_OPEN, "images/open.png"},
+		{Button::BUTTON_PAUSE, "images/pause.png"},
+		{Button::BUTTON_PLAY, "images/play.png"},
+		{Button::BUTTON_POWER, "images/power.png"},
+		{Button::BUTTON_PREVIOUS, "images/previous.png"},
+		{Button::BUTTON_SPHERE, "images/sphere.png"},
+		{Button::BUTTON_TOP_BOTTOM, "images/top-bottom.png"}
+	};
+
+	std::map<Button::button_action_t, std::string>::const_iterator iter = images.find(action);
+
+	if (iter != images.end())
+	{
+		m_tex.init_file(iter->second, GL_TEXTURE_2D, 0);
+	}
+}
+
+void Button::enable(const bool active)
+{
+	m_active = active;
 }
 
 void Button::set_transform(const glm::mat4& pose)
@@ -41,18 +75,18 @@ void Button::set_transform(const glm::mat4& pose)
 	m_shape.set_transform(pose);
 }
 
-void Button::set_texture(const std::string& file_name)
-{
-	m_tex.init_file(file_name, GL_TEXTURE_2D, 0);
-}
-
 Button::intersection_t Button::intersection(const glm::mat4& pose) const
 {
+	intersection_t isec = {m_id, m_action, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
+
+	if (!m_active)
+	{
+		return isec;
+	}
+
 	// pointing ray: origin = device position, direction = forward -Z in device space transformed to world
 	glm::vec3 origin = glm::vec3(pose * glm::vec4(0, 0, 0, 1));
 	glm::vec3 direction = glm::normalize(glm::vec3(pose * glm::vec4(0, 0, -1, 0)));
-
-	intersection_t isec = {m_id, m_action, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
 
 	// Transform ray into rectangle local space.
 	// Afterwards, collision can be checked by intersection with the x/y plane at z=0.
@@ -91,14 +125,4 @@ void Button::draw(void) const
 	m_tex.bind();
 	m_shape.draw();
 	m_tex.unbind();
-}
-
-const Shape& Button::shape(void) const
-{
-	return m_shape;
-}
-
-const Texture& Button::texture(void) const
-{
-	return m_tex;
 }
