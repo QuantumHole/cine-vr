@@ -36,24 +36,25 @@ void Button::init(const float size, const button_action_t action)
 	m_shape.init_vertices(vertices, indices, GL_TRIANGLES);
 
 	std::map<Button::button_action_t, std::string> images = {
-		{Button::BUTTON_BACKWARD, "images/backward.png"},
-		{Button::BUTTON_CUBE_MONO, "images/cube-mono.png"},
-		{Button::BUTTON_CUBE_STEREO, "images/cube-stereo.png"},
-		{Button::BUTTON_CYLINDER, "images/cylinder.png"},
-		{Button::BUTTON_DELETE, "images/delete.png"},
-		{Button::BUTTON_FISHEYE, "images/fisheye.png"},
-		{Button::BUTTON_FLAT, "images/flat.png"},
-		{Button::BUTTON_FORWARD, "images/forward.png"},
-		{Button::BUTTON_LEFT_RIGHT, "images/left-right.png"},
-		{Button::BUTTON_MONO, "images/mono.png"},
-		{Button::BUTTON_NEXT, "images/next.png"},
-		{Button::BUTTON_OPEN, "images/open.png"},
-		{Button::BUTTON_PAUSE, "images/pause.png"},
-		{Button::BUTTON_PLAY, "images/play.png"},
+		{Button::BUTTON_FILE_DELETE, "images/delete.png"},
+		{Button::BUTTON_FILE_OPEN, "images/open.png"},
+		{Button::BUTTON_PLAY_BACKWARD, "images/backward.png"},
+		{Button::BUTTON_PLAY_FORWARD, "images/forward.png"},
+		{Button::BUTTON_PLAY_NEXT, "images/next.png"},
+		{Button::BUTTON_PLAY_PAUSE, "images/pause.png"},
+		{Button::BUTTON_PLAY_PLAY, "images/play.png"},
+		{Button::BUTTON_PLAY_PREVIOUS, "images/previous.png"},
 		{Button::BUTTON_POWER, "images/power.png"},
-		{Button::BUTTON_PREVIOUS, "images/previous.png"},
-		{Button::BUTTON_SPHERE, "images/sphere.png"},
-		{Button::BUTTON_TOP_BOTTOM, "images/top-bottom.png"}
+		{Button::BUTTON_PROJECT_CUBE, "images/cube-mono.png"},
+		{Button::BUTTON_PROJECT_CYLINDER, "images/cylinder.png"},
+		{Button::BUTTON_PROJECT_FISHEYE, "images/fisheye.png"},
+		{Button::BUTTON_PROJECT_FLAT, "images/flat.png"},
+		{Button::BUTTON_PROJECT_SPHERE, "images/sphere.png"},
+		{Button::BUTTON_TILE_CUBE_MONO, "images/cube-mono.png"},
+		{Button::BUTTON_TILE_CUBE_STEREO, "images/cube-stereo.png"},
+		{Button::BUTTON_TILE_LEFT_RIGHT, "images/left-right.png"},
+		{Button::BUTTON_TILE_MONO, "images/mono.png"},
+		{Button::BUTTON_TILE_TOP_BOTTOM, "images/top-bottom.png"}
 	};
 
 	std::map<Button::button_action_t, std::string>::const_iterator iter = images.find(action);

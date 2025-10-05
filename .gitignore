@@ -43,3 +43,6 @@
 
 # debug information files
 *.dwo
+
+# converted pixel images in ./images
+images/*.png

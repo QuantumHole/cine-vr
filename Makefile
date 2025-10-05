@@ -29,6 +29,8 @@ OBJECTS = \
 	$(BUILD_DIR)/texture.o \
 	$(BUILD_DIR)/image_data.o \
 	$(BUILD_DIR)/render_model.o \
+	$(BUILD_DIR)/projection.o \
+	$(BUILD_DIR)/menu.o \
 
 IMAGES = \
 	$(IMAGE_DIR)/backward.png \

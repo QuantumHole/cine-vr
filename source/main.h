@@ -1,0 +1,19 @@
+// SPDX-FileCopyrightText: 2025 QuantumHole <QuantumHole@github.com>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#ifndef MAIN_H
+#define MAIN_H
+
+#include "projection.h"
+
+void quit(void);
+void player_backward(void);
+void player_foreward(void);
+void player_pause(void);
+void player_play(void);
+void player_previous(void);
+void player_next(void);
+Projection& projection(void);
+
+#endif

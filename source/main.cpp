@@ -19,6 +19,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "main.h"
 #include "opengl/shader_set.h"
 #include "opengl/framebuffer.h"
 #include "openvr_interface.h"
@@ -26,104 +27,53 @@
 #include "opengl/shape.h"
 #include "button.h"
 #include "controller.h"
+#include "menu.h"
+
+// #define DEBUG_LINE std::cout << "########## " << __FILE__ << "(" << __LINE__ << "): " << __FUNCTION__ << "()" << std::endl
 
 typedef EnumIterator<vr::Hmd_Eye, vr::Eye_Left, vr::Eye_Right> Eyes;
 
 static bool g_Running = true;
-static bool g_show_controls = false;
 static GLFWwindow* g_Window = nullptr;
 static OpenVRInterface g_vr;
 static ShaderSet g_shaders;
-static std::vector<Button> g_button;
 static std::map<vr::TrackedDeviceIndex_t, Controller> g_controller;
 static std::vector<Framebuffer> g_framebuffer(Eyes::size());
-static Shape g_points;
+static Menu g_menu;
+static Projection g_projection;
 
-static void CreateButtonRow(const float size, const std::vector<Button::button_action_t>& actions)
+void quit(void)
 {
-	const size_t num = actions.size();
-	const float range = 0.5f * glm::pi<float>();
-	const float step = range / static_cast<float>(num);
-
-	// g_vr.read_poses();
-	const glm::mat4 hmdPose = g_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
-
-	g_button.resize(num);
-	float angle = 0.5f * range - 0.5f * step;
-	size_t i = 0;
-	for (std::vector<Button>::iterator iter = g_button.begin(); iter != g_button.end(); ++iter)
-	{
-		glm::mat4 pose = glm::mat4(1.0f);
-		pose = glm::rotate(pose, angle, glm::vec3(0.0f, 1.0f, 0.0f));
-		pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
-		pose = glm::rotate(pose, -0.2f * glm::pi<float>(), glm::vec3(0.1f, 0.0f, 0.0f));   // tilt panels
-		pose = hmdPose * pose;
-
-		iter->init(size, actions[i]);
-		iter->set_transform(pose);
-
-		angle -= step;
-		i++;
-	}
+	g_Running = false;
 }
 
-static void CreatePointMesh(void)
+void player_backward(void)
 {
-	// simple line with two vertices, will update dynamically
-	std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 1.0f, 0.2f), glm::vec2(0.0f, 0.0f)),
-	};
-	const std::vector<GLuint> indices = {
-		0,
-	};
-
-	g_points.init_vertices(vertices, indices, GL_POINTS);
 }
 
-static void handleButtonAction(const Button::button_action_t action)
+void player_foreward(void)
 {
-	switch (action)
-	{
-		case Button::BUTTON_BACKWARD:
-			break;
-		case Button::BUTTON_CUBE_MONO:
-			break;
-		case Button::BUTTON_CUBE_STEREO:
-			break;
-		case Button::BUTTON_CYLINDER:
-			break;
-		case Button::BUTTON_DELETE:
-			break;
-		case Button::BUTTON_FISHEYE:
-			break;
-		case Button::BUTTON_FLAT:
-			break;
-		case Button::BUTTON_FORWARD:
-			break;
-		case Button::BUTTON_LEFT_RIGHT:
-			break;
-		case Button::BUTTON_MONO:
-			break;
-		case Button::BUTTON_NEXT:
-			break;
-		case Button::BUTTON_OPEN:
-			break;
-		case Button::BUTTON_PAUSE:
-			break;
-		case Button::BUTTON_PLAY:
-			break;
-		case Button::BUTTON_POWER:
-			g_Running = false;
-			break;
-		case Button::BUTTON_PREVIOUS:
-			break;
-		case Button::BUTTON_SPHERE:
-			break;
-		case Button::BUTTON_TOP_BOTTOM:
-			break;
-		default:
-			break;
-	}
+}
+
+void player_pause(void)
+{
+}
+
+void player_play(void)
+{
+}
+
+void player_previous(void)
+{
+}
+
+void player_next(void)
+{
+}
+
+Projection& projection(void)
+{
+	return g_projection;
 }
 
 int main(void)
@@ -166,10 +116,7 @@ int main(void)
 	// create simple shader & geometry
 	g_shaders.load_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
 
-	// draw rectangle at position in front of HMD at (0,0,-2), rotated slightly
-	// const glm::vec2 panel_size(1.0f, 1.0f);
-	// CreateRectMesh(panel_size, 5);
-	CreatePointMesh();
+	g_menu.init();
 
 	// main loop
 	while (g_Running)
@@ -221,8 +168,7 @@ int main(void)
 			std::cout << "action: trigger: " << trigger.x << std::endl;
 		}
 
-		bool buttonHit = false;
-		std::vector<glm::vec3> intersections;
+		const glm::mat4 hmdPose = g_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
 		std::set<vr::TrackedDeviceIndex_t> devices = g_vr.devices();
 		for (std::set<vr::TrackedDeviceIndex_t>::const_iterator dev = devices.begin(); dev != devices.end(); ++dev)
 		{
@@ -247,56 +193,9 @@ int main(void)
 			const glm::mat4 devPose = g_vr.pose(*dev);
 			control->second.set_transform(devPose);
 
-			for (std::vector<Button>::iterator iter = g_button.begin(); iter != g_button.end(); ++iter)
-			{
-				const Button::intersection_t isec = iter->intersection(devPose);
-
-				// draw point on panel
-				if (isec.hit)
-				{
-					buttonHit |= isec.hit;
-					// std::cout << "panel hit at (" << isec.global.x << ", " << isec.global.y << ", " << isec.global.z << ")" << std::endl;
-					intersections.push_back(isec.global);
-				}
-
-				if (triggerPressed && isec.hit)
-				{
-					// hit in rectangle local coords mapped to texture or 0..1 coords
-					std::cout << "Controller " << *dev << " clicked button " << isec.button_id << " at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
-					handleButtonAction(isec.action_id);
-				}
-			}
-		}
-
-		// perform user actions
-		if (triggerPressed)
-		{
-			if (!g_show_controls)
-			{
-				g_show_controls = true;
-				CreateButtonRow(1.0f, {
-					Button::BUTTON_PREVIOUS,
-					Button::BUTTON_BACKWARD,
-					Button::BUTTON_PLAY,
-					Button::BUTTON_FORWARD,
-					Button::BUTTON_NEXT,
-					Button::BUTTON_POWER
-				});
-			}
-			else if (!buttonHit)
-			{
-				g_show_controls = false;
-				g_button.clear();
-			}
-		}
-
-		// update scene objects
-		// define all intersection points
-		g_points.set_instances(intersections.size());
-		for (size_t i = 0; i < intersections.size(); i++)
-		{
-			const glm::mat4 popo = glm::translate(glm::mat4(1.0f), intersections[i]);
-			g_points.set_transform(popo, i);
+			// check menu interaction
+			// TODO: check for trigger of correct controller
+			g_menu.checkMenuInteraction(devPose, hmdPose, triggerPressed);
 		}
 
 		// For each eye: render scene to texture
@@ -316,17 +215,13 @@ int main(void)
 			g_shaders.activate();
 			g_shaders.set_uniform("projview", proj * view);
 			g_shaders.set_uniform("diffuse0", 0);
-			for (std::vector<Button>::iterator iter = g_button.begin(); iter != g_button.end(); ++iter)
-			{
-				iter->draw();
-			}
+			g_menu.draw();
 
 			// For each controller: render simple ray and do intersection with rectangle
 			for (std::map<vr::TrackedDeviceIndex_t, Controller>::const_iterator iter = g_controller.begin(); iter != g_controller.end(); ++iter)
 			{
 				iter->second.draw();
 			}
-			g_points.draw();
 			g_shaders.deactivate();
 
 			fb.unbind(GL_FRAMEBUFFER);
