@@ -193,7 +193,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			player_backward();
 			break;
 		case Button::BUTTON_PLAY_FORWARD:
-			player_foreward();
+			player_forward();
 			break;
 		case Button::BUTTON_PLAY_NEXT:
 			player_next();
@@ -220,6 +220,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			else
 			{
 				projection().set_projection(Projection::PROJECTION_CUBE_MAP);
+				update_projection();
 				main_menu();
 			}
 			break;
@@ -232,6 +233,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			else
 			{
 				projection().set_projection(Projection::PROJECTION_CYLINDER);
+				update_projection();
 				main_menu();
 			}
 			break;
@@ -244,6 +246,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			else
 			{
 				projection().set_projection(Projection::PROJECTION_FISHEYE);
+				update_projection();
 				main_menu();
 			}
 			break;
@@ -256,6 +259,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			else
 			{
 				projection().set_projection(Projection::PROJECTION_FLAT);
+				update_projection();
 				main_menu();
 			}
 			break;
@@ -268,6 +272,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			else
 			{
 				projection().set_projection(Projection::PROJECTION_SPHERE);
+				update_projection();
 				main_menu();
 			}
 			break;
@@ -280,6 +285,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			else
 			{
 				projection().set_tiling(Projection::TILE_CUBE_MAP_MONO);
+				update_projection();
 				main_menu();
 			}
 			break;
@@ -292,6 +298,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			else
 			{
 				projection().set_tiling(Projection::TILE_CUBE_MAP_STEREO);
+				update_projection();
 				main_menu();
 			}
 			break;
@@ -304,6 +311,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			else
 			{
 				projection().set_tiling(Projection::TILE_LEFT_RIGHT);
+				update_projection();
 				main_menu();
 			}
 			break;
@@ -316,6 +324,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			else
 			{
 				projection().set_tiling(Projection::TILE_MONO);
+				update_projection();
 				main_menu();
 			}
 			break;
@@ -328,6 +337,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			else
 			{
 				projection().set_tiling(Projection::TILE_TOP_BOTTOM);
+				update_projection();
 				main_menu();
 			}
 			break;

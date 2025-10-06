@@ -33,6 +33,7 @@ OBJECTS = \
 	$(BUILD_DIR)/menu.o \
 
 IMAGES = \
+	$(IMAGE_DIR)/angle.png \
 	$(IMAGE_DIR)/backward.png \
 	$(IMAGE_DIR)/cube-mono.png \
 	$(IMAGE_DIR)/cube-stereo.png \
@@ -74,4 +75,5 @@ clean-images:
 
 $(IMAGE_DIR)/%.png: $(IMAGE_DIR)/%.svg
 	@echo "[magick] $@"
-	@magick -background none $< $@
+	magick -density $$(echo "0.115234375 * 64" | bc -l) -background none $< $@
+	@# density of 0.115234375 leads to images of 1x1 pixels

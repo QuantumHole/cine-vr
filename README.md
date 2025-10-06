@@ -8,17 +8,31 @@ SPDX-License-Identifier: GPL-3.0-or-later
 This is a small test project to check out some mechanisms in OpenGL and OpenVR.
 
 It renders a scene into HMD (left/right). It also blits left eye to GLFW window for debugging.
-It shows some floating rectangles, controller rays, computes ray-rectangle intersection,
-and prints clicked coordinate on trigger button activation.
+It demonstrates handling of a menu structure. Users can configure some display options via the
+OpenVR controller. Some debug information is printed to the console.
 
 # Dependencies
 
+## Runtime Dependencies
 * OpenGL
 * GLFW
 * GLEW
 * OpenVR
 * libpng
 * libjpeg
+
+## Build Dependencies
+
+* gcc or clang
+* make
+* image magick
+* pkg-config
+* bc
+
+## Lint Dependencies
+
+* uncrustify
+* reuse
 
 # Building
 

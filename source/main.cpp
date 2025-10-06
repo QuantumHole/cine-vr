@@ -41,6 +41,10 @@ static std::map<vr::TrackedDeviceIndex_t, Controller> g_controller;
 static std::vector<Framebuffer> g_framebuffer(Eyes::size());
 static Menu g_menu;
 static Projection g_projection;
+static Shape g_canvas;
+static Texture g_image;
+static glm::vec3 g_hmd_reference_pos;
+static glm::quat g_hmd_reference_rot;
 
 void quit(void)
 {
@@ -51,7 +55,7 @@ void player_backward(void)
 {
 }
 
-void player_foreward(void)
+void player_forward(void)
 {
 }
 
@@ -74,6 +78,21 @@ void player_next(void)
 Projection& projection(void)
 {
 	return g_projection;
+}
+
+void update_projection(void)
+{
+	std::pair<std::vector<Vertex>, std::vector<GLuint> > proj = g_projection.setup_projection(1.0f);
+
+	g_canvas.init_vertices(proj.first, proj.second);
+}
+
+static void reset_reference(void)
+{
+	glm::mat4 hmd_pose = g_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
+
+	g_hmd_reference_pos = hmd_pose * glm::vec4(0, 0, 0, 1);
+	g_hmd_reference_rot = glm::quat_cast(hmd_pose);
 }
 
 int main(void)
@@ -118,6 +137,13 @@ int main(void)
 
 	g_menu.init();
 
+	reset_reference();
+	g_projection.set_stretch(true);
+	update_projection();
+
+	g_image.init_file("frame.png", GL_TEXTURE_2D, 0);
+	g_image.unbind();
+
 	// main loop
 	while (g_Running)
 	{
@@ -127,9 +153,25 @@ int main(void)
 
 		bool triggerPressed = false;
 
-		if (g_vr.getButtonAction(OpenVRInterface::ACTION_PADCLICK))
+		glm::vec3 trackpad = g_vr.getButtonPosition(OpenVRInterface::ACTION_ANALOG);
+		float length = glm::length(trackpad);
+
+		if (length > 0.5f)
 		{
-			std::cout << "action: pad click" << std::endl;
+			const glm::vec2 step = glm::vec2(trackpad) * 0.01f / length;
+			const float cx = cosf(step.x);
+			const float sx = sinf(step.x);
+			const float cy = cosf(step.y);
+			const float sy = sinf(step.y);
+			const glm::quat rotx(cx, 0.0f, sx, 0.0f);
+			const glm::quat roty(cy, -sy, 0.0f, 0.0f);
+
+			g_hmd_reference_rot = rotx * g_hmd_reference_rot * roty;
+		}
+
+		if ((length < 0.5f) && g_vr.getButtonAction(OpenVRInterface::ACTION_PADCLICK))
+		{
+			reset_reference();
 		}
 
 		if (g_vr.getButtonAction(OpenVRInterface::ACTION_MENU))
@@ -155,12 +197,6 @@ int main(void)
 			g_vr.haptic(OpenVRInterface::ACTION_HAPTIC_RIGHT);
 		}
 
-		glm::vec3 trackpad = g_vr.getButtonPosition(OpenVRInterface::ACTION_ANALOG);
-
-		if (glm::length(trackpad) > 0.0f)
-		{
-			std::cout << "action: analog: " << trackpad.x << " / " << trackpad.y << std::endl;
-		}
 		glm::vec3 trigger = g_vr.getButtonPosition(OpenVRInterface::ACTION_TRIGGER_VALUE);
 
 		if (glm::length(trigger) > 0.0f)
@@ -198,6 +234,21 @@ int main(void)
 			g_menu.checkMenuInteraction(devPose, hmdPose, triggerPressed);
 		}
 
+		glm::mat4 reference;
+
+		if (g_projection.follow_hmd())
+		{
+			glm::vec4 hmd_position = hmdPose * glm::vec4(0, 0, 0, 1);
+			reference = glm::translate(glm::mat4(1.0f), glm::vec3(hmd_position));
+		}
+		else
+		{
+			reference = translate(glm::mat4(1.0f), g_hmd_reference_pos);
+		}
+		reference *= mat4_cast(g_hmd_reference_rot);
+
+		g_canvas.set_transform(reference);
+
 		// For each eye: render scene to texture
 		for (vr::Hmd_Eye eye : Eyes())
 		{
@@ -215,6 +266,11 @@ int main(void)
 			g_shaders.activate();
 			g_shaders.set_uniform("projview", proj * view);
 			g_shaders.set_uniform("diffuse0", 0);
+
+			g_image.bind();
+			g_canvas.draw();
+			g_image.unbind();
+
 			g_menu.draw();
 
 			// For each controller: render simple ray and do intersection with rectangle

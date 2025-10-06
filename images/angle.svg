@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="832"
+   height="832"
+   viewBox="0 0 832 832"
+   version="1.1"
+   xml:space="preserve"
+   id="SVGRoot"
+   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
+   sodipodi:docname="angle.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs126" />
+<sodipodi:namedview
+   pagecolor="#a9a9a9"
+   bordercolor="#292929"
+   borderopacity="1"
+   inkscape:showpageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#232323"
+   id="namedview1"
+   inkscape:zoom="1.4896382"
+   inkscape:cx="341.35805"
+   inkscape:cy="422.58582"
+   inkscape:window-width="1915"
+   inkscape:window-height="1156"
+   inkscape:window-x="0"
+   inkscape:window-y="697"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="g3" />
+<style
+   type="text/css"
+   id="style1">
+g.prefab path {
+  vector-effect:non-scaling-stroke;
+  -inkscape-stroke:hairline;
+  fill: none;
+  fill-opacity: 1;
+  stroke-opacity: 1;
+  stroke: #00349c;
+}
+</style>
+
+<circle
+   style="fill:#c8c800;fill-opacity:1;stroke:#000000;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none"
+   id="path126"
+   cx="416.3291"
+   cy="416.3291"
+   r="406.3291" /><g
+   id="g3"><path
+     style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+     d="M 590.50635,657.70082 162.03018,411.37659 590.20967,164.12184"
+     id="path2"
+     sodipodi:nodetypes="ccc" /><path
+     style="fill:#ffffff;stroke:#000000;stroke-width:20;stroke-linecap:round;stroke-linejoin:round"
+     id="path1"
+     sodipodi:type="arc"
+     sodipodi:cx="162.17522"
+     sodipodi:cy="411.45996"
+     sodipodi:rx="235.44304"
+     sodipodi:ry="235.44304"
+     sodipodi:start="5.7595865"
+     sodipodi:end="0.52359878"
+     sodipodi:arc-type="slice"
+     d="m 366.07487,293.73844 a 235.44304,235.44304 0 0 1 0,235.44304 L 162.17522,411.45996 Z" /></g></svg>
