@@ -22,12 +22,12 @@
 #include "main.h"
 #include "opengl/shader_set.h"
 #include "opengl/framebuffer.h"
-#include "openvr_interface.h"
-#include "enum_iterator.h"
+#include "util/openvr_interface.h"
+#include "util/enum_iterator.h"
 #include "opengl/shape.h"
-#include "button.h"
-#include "controller.h"
-#include "menu.h"
+#include "gui/button.h"
+#include "gui/controller.h"
+#include "gui/menu.h"
 
 // #define DEBUG_LINE std::cout << "########## " << __FILE__ << "(" << __LINE__ << "): " << __FUNCTION__ << "()" << std::endl
 

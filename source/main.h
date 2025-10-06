@@ -5,7 +5,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include "projection.h"
+#include "gui/projection.h"
 
 void quit(void);
 void player_backward(void);

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "button.h"
-#include "id.h"
+#include "util/id.h"
 
 Button::Button(void) :
 	m_id(ID::unique_id()),

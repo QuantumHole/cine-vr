@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "texture.h"
-#include "image_data.h"
+#include "util/image_data.h"
 #include <iostream>
 #include <chrono>
 #include <thread>
