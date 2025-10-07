@@ -53,6 +53,7 @@ class Button
 
 		explicit Button(void);
 		void init(const float size, const button_action_t action, const bool toggleable = false);
+		bool toggleable(void) const;
 		void enable(const bool active);
 		bool active(void) const;
 		void set_transform(const glm::mat4& pose);

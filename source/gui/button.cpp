@@ -58,7 +58,12 @@ void Button::init(const float size, const button_action_t action, const bool tog
 		{Button::BUTTON_TILE_CUBE_STEREO, "images/cube-stereo.png"},
 		{Button::BUTTON_TILE_LEFT_RIGHT, "images/left-right.png"},
 		{Button::BUTTON_TILE_MONO, "images/mono.png"},
-		{Button::BUTTON_TILE_TOP_BOTTOM, "images/top-bottom.png"}
+		{Button::BUTTON_TILE_TOP_BOTTOM, "images/top-bottom.png"},
+		{Button::BUTTON_FLAG_MONO, "images/force-mono.png"},
+		{Button::BUTTON_FLAG_STRETCH, "images/stretch.png"},
+		{Button::BUTTON_FLAG_SWITCH_EYES, "images/switch-eyes.png"},
+		{Button::BUTTON_PARAM_ANGLE, "images/angle.png"},
+		{Button::BUTTON_PARAM_ZOOM, "images/zoom.png"}
 	};
 
 	std::map<Button::button_action_t, std::string>::const_iterator iter = images.find(action);
@@ -67,6 +72,23 @@ void Button::init(const float size, const button_action_t action, const bool tog
 	{
 		m_tex.init_file(iter->second, GL_TEXTURE_2D, 0);
 	}
+
+	std::set<Button::button_action_t> toggleables = {
+		BUTTON_FLAG_MONO,
+		BUTTON_FLAG_STRETCH,
+		BUTTON_FLAG_SWITCH_EYES
+	};
+
+	if (toggleables.find(action) != toggleables.end())
+	{
+		m_toggleable = true;
+		m_active = false;
+	}
+}
+
+bool Button::toggleable(void) const
+{
+	return m_toggleable;
 }
 
 void Button::enable(const bool active)
@@ -89,7 +111,7 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 {
 	intersection_t isec = {m_id, m_action, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
 
-	if (!m_active)
+	if (m_action == BUTTON_NONE)
 	{
 		return isec;
 	}

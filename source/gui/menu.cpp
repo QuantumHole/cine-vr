@@ -152,6 +152,11 @@ void Menu::main_menu(void)
 		Button::BUTTON_PLAY_NEXT,
 		action_tile,
 		action_project,
+		Button::BUTTON_PARAM_ANGLE,
+		Button::BUTTON_PARAM_ZOOM,
+		Button::BUTTON_FLAG_MONO,
+		Button::BUTTON_FLAG_STRETCH,
+		Button::BUTTON_FLAG_SWITCH_EYES,
 		Button::BUTTON_FILE_OPEN,
 		Button::BUTTON_POWER
 	});
@@ -341,6 +346,17 @@ void Menu::handle_button_action(const Button::button_action_t action)
 				main_menu();
 			}
 			break;
+		case Button::BUTTON_FLAG_MONO:
+			projection().set_mono(!projection().mono());
+			break;
+		case Button::BUTTON_FLAG_STRETCH:
+			projection().set_stretch(!projection().stretch());
+			break;
+		case Button::BUTTON_FLAG_SWITCH_EYES:
+			projection().set_switch_eyes(!projection().switch_eyes());
+			break;
+		case Button::BUTTON_PARAM_ANGLE:
+		case Button::BUTTON_PARAM_ZOOM:
 		default:
 			break;
 	}
@@ -374,6 +390,12 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 		{
 			// hit in rectangle local coords mapped to texture or 0..1 coords
 			std::cout << "Controller " << " clicked button " << isec.button_id << " at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
+
+			if (iter->toggleable())
+			{
+				iter->enable(!iter->active());
+			}
+
 			handle_button_action(isec.action_id);
 
 			// buttons may have been replaced by button action.

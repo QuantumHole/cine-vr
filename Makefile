@@ -52,6 +52,10 @@ IMAGES = \
 	$(IMAGE_DIR)/previous.png \
 	$(IMAGE_DIR)/sphere.png \
 	$(IMAGE_DIR)/top-bottom.png \
+	$(IMAGE_DIR)/force-mono.png \
+	$(IMAGE_DIR)/switch-eyes.png \
+	$(IMAGE_DIR)/stretch.png \
+	$(IMAGE_DIR)/zoom.png \
 
 all: $(TARGET) $(IMAGES)
 
