@@ -32,7 +32,12 @@ class Button
 			BUTTON_TILE_CUBE_STEREO,
 			BUTTON_TILE_LEFT_RIGHT,
 			BUTTON_TILE_MONO,
-			BUTTON_TILE_TOP_BOTTOM
+			BUTTON_TILE_TOP_BOTTOM,
+			BUTTON_FLAG_MONO,
+			BUTTON_FLAG_STRETCH,
+			BUTTON_FLAG_SWITCH_EYES,
+			BUTTON_PARAM_ANGLE,
+			BUTTON_PARAM_ZOOM
 		}
 		button_action_t;
 
@@ -47,8 +52,9 @@ class Button
 		intersection_t;
 
 		explicit Button(void);
-		void init(const float size, const button_action_t action);
+		void init(const float size, const button_action_t action, const bool toggleable = false);
 		void enable(const bool active);
+		bool active(void) const;
 		void set_transform(const glm::mat4& pose);
 		intersection_t intersection(const glm::mat4& pose) const;
 		void draw(void) const;
@@ -56,6 +62,7 @@ class Button
 	private:
 		const size_t m_id;                // OpenGL ID
 		button_action_t m_action;         // button function indicator
+		bool m_toggleable;                // enable on/off behaviour
 		bool m_active;                    // flag for possible interactions
 		Shape m_shape;                    // mesh
 		Texture m_tex;                    // optional texture

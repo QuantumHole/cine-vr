@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <png.h>
 #include <jpeglib.h>
+#include <math.h>
 
 ImageFile::ImageFile(const std::string& file_name, const bool flip_y) :
 	m_width(0),
@@ -140,6 +141,31 @@ void ImageFile::paste(const ImageFile& frame, const size_t x, const size_t y)
 			m_pixels[index + 1] = frame.m_pixels[findex + 1];
 			m_pixels[index + 2] = frame.m_pixels[findex + 2];
 		}
+	}
+}
+
+void ImageFile::mix(const uint8_t r, const uint8_t g, const uint8_t b, const float frac)
+{
+	for (size_t i = 0; i < m_pixels.size(); i +=  m_bits_per_pixel / 8)
+	{
+		m_pixels[i + 0] = static_cast<uint8_t>(static_cast<float>(m_pixels[i + 0]) * (1.0f - frac) + static_cast<float>(r) * frac);
+		m_pixels[i + 1] = static_cast<uint8_t>(static_cast<float>(m_pixels[i + 1]) * (1.0f - frac) + static_cast<float>(g) * frac);
+		m_pixels[i + 2] = static_cast<uint8_t>(static_cast<float>(m_pixels[i + 2]) * (1.0f - frac) + static_cast<float>(b) * frac);
+	}
+}
+
+void ImageFile::greyscale(void)
+{
+	for (size_t i = 0; i < m_pixels.size(); i +=  m_bits_per_pixel / 8)
+	{
+		const uint8_t c = static_cast<uint8_t>(sqrtf(static_cast<float>(
+														 m_pixels[i + 0] * m_pixels[i + 0] +
+														 m_pixels[i + 1] * m_pixels[i + 1] +
+														 m_pixels[i + 2] * m_pixels[i + 2]
+														 )) / 3.0f);
+		m_pixels[i + 0] = c;
+		m_pixels[i + 1] = c;
+		m_pixels[i + 2] = c;
 	}
 }
 

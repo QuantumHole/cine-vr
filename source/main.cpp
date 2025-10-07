@@ -87,6 +87,11 @@ void update_projection(void)
 	g_canvas.init_vertices(proj.first, proj.second);
 }
 
+ShaderSet& shader(void)
+{
+	return g_shaders;
+}
+
 static void reset_reference(void)
 {
 	glm::mat4 hmd_pose = g_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
@@ -134,6 +139,8 @@ int main(void)
 
 	// create simple shader & geometry
 	g_shaders.load_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
+	g_shaders.set_uniform("color_fade", 0.0f);
+	g_shaders.set_uniform("greyscale", false);
 
 	g_menu.init();
 

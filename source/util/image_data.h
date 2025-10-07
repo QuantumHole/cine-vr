@@ -37,6 +37,8 @@ class ImageFile
 		uint32_t height(void) const;
 		bool has_alpha_channel(void) const;
 		void paste(const ImageFile& frame, const size_t x, const size_t y);
+		void mix(const uint8_t r, const uint8_t g, const uint8_t b, const float frac);
+		void greyscale(void);
 };
 
 #endif

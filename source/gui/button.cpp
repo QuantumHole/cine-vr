@@ -4,10 +4,12 @@
 
 #include "button.h"
 #include "util/id.h"
+#include "main.h"
 
 Button::Button(void) :
 	m_id(ID::unique_id()),
 	m_action(BUTTON_NONE),
+	m_toggleable(false),
 	m_active(true),
 	m_shape(),
 	m_tex(),
@@ -16,10 +18,12 @@ Button::Button(void) :
 {
 }
 
-void Button::init(const float size, const button_action_t action)
+void Button::init(const float size, const button_action_t action, const bool toggleable)
 {
 	m_size = glm::vec2(size, size);
 	m_action = action;
+	m_toggleable = toggleable;
+
 	// positions: rectangle in XY plane centered at 0, z=0
 	const std::vector<Vertex> vertices = {
 		Vertex(glm::vec3(-0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f)),
@@ -68,6 +72,11 @@ void Button::init(const float size, const button_action_t action)
 void Button::enable(const bool active)
 {
 	m_active = active;
+}
+
+bool Button::active(void) const
+{
+	return m_active;
 }
 
 void Button::set_transform(const glm::mat4& pose)
@@ -123,7 +132,17 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 
 void Button::draw(void) const
 {
+	if (m_toggleable && !m_active)
+	{
+		shader().set_uniform("greyscale", true);
+	}
+
 	m_tex.bind();
 	m_shape.draw();
 	m_tex.unbind();
+
+	if (m_toggleable && !m_active)
+	{
+		shader().set_uniform("greyscale", false);
+	}
 }

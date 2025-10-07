@@ -6,6 +6,7 @@
 #define MAIN_H
 
 #include "gui/projection.h"
+#include "opengl/shader_set.h"
 
 void quit(void);
 void player_backward(void);
@@ -16,5 +17,6 @@ void player_previous(void);
 void player_next(void);
 Projection& projection(void);
 void update_projection(void);
+ShaderSet& shader(void);
 
 #endif
