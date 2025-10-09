@@ -36,7 +36,7 @@ class Menu
 	public:
 		Menu(void);
 		void init(void);
-		void checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hmd, const bool pressed);
+		void checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hmd, const bool released, const bool pressed);
 		void draw(void);
 };
 

@@ -6,23 +6,30 @@
 #include "util/id.h"
 #include "main.h"
 
+static const float slide_height = 10.0f;
+
 Button::Button(void) :
 	m_id(ID::unique_id()),
 	m_action(BUTTON_NONE),
 	m_toggleable(false),
 	m_active(true),
+	m_slideable(false),
+	m_slide_min(-90.0f),
+	m_slide_max(270.0f),
+	m_slide_pos(30.0f),
+	m_slide_select(0.0f),
 	m_shape(),
+	m_slidebar(),
 	m_tex(),
 	m_size(0.0f, 0.0f),
 	m_pose(1.0f)
 {
 }
 
-void Button::init(const float size, const button_action_t action, const bool toggleable)
+void Button::init(const float size, const button_action_t action)
 {
 	m_size = glm::vec2(size, size);
 	m_action = action;
-	m_toggleable = toggleable;
 
 	// positions: rectangle in XY plane centered at 0, z=0
 	const std::vector<Vertex> vertices = {
@@ -79,10 +86,37 @@ void Button::init(const float size, const button_action_t action, const bool tog
 		BUTTON_FLAG_SWITCH_EYES
 	};
 
+	std::set<Button::button_action_t> slideables = {
+		BUTTON_PARAM_ANGLE,
+		BUTTON_PARAM_ZOOM
+	};
+
 	if (toggleables.find(action) != toggleables.end())
 	{
 		m_toggleable = true;
 		m_active = false;
+	}
+	else if (slideables.find(action) != slideables.end())
+	{
+		m_slideable = true;
+		m_active = false;
+		const float eps = 1e-4f;
+		const float y0 = 0.0f;
+		const float y1 = slide_height * m_size.y;
+
+		const std::vector<Vertex> svertices = {
+			Vertex(glm::vec3(-0.4f * m_size.x, y0, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)),
+			Vertex(glm::vec3(0.4f * m_size.x, y1, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f)),
+			Vertex(glm::vec3(-0.4f * m_size.x, y1, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)),
+			Vertex(glm::vec3(0.4f * m_size.x, y0, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)),
+		};
+
+		const std::vector<GLuint> sindices = {
+			0, 1, 2,
+			0, 3, 1,
+		};
+
+		m_slidebar.init_vertices(svertices, sindices, GL_TRIANGLES);
 	}
 }
 
@@ -99,6 +133,28 @@ void Button::enable(const bool active)
 bool Button::active(void) const
 {
 	return m_active;
+}
+
+bool Button::slideable(void) const
+{
+	return m_slideable;
+}
+
+float Button::slide_value(void) const
+{
+	return m_slide_pos;
+}
+
+void Button::update_slide_value(const float pos)
+{
+	if (m_slideable && m_active)
+	{
+		m_slide_select = m_slide_min + pos * (m_slide_max - m_slide_min);
+	}
+	else if (m_slideable && !m_active)
+	{
+		m_slide_pos = m_slide_select;
+	}
 }
 
 void Button::set_transform(const glm::mat4& pose)
@@ -140,7 +196,38 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 	// point of intersection in local coordinates
 	// check if it lies within the object boundaries
 	isec.global = local_origin + t * local_direction;
-	isec.local = (glm::vec2(isec.global) + 0.5f * m_size) / m_size;
+
+	if (m_slideable && m_active)
+	{
+		// restrict y coordinate of shown icon
+		const float frac = (m_slide_pos - m_slide_min) / (m_slide_max - m_slide_min);
+		const float y0 = -slide_height * m_size.y * frac;
+		const float y1 = slide_height * m_size.y * (1.0f - frac);
+		const float global_y = std::min(std::max(isec.global.y, y0), y1);
+
+		isec.local = (glm::vec2(isec.global.x, global_y) - y0) / (y1 - y0);
+
+		// move button icon to cursor position
+		glm::mat4 shifted_pose = glm::translate(m_pose, glm::vec3(0.0f, global_y, 0.0f));
+		m_shape.set_transform(shifted_pose);
+	}
+	else
+	{
+		if (m_slideable && !m_active)
+		{
+			m_shape.set_transform(m_pose);
+
+			const float frac = (m_slide_pos - m_slide_min) / (m_slide_max - m_slide_min);
+			const float y0 = -slide_height * m_size.y * frac;
+
+			// move selection strip to current position
+			glm::mat4 shifted_pose = glm::translate(m_pose, glm::vec3(0.0f, y0, 0.0f));
+			m_slidebar.set_transform(shifted_pose);
+		}
+
+		// button coordinates [0; 1]
+		isec.local = (glm::vec2(isec.global) + 0.5f * m_size) / m_size;
+	}
 
 	isec.hit = ((t > 0) &&   // target plane must be in positive direction
 	            (isec.global.x >= -0.5f * m_size.x) && (isec.global.x <= 0.5f * m_size.x) &&
@@ -166,5 +253,10 @@ void Button::draw(void) const
 	if (m_toggleable && !m_active)
 	{
 		shader().set_uniform("greyscale", false);
+	}
+
+	if (m_slideable && m_active)
+	{
+		m_slidebar.draw();
 	}
 }

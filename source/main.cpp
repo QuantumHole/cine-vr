@@ -158,8 +158,6 @@ int main(void)
 		g_vr.update();
 		g_vr.read_poses();
 
-		bool triggerPressed = false;
-
 		glm::vec3 trackpad = g_vr.getButtonPosition(OpenVRInterface::ACTION_ANALOG);
 		float length = glm::length(trackpad);
 
@@ -196,10 +194,12 @@ int main(void)
 			std::cout << "action: grip" << std::endl;
 		}
 
-		if (g_vr.getButtonAction(OpenVRInterface::ACTION_TRIGGER))
+		const bool triggerPressed = g_vr.getButtonAction(OpenVRInterface::ACTION_TRIGGER, false);
+		const bool triggerReleased = g_vr.getButtonAction(OpenVRInterface::ACTION_TRIGGER, true);
+
+		if (triggerReleased)
 		{
 			std::cout << "action: trigger" << std::endl;
-			triggerPressed = true;
 			g_vr.haptic(OpenVRInterface::ACTION_HAPTIC_LEFT);
 			g_vr.haptic(OpenVRInterface::ACTION_HAPTIC_RIGHT);
 		}
@@ -238,7 +238,7 @@ int main(void)
 
 			// check menu interaction
 			// TODO: check for trigger of correct controller
-			g_menu.checkMenuInteraction(devPose, hmdPose, triggerPressed);
+			g_menu.checkMenuInteraction(devPose, hmdPose, triggerReleased, triggerPressed);
 		}
 
 		glm::mat4 reference;

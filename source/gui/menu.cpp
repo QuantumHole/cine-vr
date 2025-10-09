@@ -152,11 +152,11 @@ void Menu::main_menu(void)
 		Button::BUTTON_PLAY_NEXT,
 		action_tile,
 		action_project,
-		Button::BUTTON_PARAM_ANGLE,
-		Button::BUTTON_PARAM_ZOOM,
 		Button::BUTTON_FLAG_MONO,
 		Button::BUTTON_FLAG_STRETCH,
 		Button::BUTTON_FLAG_SWITCH_EYES,
+		Button::BUTTON_PARAM_ANGLE,
+		Button::BUTTON_PARAM_ZOOM,
 		Button::BUTTON_FILE_OPEN,
 		Button::BUTTON_POWER
 	});
@@ -356,16 +356,20 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			projection().set_switch_eyes(!projection().switch_eyes());
 			break;
 		case Button::BUTTON_PARAM_ANGLE:
+			// projection().set_angle();
+			break;
 		case Button::BUTTON_PARAM_ZOOM:
+			// projection().set_zoom();
+			break;
 		default:
 			break;
 	}
 }
 
-void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hmd, const bool pressed)
+void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hmd, const bool released, const bool pressed)
 {
 	// activate menu, if disabled
-	if (pressed && (m_submenu == MENU_NONE))
+	if (released && (m_submenu == MENU_NONE))
 	{
 		m_hmd_pose = hmd;
 		main_menu();
@@ -386,7 +390,20 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 			intersections.push_back(isec.global);
 		}
 
-		if (pressed && isec.hit)
+		if (iter->slideable())
+		{
+			if (isec.hit && pressed && !iter->active())
+			{
+				iter->enable(true);
+			}
+			else if (!pressed && iter->active())
+			{
+				iter->enable(false);
+			}
+			iter->update_slide_value(isec.local.y);
+		}
+
+		if (released && isec.hit)
 		{
 			// hit in rectangle local coords mapped to texture or 0..1 coords
 			std::cout << "Controller " << " clicked button " << isec.button_id << " at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
@@ -414,7 +431,7 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 	}
 
 	// deactivate menu, if no button was hit
-	if (pressed && !buttonHit)
+	if (released && !buttonHit)
 	{
 		m_submenu = MENU_NONE;
 	}
