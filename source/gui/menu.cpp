@@ -411,8 +411,8 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			update_projection();
 			break;
 		case Button::BUTTON_PARAM_ZOOM:
-			// projection().set_zoom( m_button.find(action)->second->slide_value() );
-			// update_projection();
+			projection().set_zoom(m_button.find(action)->second->slide_value());
+			update_projection();
 			break;
 		default:
 			break;
@@ -454,8 +454,11 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 			{
 				b->enable(false);
 			}
-			b->update_slide_value(isec.local.y);
-			// handle_button_action(isec.action_id);
+			else if (pressed && b->active())
+			{
+				b->update_slide_value(isec.local.y);
+				handle_button_action(isec.action_id);
+			}
 		}
 
 		if (released && isec.hit)

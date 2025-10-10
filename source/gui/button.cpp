@@ -18,7 +18,7 @@ Button::Button(const button_action_t action) :
 	m_slide_min(0.0f),
 	m_slide_max(0.0f),
 	m_slide_pos(0.0f),
-	m_slide_select(0.0f),
+	m_slide_last(0.0f),
 	m_shape(),
 	m_slidebar(),
 	m_tex(),
@@ -35,7 +35,7 @@ Button::Button(const button_action_t action, const bool value) :
 	m_slide_min(0.0f),
 	m_slide_max(0.0f),
 	m_slide_pos(0.0f),
-	m_slide_select(0.0f),
+	m_slide_last(0.0f),
 	m_shape(),
 	m_slidebar(),
 	m_tex(),
@@ -52,7 +52,7 @@ Button::Button(const button_action_t action, const float min, const float max, c
 	m_slide_min(min),
 	m_slide_max(max),
 	m_slide_pos(value),
-	m_slide_select(value),
+	m_slide_last(value),
 	m_shape(),
 	m_slidebar(),
 	m_tex(),
@@ -162,6 +162,21 @@ bool Button::toggleable(void) const
 
 void Button::enable(const bool active)
 {
+	if (m_slideable && !m_active && active)
+	{
+		m_slide_last = m_slide_pos;
+
+		const float frac = (m_slide_pos - m_slide_min) / (m_slide_max - m_slide_min);
+		const float y0 = -slide_height * m_size.y * frac;
+
+		// move selection strip to current position
+		glm::mat4 shifted_pose = glm::translate(m_pose, glm::vec3(0.0f, y0, 0.0f));
+		m_slidebar.set_transform(shifted_pose);
+	}
+	else if (m_slideable && m_active && !active)
+	{
+		m_shape.set_transform(m_pose);
+	}
 	m_active = active;
 }
 
@@ -184,11 +199,7 @@ void Button::update_slide_value(const float pos)
 {
 	if (m_slideable && m_active)
 	{
-		m_slide_select = m_slide_min + pos * (m_slide_max - m_slide_min);
-	}
-	else if (m_slideable && !m_active)
-	{
-		m_slide_pos = m_slide_select;
+		m_slide_pos = m_slide_min + pos * (m_slide_max - m_slide_min);
 	}
 }
 
@@ -234,8 +245,8 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 
 	if (m_slideable && m_active)
 	{
-		// restrict y coordinate of shown icon
-		const float frac = (m_slide_pos - m_slide_min) / (m_slide_max - m_slide_min);
+		// restrict y coordinate of shown icon from last slide position
+		const float frac = (m_slide_last - m_slide_min) / (m_slide_max - m_slide_min);
 		const float y0 = -slide_height * m_size.y * frac;
 		const float y1 = slide_height * m_size.y * (1.0f - frac);
 		const float global_y = std::min(std::max(isec.global.y, y0), y1);
@@ -248,18 +259,6 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 	}
 	else
 	{
-		if (m_slideable && !m_active)
-		{
-			m_shape.set_transform(m_pose);
-
-			const float frac = (m_slide_pos - m_slide_min) / (m_slide_max - m_slide_min);
-			const float y0 = -slide_height * m_size.y * frac;
-
-			// move selection strip to current position
-			glm::mat4 shifted_pose = glm::translate(m_pose, glm::vec3(0.0f, y0, 0.0f));
-			m_slidebar.set_transform(shifted_pose);
-		}
-
 		// button coordinates [0; 1]
 		isec.local = (glm::vec2(isec.global) + 0.5f * m_size) / m_size;
 	}

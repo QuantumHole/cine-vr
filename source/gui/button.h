@@ -75,7 +75,7 @@ class Button
 		float m_slide_min;                // minimum slidebar value
 		float m_slide_max;                // maximum slidebar value
 		float m_slide_pos;                // current slidebar value
-		float m_slide_select;             // selected slidebar value
+		float m_slide_last;               // original slidebar value
 		Shape m_shape;                    // mesh
 		Shape m_slidebar;                 // slidebar shape when this button is slideable
 		Texture m_tex;                    // optional texture
