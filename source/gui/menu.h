@@ -6,7 +6,7 @@
 #define MENU_H
 
 #include "button.h"
-#include <vector>
+#include <map>
 
 class Menu
 {
@@ -20,7 +20,7 @@ class Menu
 		}
 		menu_t;
 
-		std::vector<Button> m_button;
+		std::map<Button::button_action_t, Button*> m_button;
 		Shape m_points;
 		menu_t m_submenu;
 		glm::mat4 m_hmd_pose;
@@ -37,7 +37,7 @@ class Menu
 		Menu(void);
 		void init(void);
 		void checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hmd, const bool released, const bool pressed);
-		void draw(void);
+		void draw(void) const;
 };
 
 #endif

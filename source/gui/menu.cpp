@@ -23,16 +23,16 @@ void Menu::init(void)
 	create_points();
 }
 
-void Menu::draw(void)
+void Menu::draw(void) const
 {
 	switch (m_submenu)
 	{
 		case MENU_MAIN:
 		case MENU_TILING:
 		case MENU_PROJECTION:
-			for (std::vector<Button>::iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
+			for (std::map<Button::button_action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
 			{
-				iter->draw();
+				iter->second->draw();
 			}
 			m_points.draw();
 			break;
@@ -71,8 +71,11 @@ void Menu::create_button_panel(const std::vector<Button::button_action_t>& actio
 	const float range_x = 0.25f * glm::pi<float>();
 	const float step_xy = range_x / static_cast<float>(rows.at(0));
 
+	for (std::map<Button::button_action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
+	{
+		delete iter->second;
+	}
 	m_button.clear();
-	m_button.resize(actions.size());
 
 	i = 0;
 	for (size_t y = 0; y < rows.size(); y++)
@@ -88,8 +91,53 @@ void Menu::create_button_panel(const std::vector<Button::button_action_t>& actio
 			pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 			pose = m_hmd_pose * pose;
 
-			m_button.at(i).init(0.5f, actions.at(i));
-			m_button.at(i).set_transform(pose);
+			const Button::button_action_t act = actions.at(i);
+
+			Button* b;
+			switch (act)
+			{
+				case Button::BUTTON_FILE_DELETE:
+				case Button::BUTTON_FILE_OPEN:
+				case Button::BUTTON_PLAY_BACKWARD:
+				case Button::BUTTON_PLAY_FORWARD:
+				case Button::BUTTON_PLAY_NEXT:
+				case Button::BUTTON_PLAY_PAUSE:
+				case Button::BUTTON_PLAY_PLAY:
+				case Button::BUTTON_PLAY_PREVIOUS:
+				case Button::BUTTON_POWER:
+				case Button::BUTTON_PROJECT_CUBE:
+				case Button::BUTTON_PROJECT_CYLINDER:
+				case Button::BUTTON_PROJECT_FISHEYE:
+				case Button::BUTTON_PROJECT_FLAT:
+				case Button::BUTTON_PROJECT_SPHERE:
+				case Button::BUTTON_TILE_CUBE_MONO:
+				case Button::BUTTON_TILE_CUBE_STEREO:
+				case Button::BUTTON_TILE_LEFT_RIGHT:
+				case Button::BUTTON_TILE_MONO:
+				case Button::BUTTON_TILE_TOP_BOTTOM:
+					b = new Button(act);
+					break;
+				case Button::BUTTON_FLAG_MONO:
+					b = new Button(act, projection().mono());
+					break;
+				case Button::BUTTON_FLAG_STRETCH:
+					b = new Button(act, projection().stretch());
+					break;
+				case Button::BUTTON_FLAG_SWITCH_EYES:
+					b = new Button(act, projection().switch_eyes());
+					break;
+				case Button::BUTTON_PARAM_ANGLE:
+					b = new Button(act, 0.0f, 2.0f * glm::pi<float>(), projection().angle());
+					break;
+				case Button::BUTTON_PARAM_ZOOM:
+					b = new Button(act, 0.0f, 10.0f, projection().zoom());
+					break;
+				default:
+					throw std::runtime_error("invalid button ID");
+			}
+
+			b->set_transform(pose);
+			m_button[act] = b;
 			i++;
 		}
 	}
@@ -348,18 +396,23 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			break;
 		case Button::BUTTON_FLAG_MONO:
 			projection().set_mono(!projection().mono());
+			update_projection();
 			break;
 		case Button::BUTTON_FLAG_STRETCH:
 			projection().set_stretch(!projection().stretch());
+			update_projection();
 			break;
 		case Button::BUTTON_FLAG_SWITCH_EYES:
 			projection().set_switch_eyes(!projection().switch_eyes());
+			update_projection();
 			break;
 		case Button::BUTTON_PARAM_ANGLE:
-			// projection().set_angle();
+			projection().set_angle(m_button.find(action)->second->slide_value());
+			update_projection();
 			break;
 		case Button::BUTTON_PARAM_ZOOM:
-			// projection().set_zoom();
+			// projection().set_zoom( m_button.find(action)->second->slide_value() );
+			// update_projection();
 			break;
 		default:
 			break;
@@ -378,9 +431,10 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 
 	bool buttonHit = false;
 	std::vector<glm::vec3> intersections;
-	for (std::vector<Button>::iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
+	for (std::map<Button::button_action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
 	{
-		const Button::intersection_t isec = iter->intersection(controller);
+		Button* b = iter->second;
+		const Button::intersection_t isec = b->intersection(controller);
 
 		// draw point on panel
 		if (isec.hit)
@@ -390,27 +444,28 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 			intersections.push_back(isec.global);
 		}
 
-		if (iter->slideable())
+		if (b->slideable())
 		{
-			if (isec.hit && pressed && !iter->active())
+			if (isec.hit && pressed && !b->active())
 			{
-				iter->enable(true);
+				b->enable(true);
 			}
-			else if (!pressed && iter->active())
+			else if (!pressed && b->active())
 			{
-				iter->enable(false);
+				b->enable(false);
 			}
-			iter->update_slide_value(isec.local.y);
+			b->update_slide_value(isec.local.y);
+			// handle_button_action(isec.action_id);
 		}
 
 		if (released && isec.hit)
 		{
 			// hit in rectangle local coords mapped to texture or 0..1 coords
-			std::cout << "Controller " << " clicked button " << isec.button_id << " at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
+			std::cout << "Controller " << " clicked button " << isec.action_id << " at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
 
-			if (iter->toggleable())
+			if (b->toggleable())
 			{
-				iter->enable(!iter->active());
+				b->enable(!b->active());
 			}
 
 			handle_button_action(isec.action_id);

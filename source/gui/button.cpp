@@ -8,29 +8,71 @@
 
 static const float slide_height = 10.0f;
 
-Button::Button(void) :
-	m_id(ID::unique_id()),
-	m_action(BUTTON_NONE),
+const glm::vec2 Button::m_size(0.5f, 0.5f);    // size in scene coordinate space
+
+Button::Button(const button_action_t action) :
+	m_action(action),
 	m_toggleable(false),
 	m_active(true),
 	m_slideable(false),
-	m_slide_min(-90.0f),
-	m_slide_max(270.0f),
-	m_slide_pos(30.0f),
+	m_slide_min(0.0f),
+	m_slide_max(0.0f),
+	m_slide_pos(0.0f),
 	m_slide_select(0.0f),
 	m_shape(),
 	m_slidebar(),
 	m_tex(),
-	m_size(0.0f, 0.0f),
 	m_pose(1.0f)
 {
+	init();
 }
 
-void Button::init(const float size, const button_action_t action)
+Button::Button(const button_action_t action, const bool value) :
+	m_action(action),
+	m_toggleable(true),
+	m_active(value),
+	m_slideable(false),
+	m_slide_min(0.0f),
+	m_slide_max(0.0f),
+	m_slide_pos(0.0f),
+	m_slide_select(0.0f),
+	m_shape(),
+	m_slidebar(),
+	m_tex(),
+	m_pose(1.0f)
 {
-	m_size = glm::vec2(size, size);
-	m_action = action;
+	init();
+}
 
+Button::Button(const button_action_t action, const float min, const float max, const float value) :
+	m_action(action),
+	m_toggleable(false),
+	m_active(false),
+	m_slideable(true),
+	m_slide_min(min),
+	m_slide_max(max),
+	m_slide_pos(value),
+	m_slide_select(value),
+	m_shape(),
+	m_slidebar(),
+	m_tex(),
+	m_pose(1.0f)
+{
+	init();
+}
+
+Button::~Button(void)
+{
+	m_shape.remove();
+
+	if (m_slideable)
+	{
+		m_slidebar.remove();
+	}
+}
+
+void Button::init(void)
+{
 	// positions: rectangle in XY plane centered at 0, z=0
 	const std::vector<Vertex> vertices = {
 		Vertex(glm::vec3(-0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f)),
@@ -73,7 +115,7 @@ void Button::init(const float size, const button_action_t action)
 		{Button::BUTTON_PARAM_ZOOM, "images/zoom.png"}
 	};
 
-	std::map<Button::button_action_t, std::string>::const_iterator iter = images.find(action);
+	std::map<Button::button_action_t, std::string>::const_iterator iter = images.find(m_action);
 
 	if (iter != images.end())
 	{
@@ -91,15 +133,8 @@ void Button::init(const float size, const button_action_t action)
 		BUTTON_PARAM_ZOOM
 	};
 
-	if (toggleables.find(action) != toggleables.end())
+	if (slideables.find(m_action) != slideables.end())
 	{
-		m_toggleable = true;
-		m_active = false;
-	}
-	else if (slideables.find(action) != slideables.end())
-	{
-		m_slideable = true;
-		m_active = false;
 		const float eps = 1e-4f;
 		const float y0 = 0.0f;
 		const float y1 = slide_height * m_size.y;
@@ -165,7 +200,7 @@ void Button::set_transform(const glm::mat4& pose)
 
 Button::intersection_t Button::intersection(const glm::mat4& pose) const
 {
-	intersection_t isec = {m_id, m_action, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
+	intersection_t isec = {m_action, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
 
 	if (m_action == BUTTON_NONE)
 	{
