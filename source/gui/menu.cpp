@@ -14,7 +14,8 @@ Menu::Menu(void) :
 	m_button(),
 	m_points(),
 	m_submenu(MENU_NONE),
-	m_hmd_pose(1.0)
+	m_hmd_pose(1.0),
+	m_active_button(Button::BUTTON_NONE)
 {
 }
 
@@ -446,13 +447,15 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 
 		if (b->slideable())
 		{
-			if (isec.hit && pressed && !b->active())
+			if (isec.hit && pressed && !b->active() && (m_active_button == Button::BUTTON_NONE))
 			{
 				b->enable(true);
+				m_active_button = iter->first;
 			}
 			else if (!pressed && b->active())
 			{
 				b->enable(false);
+				m_active_button = Button::BUTTON_NONE;
 			}
 			else if (pressed && b->active())
 			{

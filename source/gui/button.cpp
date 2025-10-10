@@ -6,7 +6,7 @@
 #include "util/id.h"
 #include "main.h"
 
-static const float slide_height = 10.0f;
+static const float slide_height = 5.0f;
 
 const glm::vec2 Button::m_size(0.5f, 0.5f);    // size in scene coordinate space
 
