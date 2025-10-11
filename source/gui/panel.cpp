@@ -3,12 +3,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "panel.h"
+#include "font_renderer.h"
+
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
-
-TTF_Font* Panel::m_font = nullptr;
-size_t Panel::m_instances = 0;
 
 Panel::Panel(void) :
 	m_shape(),
@@ -20,14 +19,8 @@ Panel::Panel(void) :
 
 Panel::~Panel(void)
 {
+	m_shape.remove();
 	m_texture.remove();
-	m_instances--;
-
-	if (m_instances == 0)
-	{
-		TTF_CloseFont(m_font);
-		m_font = nullptr;
-	}
 }
 
 void Panel::init_area(const size_t width, const size_t height)
@@ -37,11 +30,6 @@ void Panel::init_area(const size_t width, const size_t height)
 		// reinitialize
 		m_shape.remove();
 		m_texture.remove();
-
-		if (m_instances)
-		{
-			m_instances--;
-		}
 	}
 
 	m_width = width;
@@ -63,18 +51,6 @@ void Panel::init_area(const size_t width, const size_t height)
 
 	m_shape.init_vertices(vertices, indices, GL_TRIANGLES);
 	m_texture.init_dim(width, height, GL_TEXTURE_2D, 0);
-
-	if (m_font == nullptr)
-	{
-		m_font = TTF_OpenFont("/usr/share/fonts/TTF/OpenSans-Regular.ttf", 20.0);
-
-		if (!m_font)
-		{
-			std::cout << __FUNCTION__ << " - SDL could not initialize! SDL Error: " << SDL_GetError() << std::endl;
-			throw std::runtime_error("invalid font");
-		}
-	}
-	m_instances++;
 }
 
 void Panel::set_transform(const glm::mat4& pose)
@@ -84,22 +60,26 @@ void Panel::set_transform(const glm::mat4& pose)
 
 void Panel::text(const std::string& text, const int32_t x, const int32_t y)
 {
-	SDL_Color color = {0xff, 0xff, 0xff, 0xff};
-	SDL_Surface* surface = TTF_RenderText_Blended(m_font, text.c_str(), text.size(), color);
+	FontRenderer renderer;
 
+	renderer.load_font("/usr/share/fonts/TTF/OpenSans-Regular.ttf");
+
+	const size_t height = 20;
+	std::vector<uint32_t> image;
+	renderer.render_text(text, height, image);
+
+	const size_t width = image.size() / height;
 	/* copy only the visible section of the surface */
-	for (size_t i = 0; i < static_cast<size_t>(surface->h); i++)
+	for (size_t i = 0; i < height; i++)
 	{
 		glTexSubImage2D(GL_TEXTURE_2D, 0,
 		                x,
 		                y + static_cast<GLint>(i),
-		                std::min(static_cast<GLsizei>(surface->w), static_cast<GLsizei>(std::max(0, static_cast<int32_t>(m_width) - x))),
+		                std::min(static_cast<GLsizei>(width), static_cast<GLsizei>(std::max(0, static_cast<int32_t>(m_width) - x))),
 		                1,
-		                GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV,
-		                reinterpret_cast<uint8_t*>(surface->pixels) + static_cast<ptrdiff_t>(static_cast<int>(i) * surface->pitch));
+		                GL_RGBA, GL_UNSIGNED_BYTE,
+		                image.data() + static_cast<ptrdiff_t>(i * width));
 	}
-
-	SDL_DestroySurface(surface);
 }
 
 void Panel::draw(void) const

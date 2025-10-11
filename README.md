@@ -20,7 +20,7 @@ OpenVR controller. Some debug information is printed to the console.
 * [OpenVR](https://github.com/ValveSoftware/openvr)
 * [libpng](https://www.libpng.org/pub/png/libpng.html)
 * [libjpeg](https://jpegclub.org/reference/reference-sources/)
-* [SDL_ttf 3.0](https://wiki.libsdl.org/SDL3_ttf/FrontPage)
+* [FreeType2](https://freetype.org/index.html)
 
 ## Build Dependencies
 

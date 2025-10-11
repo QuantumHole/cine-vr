@@ -8,14 +8,10 @@
 #include "opengl/shape.h"
 #include "opengl/texture.h"
 #include <vector>
-#include <SDL3_ttf/SDL_ttf.h>
 
 class Panel
 {
 	private:
-		static TTF_Font* m_font;
-		static size_t m_instances;
-
 		Shape m_shape;
 		Texture m_texture;
 		size_t m_width;

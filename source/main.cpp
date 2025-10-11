@@ -133,12 +133,6 @@ int main(void)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	if (TTF_Init() == false)
-	{
-		std::cout << __FUNCTION__ << " - TTF could not initialize! TTF Error: " << SDL_GetError() << std::endl;
-		return 0;
-	}
-
 	// Initialize OpenVR
 	g_vr.init();
 	glm::uvec2 render_size = g_vr.render_target_size();
@@ -156,7 +150,7 @@ int main(void)
 	g_menu.init();
 	const size_t panel_size = 200;
 	g_panel.init_area(panel_size, panel_size);
-	g_panel.text("CineVR");
+	g_panel.text("CineVR - Äoüß");
 	g_panel.set_transform(glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 1.0f, 0.0f)));
 
 	reset_reference();
