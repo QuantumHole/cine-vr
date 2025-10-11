@@ -35,6 +35,7 @@ OBJECTS = \
 
 IMAGES = \
 	$(IMAGE_DIR)/angle.png \
+	$(IMAGE_DIR)/back.png \
 	$(IMAGE_DIR)/backward.png \
 	$(IMAGE_DIR)/cube-mono.png \
 	$(IMAGE_DIR)/cube-stereo.png \
@@ -51,6 +52,7 @@ IMAGES = \
 	$(IMAGE_DIR)/play.png \
 	$(IMAGE_DIR)/power.png \
 	$(IMAGE_DIR)/previous.png \
+	$(IMAGE_DIR)/settings.png \
 	$(IMAGE_DIR)/sphere.png \
 	$(IMAGE_DIR)/top-bottom.png \
 	$(IMAGE_DIR)/force-mono.png \

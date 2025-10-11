@@ -16,7 +16,9 @@ class Menu
 			MENU_NONE,
 			MENU_MAIN,
 			MENU_TILING,
-			MENU_PROJECTION
+			MENU_PROJECTION,
+			MENU_SETTINGS,
+			MENU_FILE_MANAGER
 		}
 		menu_t;
 
@@ -25,6 +27,7 @@ class Menu
 		menu_t m_submenu;
 		glm::mat4 m_hmd_pose;
 		Button::button_action_t m_active_button;
+		bool m_debounce;
 
 		void create_button_panel(const std::vector<Button::button_action_t>& actions);
 		void create_points(void);
@@ -32,6 +35,7 @@ class Menu
 		void main_menu(void);
 		void tiling_menu(void);
 		void projection_menu(void);
+		void settings_menu(void);
 		void handle_button_action(const Button::button_action_t action);
 
 	public:

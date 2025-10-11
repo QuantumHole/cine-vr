@@ -15,7 +15,8 @@ Menu::Menu(void) :
 	m_points(),
 	m_submenu(MENU_NONE),
 	m_hmd_pose(1.0),
-	m_active_button(Button::BUTTON_NONE)
+	m_active_button(Button::BUTTON_NONE),
+	m_debounce(false)
 {
 }
 
@@ -31,6 +32,7 @@ void Menu::draw(void) const
 		case MENU_MAIN:
 		case MENU_TILING:
 		case MENU_PROJECTION:
+		case MENU_SETTINGS:
 			for (std::map<Button::button_action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
 			{
 				iter->second->draw();
@@ -97,6 +99,7 @@ void Menu::create_button_panel(const std::vector<Button::button_action_t>& actio
 			Button* b;
 			switch (act)
 			{
+				case Button::BUTTON_BACK:
 				case Button::BUTTON_FILE_DELETE:
 				case Button::BUTTON_FILE_OPEN:
 				case Button::BUTTON_PLAY_BACKWARD:
@@ -111,6 +114,7 @@ void Menu::create_button_panel(const std::vector<Button::button_action_t>& actio
 				case Button::BUTTON_PROJECT_FISHEYE:
 				case Button::BUTTON_PROJECT_FLAT:
 				case Button::BUTTON_PROJECT_SPHERE:
+				case Button::BUTTON_SETTINGS:
 				case Button::BUTTON_TILE_CUBE_MONO:
 				case Button::BUTTON_TILE_CUBE_STEREO:
 				case Button::BUTTON_TILE_LEFT_RIGHT:
@@ -142,9 +146,50 @@ void Menu::create_button_panel(const std::vector<Button::button_action_t>& actio
 			i++;
 		}
 	}
+
+	m_debounce = true;
 }
 
 void Menu::main_menu(void)
+{
+	m_submenu = MENU_MAIN;
+	create_button_panel({
+		Button::BUTTON_PLAY_PREVIOUS,
+		Button::BUTTON_PLAY_BACKWARD,
+		Button::BUTTON_PLAY_PLAY,
+		Button::BUTTON_PLAY_FORWARD,
+		Button::BUTTON_PLAY_NEXT,
+		Button::BUTTON_SETTINGS,
+		Button::BUTTON_FILE_OPEN,
+		Button::BUTTON_POWER
+	});
+}
+
+void Menu::tiling_menu(void)
+{
+	m_submenu = MENU_TILING;
+	create_button_panel({
+		Button::BUTTON_TILE_MONO,
+		Button::BUTTON_TILE_LEFT_RIGHT,
+		Button::BUTTON_TILE_TOP_BOTTOM,
+		Button::BUTTON_TILE_CUBE_MONO,
+		Button::BUTTON_TILE_CUBE_STEREO
+	});
+}
+
+void Menu::projection_menu(void)
+{
+	m_submenu = MENU_PROJECTION;
+	create_button_panel({
+		Button::BUTTON_PROJECT_FLAT,
+		Button::BUTTON_PROJECT_CYLINDER,
+		Button::BUTTON_PROJECT_SPHERE,
+		Button::BUTTON_PROJECT_FISHEYE,
+		Button::BUTTON_PROJECT_CUBE
+	});
+}
+
+void Menu::settings_menu(void)
 {
 	const Projection& p = projection();
 	Button::button_action_t action_tile;
@@ -192,13 +237,8 @@ void Menu::main_menu(void)
 			throw std::runtime_error("invalid video projection");
 	}
 
-	m_submenu = MENU_MAIN;
+	m_submenu = MENU_SETTINGS;
 	create_button_panel({
-		Button::BUTTON_PLAY_PREVIOUS,
-		Button::BUTTON_PLAY_BACKWARD,
-		Button::BUTTON_PLAY_PLAY,
-		Button::BUTTON_PLAY_FORWARD,
-		Button::BUTTON_PLAY_NEXT,
 		action_tile,
 		action_project,
 		Button::BUTTON_FLAG_MONO,
@@ -206,32 +246,7 @@ void Menu::main_menu(void)
 		Button::BUTTON_FLAG_SWITCH_EYES,
 		Button::BUTTON_PARAM_ANGLE,
 		Button::BUTTON_PARAM_ZOOM,
-		Button::BUTTON_FILE_OPEN,
-		Button::BUTTON_POWER
-	});
-}
-
-void Menu::tiling_menu(void)
-{
-	m_submenu = MENU_TILING;
-	create_button_panel({
-		Button::BUTTON_TILE_MONO,
-		Button::BUTTON_TILE_LEFT_RIGHT,
-		Button::BUTTON_TILE_TOP_BOTTOM,
-		Button::BUTTON_TILE_CUBE_MONO,
-		Button::BUTTON_TILE_CUBE_STEREO
-	});
-}
-
-void Menu::projection_menu(void)
-{
-	m_submenu = MENU_PROJECTION;
-	create_button_panel({
-		Button::BUTTON_PROJECT_FLAT,
-		Button::BUTTON_PROJECT_CYLINDER,
-		Button::BUTTON_PROJECT_SPHERE,
-		Button::BUTTON_PROJECT_FISHEYE,
-		Button::BUTTON_PROJECT_CUBE
+		Button::BUTTON_BACK
 	});
 }
 
@@ -239,6 +254,9 @@ void Menu::handle_button_action(const Button::button_action_t action)
 {
 	switch (action)
 	{
+		case Button::BUTTON_BACK:
+			main_menu();
+			break;
 		case Button::BUTTON_FILE_DELETE:
 			break;
 		case Button::BUTTON_FILE_OPEN:
@@ -267,7 +285,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			break;
 		case Button::BUTTON_PROJECT_CUBE:
 
-			if (m_submenu == MENU_MAIN)
+			if (m_submenu == MENU_SETTINGS)
 			{
 				projection_menu();
 			}
@@ -275,12 +293,12 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			{
 				projection().set_projection(Projection::PROJECTION_CUBE_MAP);
 				update_projection();
-				main_menu();
+				settings_menu();
 			}
 			break;
 		case Button::BUTTON_PROJECT_CYLINDER:
 
-			if (m_submenu == MENU_MAIN)
+			if (m_submenu == MENU_SETTINGS)
 			{
 				projection_menu();
 			}
@@ -288,12 +306,12 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			{
 				projection().set_projection(Projection::PROJECTION_CYLINDER);
 				update_projection();
-				main_menu();
+				settings_menu();
 			}
 			break;
 		case Button::BUTTON_PROJECT_FISHEYE:
 
-			if (m_submenu == MENU_MAIN)
+			if (m_submenu == MENU_SETTINGS)
 			{
 				projection_menu();
 			}
@@ -301,12 +319,12 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			{
 				projection().set_projection(Projection::PROJECTION_FISHEYE);
 				update_projection();
-				main_menu();
+				settings_menu();
 			}
 			break;
 		case Button::BUTTON_PROJECT_FLAT:
 
-			if (m_submenu == MENU_MAIN)
+			if (m_submenu == MENU_SETTINGS)
 			{
 				projection_menu();
 			}
@@ -314,12 +332,12 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			{
 				projection().set_projection(Projection::PROJECTION_FLAT);
 				update_projection();
-				main_menu();
+				settings_menu();
 			}
 			break;
 		case Button::BUTTON_PROJECT_SPHERE:
 
-			if (m_submenu == MENU_MAIN)
+			if (m_submenu == MENU_SETTINGS)
 			{
 				projection_menu();
 			}
@@ -327,12 +345,15 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			{
 				projection().set_projection(Projection::PROJECTION_SPHERE);
 				update_projection();
-				main_menu();
+				settings_menu();
 			}
+			break;
+		case Button::BUTTON_SETTINGS:
+			settings_menu();
 			break;
 		case Button::BUTTON_TILE_CUBE_MONO:
 
-			if (m_submenu == MENU_MAIN)
+			if (m_submenu == MENU_SETTINGS)
 			{
 				tiling_menu();
 			}
@@ -340,12 +361,12 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			{
 				projection().set_tiling(Projection::TILE_CUBE_MAP_MONO);
 				update_projection();
-				main_menu();
+				settings_menu();
 			}
 			break;
 		case Button::BUTTON_TILE_CUBE_STEREO:
 
-			if (m_submenu == MENU_MAIN)
+			if (m_submenu == MENU_SETTINGS)
 			{
 				tiling_menu();
 			}
@@ -353,12 +374,12 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			{
 				projection().set_tiling(Projection::TILE_CUBE_MAP_STEREO);
 				update_projection();
-				main_menu();
+				settings_menu();
 			}
 			break;
 		case Button::BUTTON_TILE_LEFT_RIGHT:
 
-			if (m_submenu == MENU_MAIN)
+			if (m_submenu == MENU_SETTINGS)
 			{
 				tiling_menu();
 			}
@@ -366,12 +387,12 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			{
 				projection().set_tiling(Projection::TILE_LEFT_RIGHT);
 				update_projection();
-				main_menu();
+				settings_menu();
 			}
 			break;
 		case Button::BUTTON_TILE_MONO:
 
-			if (m_submenu == MENU_MAIN)
+			if (m_submenu == MENU_SETTINGS)
 			{
 				tiling_menu();
 			}
@@ -379,12 +400,12 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			{
 				projection().set_tiling(Projection::TILE_MONO);
 				update_projection();
-				main_menu();
+				settings_menu();
 			}
 			break;
 		case Button::BUTTON_TILE_TOP_BOTTOM:
 
-			if (m_submenu == MENU_MAIN)
+			if (m_submenu == MENU_SETTINGS)
 			{
 				tiling_menu();
 			}
@@ -392,7 +413,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 			{
 				projection().set_tiling(Projection::TILE_TOP_BOTTOM);
 				update_projection();
-				main_menu();
+				settings_menu();
 			}
 			break;
 		case Button::BUTTON_FLAG_MONO:
@@ -428,6 +449,15 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 		m_hmd_pose = hmd;
 		main_menu();
 		return;
+	}
+
+	if (m_debounce)
+	{
+		if (pressed || released)
+		{
+			return;
+		}
+		m_debounce = false;
 	}
 
 	bool buttonHit = false;

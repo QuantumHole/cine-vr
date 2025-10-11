@@ -128,7 +128,7 @@ int main(void)
 		std::cerr << "GLEW init failed" << std::endl;
 		return -1;
 	}
-	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);                     // always draw transparent objects on top of previously drawn ones
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -150,7 +150,7 @@ int main(void)
 	g_menu.init();
 	const size_t panel_size = 200;
 	g_panel.init_area(panel_size, panel_size);
-	g_panel.text("CineVR - Äoüß");
+	g_panel.text("CineVR");
 	g_panel.set_transform(glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 1.0f, 0.0f)));
 
 	reset_reference();

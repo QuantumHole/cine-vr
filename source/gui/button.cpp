@@ -88,6 +88,7 @@ void Button::init(void)
 	m_shape.init_vertices(vertices, indices, GL_TRIANGLES);
 
 	std::map<Button::button_action_t, std::string> images = {
+		{Button::BUTTON_BACK, "images/back.png"},
 		{Button::BUTTON_FILE_DELETE, "images/delete.png"},
 		{Button::BUTTON_FILE_OPEN, "images/open.png"},
 		{Button::BUTTON_PLAY_BACKWARD, "images/backward.png"},
@@ -102,6 +103,7 @@ void Button::init(void)
 		{Button::BUTTON_PROJECT_FISHEYE, "images/fisheye.png"},
 		{Button::BUTTON_PROJECT_FLAT, "images/flat.png"},
 		{Button::BUTTON_PROJECT_SPHERE, "images/sphere.png"},
+		{Button::BUTTON_SETTINGS, "images/settings.png"},
 		{Button::BUTTON_TILE_CUBE_MONO, "images/cube-mono.png"},
 		{Button::BUTTON_TILE_CUBE_STEREO, "images/cube-stereo.png"},
 		{Button::BUTTON_TILE_LEFT_RIGHT, "images/left-right.png"},
@@ -274,6 +276,11 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 
 void Button::draw(void) const
 {
+	if (m_slideable && m_active)
+	{
+		m_slidebar.draw();
+	}
+
 	if (m_toggleable && !m_active)
 	{
 		shader().set_uniform("greyscale", true);
@@ -286,10 +293,5 @@ void Button::draw(void) const
 	if (m_toggleable && !m_active)
 	{
 		shader().set_uniform("greyscale", false);
-	}
-
-	if (m_slideable && m_active)
-	{
-		m_slidebar.draw();
 	}
 }
