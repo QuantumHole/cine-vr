@@ -14,12 +14,13 @@ OpenVR controller. Some debug information is printed to the console.
 # Dependencies
 
 ## Runtime Dependencies
-* OpenGL
-* GLFW
-* GLEW
-* OpenVR
-* libpng
-* libjpeg
+* [OpenGL](https://www.opengl.org)
+* [GLFW](https://www.glfw.org/)
+* [GLEW](https://www.opengl.org/sdk/libs/GLEW/)
+* [OpenVR](https://github.com/ValveSoftware/openvr)
+* [libpng](https://www.libpng.org/pub/png/libpng.html)
+* [libjpeg](https://jpegclub.org/reference/reference-sources/)
+* [SDL_ttf 3.0](https://wiki.libsdl.org/SDL3_ttf/FrontPage)
 
 ## Build Dependencies
 
@@ -43,3 +44,8 @@ OpenVR controller. Some debug information is printed to the console.
 Before committing, please take care of source code format and proper license information.
 
 `make lint`
+
+# Background Information
+
+Some useful resources for learning the topics covered in this project.
+* OpenGL Video tutorials by Victor Gordan: https://www.youtube.com/@VictorGordan/videos

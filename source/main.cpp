@@ -28,6 +28,7 @@
 #include "gui/button.h"
 #include "gui/controller.h"
 #include "gui/menu.h"
+#include "gui/panel.h"
 
 // #define DEBUG_LINE std::cout << "########## " << __FILE__ << "(" << __LINE__ << "): " << __FUNCTION__ << "()" << std::endl
 
@@ -45,6 +46,7 @@ static Shape g_canvas;
 static Texture g_image;
 static glm::vec3 g_hmd_reference_pos;
 static glm::quat g_hmd_reference_rot;
+static Panel g_panel;
 
 void quit(void)
 {
@@ -127,6 +129,15 @@ int main(void)
 		return -1;
 	}
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	if (TTF_Init() == false)
+	{
+		std::cout << __FUNCTION__ << " - TTF could not initialize! TTF Error: " << SDL_GetError() << std::endl;
+		return 0;
+	}
 
 	// Initialize OpenVR
 	g_vr.init();
@@ -143,6 +154,10 @@ int main(void)
 	g_shaders.set_uniform("greyscale", false);
 
 	g_menu.init();
+	const size_t panel_size = 200;
+	g_panel.init_area(panel_size, panel_size);
+	g_panel.text("CineVR");
+	g_panel.set_transform(glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 1.0f, 0.0f)));
 
 	reset_reference();
 	g_projection.set_stretch(true);
@@ -278,6 +293,7 @@ int main(void)
 			g_canvas.draw();
 			g_image.unbind();
 
+			g_panel.draw();
 			g_menu.draw();
 
 			// For each controller: render simple ray and do intersection with rectangle
