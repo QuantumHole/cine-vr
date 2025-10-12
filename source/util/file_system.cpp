@@ -46,9 +46,9 @@ std::vector<std::string> FileSystem::split_path(const std::string& path) const
 	return parts;
 }
 
-std::vector<std::string> FileSystem::select_files(const std::string& dir, const bool use_files, const bool use_dirs) const
+std::set<std::string> FileSystem::select_files(const std::string& dir, const bool use_files, const bool use_dirs) const
 {
-	std::vector<std::string> entries;
+	std::set<std::string> entries;
 	DIR* direct = opendir(dir.c_str());
 
 	if (direct == NULL)
@@ -70,7 +70,7 @@ std::vector<std::string> FileSystem::select_files(const std::string& dir, const 
 		    ((use_files && S_ISREG(sb.st_mode)) ||
 		     (use_dirs && S_ISDIR(sb.st_mode))))
 		{
-			entries.push_back(en);
+			entries.insert(en);
 		}
 	}
 	closedir(direct);
@@ -90,12 +90,12 @@ std::string FileSystem::current_directory(void) const
 	return std::string(dir);
 }
 
-std::vector<std::string> FileSystem::file_names(const std::string& dir) const
+std::set<std::string> FileSystem::file_names(const std::string& dir) const
 {
 	return select_files(dir, true, false);
 }
 
-std::vector<std::string> FileSystem::directory_names(const std::string& dir) const
+std::set<std::string> FileSystem::directory_names(const std::string& dir) const
 {
 	return select_files(dir, false, true);
 }

@@ -70,10 +70,12 @@ void Menu::list_directories(void) const
 	}
 
 	const size_t num_ent = entries.size();
-	std::vector<std::string> dirs = fs.directory_names(current_dir);
-	for (size_t i = 0; i < dirs.size(); i++)
+	std::set<std::string> dirs = fs.directory_names(current_dir);
+	size_t i = 0;
+	for (std::set<std::string>::const_iterator iter = dirs.begin(); iter != dirs.end(); iter++)
 	{
-		m_panel_dir.text(dirs[i], static_cast<int32_t>(num_ent) * 5, static_cast<int32_t>(num_ent + i + 1) * 20);
+		m_panel_dir.text(*iter, static_cast<int32_t>(num_ent) * 5, static_cast<int32_t>(num_ent + i + 1) * 20);
+		i++;
 	}
 }
 
@@ -83,11 +85,13 @@ void Menu::list_files(void) const
 
 	FileSystem fs;
 	const std::string current_dir = fs.current_directory();
-	std::vector<std::string> entries = fs.file_names(current_dir);
+	std::set<std::string> entries = fs.file_names(current_dir);
 
-	for (size_t i = 0; i < entries.size(); i++)
+	size_t i = 0;
+	for (std::set<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); iter++)
 	{
-		m_panel_file.text(entries[i], 0, static_cast<int32_t>(i + 1) * 20);
+		m_panel_file.text(*iter, 0, static_cast<int32_t>(i + 1) * 20);
+		i++;
 	}
 }
 
@@ -249,8 +253,8 @@ void Menu::file_menu(void)
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
-	const size_t panel_size = 200;
-	m_panel_dir.init_area(panel_size, panel_size);
+	const glm::uvec2 panel_size(300, 500);
+	m_panel_dir.init_area(panel_size.x, panel_size.y);
 	m_panel_dir.set_transform(pose);
 	list_directories();
 
@@ -259,7 +263,7 @@ void Menu::file_menu(void)
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
-	m_panel_file.init_area(panel_size, panel_size);
+	m_panel_file.init_area(panel_size.x, panel_size.y);
 	m_panel_file.set_transform(pose);
 	list_files();
 }
