@@ -22,7 +22,7 @@ class Panel
 		~Panel(void);
 		void init_area(const size_t width, const size_t height);
 		void set_transform(const glm::mat4& pose);
-		void text(const std::string& text, const int32_t x = 0, const int32_t y = 0);
+		void text(const std::string& text, const int32_t x = 0, const int32_t y = 0) const;
 		void draw(void) const;
 };
 

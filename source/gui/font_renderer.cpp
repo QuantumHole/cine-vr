@@ -124,8 +124,8 @@ static void draw_bitmap(const FT_Bitmap* bitmap,
 				continue;
 			}
 
-			const char c = bitmap->buffer[q * bitmap->width + p];
-			const uint32_t pixel = c | (c << 8) | (c << 16) | (c << 24);
+			const unsigned char c = bitmap->buffer[q * bitmap->width + p];
+			const uint32_t pixel = static_cast<uint32_t>(c | (c << 8) | (c << 16) | (c << 24));
 			image[j * image_width + i] |= pixel;
 		}
 	}

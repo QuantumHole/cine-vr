@@ -4,8 +4,8 @@
 
 #include "panel.h"
 #include "font_renderer.h"
+#include "main.h"
 
-#include <iostream>
 #include <stdexcept>
 #include <algorithm>
 
@@ -34,14 +34,14 @@ void Panel::init_area(const size_t width, const size_t height)
 
 	m_width = width;
 	m_height = height;
-	glm::vec2 m_size(1.0f, 1.0f);
+	glm::vec2 m_size(3.0f, 5.0f);
 
 	// positions: rectangle in XY plane centered at 0, z=0
 	const std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(-0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3(0.5f * m_size.x, 0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.5f * m_size.x, 0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3(0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f)),
+		Vertex(glm::vec3(-0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3(0.5f * m_size.x, 0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.5f * m_size.x, 0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3(0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(1.0f, 1.0f)),
 	};
 
 	const std::vector<GLuint> indices = {
@@ -58,7 +58,7 @@ void Panel::set_transform(const glm::mat4& pose)
 	m_shape.set_transform(pose);
 }
 
-void Panel::text(const std::string& text, const int32_t x, const int32_t y)
+void Panel::text(const std::string& text, const int32_t x, const int32_t y) const
 {
 	FontRenderer renderer;
 
@@ -69,6 +69,7 @@ void Panel::text(const std::string& text, const int32_t x, const int32_t y)
 	renderer.render_text(text, height, image);
 
 	const size_t width = image.size() / height;
+
 	/* copy only the visible section of the surface */
 	for (size_t i = 0; i < height; i++)
 	{
@@ -84,7 +85,11 @@ void Panel::text(const std::string& text, const int32_t x, const int32_t y)
 
 void Panel::draw(void) const
 {
+	shader().set_uniform("background", true);
+
 	m_texture.bind();
 	m_shape.draw();
 	m_texture.unbind();
+
+	shader().set_uniform("background", false);
 }

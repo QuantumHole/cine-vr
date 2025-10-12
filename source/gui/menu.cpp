@@ -4,6 +4,7 @@
 
 #include "menu.h"
 #include "main.h"
+#include "util/file_system.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
@@ -16,7 +17,9 @@ Menu::Menu(void) :
 	m_submenu(MENU_NONE),
 	m_hmd_pose(1.0),
 	m_active_button(Button::BUTTON_NONE),
-	m_debounce(false)
+	m_debounce(false),
+	m_panel_dir(),
+	m_panel_file()
 {
 }
 
@@ -33,15 +36,58 @@ void Menu::draw(void) const
 		case MENU_TILING:
 		case MENU_PROJECTION:
 		case MENU_SETTINGS:
+		case MENU_FILE_MANAGER:
 			for (std::map<Button::button_action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
 			{
 				iter->second->draw();
 			}
 			m_points.draw();
+
+			if (m_submenu == MENU_FILE_MANAGER)
+			{
+				m_panel_dir.draw();
+				m_panel_file.draw();
+			}
 			break;
+
 		case MENU_NONE:
 		default:
 			break;
+	}
+}
+
+void Menu::list_directories(void) const
+{
+	m_panel_dir.text("Directories", 0, 0);
+
+	FileSystem fs;
+	const std::string current_dir = fs.current_directory();
+	std::vector<std::string> entries = fs.split_path(current_dir);
+
+	for (size_t i = 0; i < entries.size(); i++)
+	{
+		m_panel_dir.text(entries[i], static_cast<int32_t>(i) * 5, static_cast<int32_t>(i + 1) * 20);
+	}
+
+	const size_t num_ent = entries.size();
+	std::vector<std::string> dirs = fs.directory_names(current_dir);
+	for (size_t i = 0; i < dirs.size(); i++)
+	{
+		m_panel_dir.text(dirs[i], static_cast<int32_t>(num_ent) * 5, static_cast<int32_t>(num_ent + i + 1) * 20);
+	}
+}
+
+void Menu::list_files(void) const
+{
+	m_panel_file.text("Files", 0, 0);
+
+	FileSystem fs;
+	const std::string current_dir = fs.current_directory();
+	std::vector<std::string> entries = fs.file_names(current_dir);
+
+	for (size_t i = 0; i < entries.size(); i++)
+	{
+		m_panel_file.text(entries[i], 0, static_cast<int32_t>(i + 1) * 20);
 	}
 }
 
@@ -189,6 +235,35 @@ void Menu::projection_menu(void)
 	});
 }
 
+void Menu::file_menu(void)
+{
+	m_submenu = MENU_FILE_MANAGER;
+	create_button_panel({
+		Button::BUTTON_BACK
+	});
+
+	const float rot_x = 0.125f * glm::pi<float>();
+
+	glm::mat4 pose = glm::mat4(1.0f);
+	pose = glm::rotate(pose, rot_x, glm::vec3(0.0f, 1.0f, 0.0f));
+	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
+	pose = m_hmd_pose * pose;
+
+	const size_t panel_size = 200;
+	m_panel_dir.init_area(panel_size, panel_size);
+	m_panel_dir.set_transform(pose);
+	list_directories();
+
+	pose = glm::mat4(1.0f);
+	pose = glm::rotate(pose, -rot_x, glm::vec3(0.0f, 1.0f, 0.0f));
+	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
+	pose = m_hmd_pose * pose;
+
+	m_panel_file.init_area(panel_size, panel_size);
+	m_panel_file.set_transform(pose);
+	list_files();
+}
+
 void Menu::settings_menu(void)
 {
 	const Projection& p = projection();
@@ -260,6 +335,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 		case Button::BUTTON_FILE_DELETE:
 			break;
 		case Button::BUTTON_FILE_OPEN:
+			file_menu();
 			break;
 		case Button::BUTTON_PLAY_BACKWARD:
 			player_backward();

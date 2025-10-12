@@ -5,7 +5,7 @@
 #version 330 core
 
 uniform sampler2D diffuse0;
-uniform float color_fade;
+uniform bool background;
 uniform bool greyscale;
 
 in vec3 vColor;
@@ -24,10 +24,14 @@ void main(void)
 		texColor = vec4(grey, grey, grey, texColor.a);
 	}
 
-	vec4 cmix = vec4(0.0, 0.0, 0.0, texColor.a);
-	vec4 texFade = mix(texColor, cmix, color_fade);
-
-	// show texture color, if it is different than pure black
-	// show vertex color, if texture color is not defined or pure black
-	outColor = mix(texFade, vtxColor, step(0.01, vtxColor.r+vtxColor.g+vtxColor.b));
+	if (background)
+	{
+		outColor = mix(vtxColor, texColor, texColor.a);
+	}
+	else
+	{
+		// show texture color, if it is different than pure black
+		// show vertex color, if texture color is not defined or pure black
+		outColor = mix(texColor, vtxColor, step(0.01, vtxColor.r+vtxColor.g+vtxColor.b));
+	}
 }

@@ -6,6 +6,7 @@
 #define MENU_H
 
 #include "button.h"
+#include "panel.h"
 #include <map>
 
 class Menu
@@ -28,14 +29,19 @@ class Menu
 		glm::mat4 m_hmd_pose;
 		Button::button_action_t m_active_button;
 		bool m_debounce;
+		Panel m_panel_dir;
+		Panel m_panel_file;
 
 		void create_button_panel(const std::vector<Button::button_action_t>& actions);
 		void create_points(void);
+		void list_directories(void) const;
+		void list_files(void) const;
 
 		void main_menu(void);
 		void tiling_menu(void);
 		void projection_menu(void);
 		void settings_menu(void);
+		void file_menu(void);
 		void handle_button_action(const Button::button_action_t action);
 
 	public:

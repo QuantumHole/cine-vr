@@ -7,9 +7,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
 # Cine-VR
 This is a small test project to check out some mechanisms in OpenGL and OpenVR.
 
-It renders a scene into HMD (left/right). It also blits left eye to GLFW window for debugging.
-It demonstrates handling of a menu structure. Users can configure some display options via the
-OpenVR controller. Some debug information is printed to the console.
+It renders a single image into HMD stereoscopically.
+It also shows the left eye view in a companion window on the desktop.
+It demonstrates handling of a menu structure.
+Users can configure some display options via the OpenVR controller.
+Some debug information is printed to the console.
 
 # Dependencies
 
@@ -48,4 +50,4 @@ Before committing, please take care of source code format and proper license inf
 # Background Information
 
 Some useful resources for learning the topics covered in this project.
-* OpenGL Video tutorials by Victor Gordan: https://www.youtube.com/@VictorGordan/videos
+* OpenGL Video tutorials by [Victor Gordan](https://www.youtube.com/@VictorGordan/videos)

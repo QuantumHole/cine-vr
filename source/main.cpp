@@ -28,7 +28,6 @@
 #include "gui/button.h"
 #include "gui/controller.h"
 #include "gui/menu.h"
-#include "gui/panel.h"
 
 // #define DEBUG_LINE std::cout << "########## " << __FILE__ << "(" << __LINE__ << "): " << __FUNCTION__ << "()" << std::endl
 
@@ -46,7 +45,6 @@ static Shape g_canvas;
 static Texture g_image;
 static glm::vec3 g_hmd_reference_pos;
 static glm::quat g_hmd_reference_rot;
-static Panel g_panel;
 
 void quit(void)
 {
@@ -128,7 +126,7 @@ int main(void)
 		std::cerr << "GLEW init failed" << std::endl;
 		return -1;
 	}
-	glDisable(GL_DEPTH_TEST);                     // always draw transparent objects on top of previously drawn ones
+	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -144,14 +142,10 @@ int main(void)
 
 	// create simple shader & geometry
 	g_shaders.load_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
-	g_shaders.set_uniform("color_fade", 0.0f);
+	g_shaders.set_uniform("background", false);
 	g_shaders.set_uniform("greyscale", false);
 
 	g_menu.init();
-	const size_t panel_size = 200;
-	g_panel.init_area(panel_size, panel_size);
-	g_panel.text("CineVR");
-	g_panel.set_transform(glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 1.0f, 0.0f)));
 
 	reset_reference();
 	g_projection.set_stretch(true);
@@ -287,8 +281,9 @@ int main(void)
 			g_canvas.draw();
 			g_image.unbind();
 
-			g_panel.draw();
+			glDisable(GL_DEPTH_TEST);                     // always draw transparent objects on top of previously drawn ones
 			g_menu.draw();
+			glEnable(GL_DEPTH_TEST);
 
 			// For each controller: render simple ray and do intersection with rectangle
 			for (std::map<vr::TrackedDeviceIndex_t, Controller>::const_iterator iter = g_controller.begin(); iter != g_controller.end(); ++iter)

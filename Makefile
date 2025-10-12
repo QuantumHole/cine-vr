@@ -32,6 +32,7 @@ OBJECTS = \
 	$(BUILD_DIR)/menu.o \
 	$(BUILD_DIR)/panel.o \
 	$(BUILD_DIR)/font_renderer.o \
+	$(BUILD_DIR)/file_system.o \
 
 IMAGES = \
 	$(IMAGE_DIR)/angle.png \
