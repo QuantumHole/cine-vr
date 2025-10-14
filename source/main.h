@@ -16,6 +16,7 @@ void player_play(void);
 void player_previous(void);
 void player_next(void);
 Projection& projection(void);
+void set_aspect_ratio(const float aspect);
 void update_projection(void);
 ShaderSet& shader(void);
 

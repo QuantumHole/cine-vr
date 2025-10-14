@@ -12,8 +12,8 @@ static const glm::vec2 button_size(0.5f, 0.5f);    // size in scene coordinate s
 Button::Button(const action_t action, const std::string& image_name) :
 	m_action(action),
 	m_toggleable(false),
-	m_active(true),
 	m_slideable(false),
+	m_active(true),
 	m_slide_min(0.0f),
 	m_slide_max(0.0f),
 	m_slide_pos(0.0f),
@@ -29,8 +29,8 @@ Button::Button(const action_t action, const std::string& image_name) :
 Button::Button(const action_t action, const std::string& image_name, const bool value) :
 	m_action(action),
 	m_toggleable(true),
-	m_active(value),
 	m_slideable(false),
+	m_active(value),
 	m_slide_min(0.0f),
 	m_slide_max(0.0f),
 	m_slide_pos(0.0f),
@@ -46,8 +46,8 @@ Button::Button(const action_t action, const std::string& image_name, const bool 
 Button::Button(const action_t action, const std::string& image_name, const float min, const float max, const float value) :
 	m_action(action),
 	m_toggleable(false),
-	m_active(false),
 	m_slideable(true),
+	m_active(false),
 	m_slide_min(min),
 	m_slide_max(max),
 	m_slide_pos(value),
@@ -111,52 +111,9 @@ void Button::init_slidebar(void)
 	m_slidebar.init_vertices(svertices, sindices, GL_TRIANGLES);
 }
 
-bool Button::toggleable(void) const
-{
-	return m_toggleable;
-}
-
-void Button::enable(const bool active)
-{
-	if (m_slideable && !m_active && active)
-	{
-		m_slide_last = m_slide_pos;
-
-		const float frac = (m_slide_pos - m_slide_min) / (m_slide_max - m_slide_min);
-		const float y0 = -slide_height * button_size.y * frac;
-
-		// move selection strip to current position
-		glm::mat4 shifted_pose = glm::translate(m_pose, glm::vec3(0.0f, y0, 0.0f));
-		m_slidebar.set_transform(shifted_pose);
-	}
-	else if (m_slideable && m_active && !active)
-	{
-		m_shape.set_transform(m_pose);
-	}
-	m_active = active;
-}
-
-bool Button::active(void) const
-{
-	return m_active;
-}
-
-bool Button::slideable(void) const
-{
-	return m_slideable;
-}
-
 float Button::slide_value(void) const
 {
 	return m_slide_pos;
-}
-
-void Button::update_slide_value(const float pos)
-{
-	if (m_slideable && m_active)
-	{
-		m_slide_pos = m_slide_min + pos * (m_slide_max - m_slide_min);
-	}
 }
 
 void Button::set_transform(const glm::mat4& pose)
@@ -231,23 +188,31 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 
 bool Button::update_on_interaction(const intersection_t isec, const bool pressed, const bool released)
 {
-	(void)isec;
-	(void)pressed;
-	(void)released;
-
-	if (slideable())
+	if (m_slideable)
 	{
-		if (isec.hit && pressed && !active())
+		if (isec.hit && pressed && !m_active)
 		{
-			enable(true);
+			m_slide_last = m_slide_pos;
+
+			const float frac = (m_slide_pos - m_slide_min) / (m_slide_max - m_slide_min);
+			const float y0 = -slide_height * button_size.y * frac;
+
+			// move selection strip to current position
+			glm::mat4 shifted_pose = glm::translate(m_pose, glm::vec3(0.0f, y0, 0.0f));
+			m_slidebar.set_transform(shifted_pose);
+			m_active = true;
 		}
-		else if (!pressed && active())
+		else if (!pressed && m_active)
 		{
-			enable(false);
+			m_shape.set_transform(m_pose);
+			m_active = false;
 		}
-		else if (pressed && active())
+		else if (pressed && m_active)
 		{
-			update_slide_value(isec.local.y);
+			if (m_slideable && m_active)
+			{
+				m_slide_pos = m_slide_min + isec.local.y * (m_slide_max - m_slide_min);
+			}
 			return true;
 		}
 	}
@@ -255,11 +220,11 @@ bool Button::update_on_interaction(const intersection_t isec, const bool pressed
 	if (released && isec.hit)
 	{
 		// hit in rectangle local coords mapped to texture or 0..1 coords
-		std::cout << "Controller " << " clicked button " << isec.action_id << " at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
+		// std::cout << "Controller " << " clicked button " << isec.action_id << " at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
 
-		if (toggleable())
+		if (m_toggleable)
 		{
-			enable(!active());
+			m_active = !m_active;
 		}
 
 		return true;

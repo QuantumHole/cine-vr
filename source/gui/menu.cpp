@@ -376,6 +376,10 @@ void Menu::handle_button_action(const action_t action)
 		case ACTION_BACK:
 			main_menu();
 			break;
+		case ACTION_DIRECTORY_SELECT:
+			break;
+		case ACTION_FILE_SELECT:
+			break;
 		case ACTION_FILE_DELETE:
 			break;
 		case ACTION_FILE_OPEN:
@@ -610,8 +614,6 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 			break;
 		}
 	}
-
-	(void)m_active_button;
 
 	// update scene objects
 	// define all intersection points

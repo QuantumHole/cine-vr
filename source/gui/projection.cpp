@@ -33,6 +33,7 @@ Projection::Projection(void) :
 	m_tiling(TILE_MONO),
 	m_angle(glm::pi<float>()),
 	m_zoom(0.0f),
+	m_aspect(1.0f),
 	m_details(32),
 	m_stretch(false),
 	m_switch_eyes(false),
@@ -70,6 +71,11 @@ void Projection::set_angle(const float a)
 void Projection::set_zoom(const float z)
 {
 	m_zoom = z;
+}
+
+void Projection::set_aspect(const float a)
+{
+	m_aspect = a;
 }
 
 void Projection::set_stretch(const bool s)
@@ -155,16 +161,16 @@ void Projection::map_cursor(glm::vec2& mouse) const
 }
 
 /* scale factor for unit size with respect to size of projection */
-glm::vec2 Projection::unit_scale(const float aspect_ratio) const
+glm::vec2 Projection::unit_scale(void) const
 {
 	switch (projection())
 	{
 		case Projection::PROJECTION_FLAT:
 			/* height of 1, distance 1, scale for 1 degree viewing angle */
-			return glm::vec2(1.0f / atanf(0.5f * aspect_ratio), aspect_ratio / atanf(0.5f));
+			return glm::vec2(1.0f / atanf(0.5f * m_aspect), m_aspect / atanf(0.5f));
 		case Projection::PROJECTION_CYLINDER:
 			/* scale to 1 degree viewing angle */
-			return glm::vec2(1.0f / m_angle, aspect_ratio / m_angle);
+			return glm::vec2(1.0f / m_angle, m_aspect / m_angle);
 		case Projection::PROJECTION_SPHERE:
 			return glm::vec2(1.0f / m_angle, 1.0f / glm::pi<float>());
 		case Projection::PROJECTION_CUBE_MAP:
@@ -176,9 +182,9 @@ glm::vec2 Projection::unit_scale(const float aspect_ratio) const
 	}
 }
 
-std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_flat(const float aspect_ratio) const
+std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_flat(void) const
 {
-	const float aspect = (m_stretch ? 1.0f : 0.5f) * aspect_ratio;
+	const float aspect = (m_stretch ? 1.0f : 0.5f) * m_aspect;
 	const float hheight = 0.5f;
 	const float hwidth = hheight * aspect;
 	const float screen_distance = 1.0f + m_zoom;
@@ -203,11 +209,11 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 	return std::pair<std::vector<Vertex>, std::vector<GLuint> >(vertdata, indices);
 }
 
-std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_cylinder(const float aspect_ratio) const
+std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_cylinder(void) const
 {
 	const float angle_start = -m_angle / 2;
 	const float radius = 2.0f;
-	const float aspect = (m_stretch ? 1.0f : 0.5f) * aspect_ratio;
+	const float aspect = (m_stretch ? 1.0f : 0.5f) * m_aspect;
 	const float height = m_angle * radius / aspect;
 
 	std::vector<Vertex> vertdata;
@@ -497,17 +503,17 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 	return std::pair<std::vector<Vertex>, std::vector<GLuint> >(vertdata, indices);
 }
 
-std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection(const float aspect_ratio) const
+std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection(void) const
 {
 	std::pair<std::vector<Vertex>, std::vector<GLuint> > vertdata;
 
 	switch (projection())
 	{
 		case Projection::PROJECTION_FLAT:
-			vertdata = setup_projection_flat(aspect_ratio);
+			vertdata = setup_projection_flat();
 			break;
 		case Projection::PROJECTION_CYLINDER:
-			vertdata = setup_projection_cylinder(aspect_ratio);
+			vertdata = setup_projection_cylinder();
 			break;
 		case Projection::PROJECTION_SPHERE:
 			vertdata = setup_projection_sphere();

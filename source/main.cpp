@@ -80,9 +80,14 @@ Projection& projection(void)
 	return g_projection;
 }
 
+void set_aspect_ratio(const float aspect)
+{
+	g_projection.set_aspect(aspect);
+}
+
 void update_projection(void)
 {
-	std::pair<std::vector<Vertex>, std::vector<GLuint> > proj = g_projection.setup_projection(1.0f);
+	std::pair<std::vector<Vertex>, std::vector<GLuint> > proj = g_projection.setup_projection();
 
 	g_canvas.init_vertices(proj.first, proj.second);
 }
@@ -149,10 +154,12 @@ int main(void)
 
 	reset_reference();
 	g_projection.set_stretch(true);
-	update_projection();
 
-	g_image.init_file("images/logo-cinevr.png", GL_TEXTURE_2D, 0);
+	const float aspect = g_image.init_file("images/logo-cinevr.png", GL_TEXTURE_2D, 0);
 	g_image.unbind();
+
+	set_aspect_ratio(aspect);
+	update_projection();
 
 	// main loop
 	while (g_Running)

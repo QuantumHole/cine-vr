@@ -41,6 +41,7 @@ class Projection
 		void set_tiling(const video_tiling_t t);
 		void set_angle(const float a); /* angle given in radians */
 		void set_zoom(const float z);
+		void set_aspect(const float a);
 		void set_stretch(const bool s);
 		void set_switch_eyes(const bool e);
 		void set_mono(const bool m);
@@ -55,23 +56,24 @@ class Projection
 
 		bool follow_hmd(void) const;
 		void map_cursor(glm::vec2& mouse) const;
-		glm::vec2 unit_scale(const float aspect_ratio) const;
+		glm::vec2 unit_scale(void) const;
 
-		std::pair<std::vector<Vertex>, std::vector<GLuint> > setup_projection(const float aspect_ratio) const;
+		std::pair<std::vector<Vertex>, std::vector<GLuint> > setup_projection(void) const;
 
 	private:
 		video_projection_t m_projection;
 		video_tiling_t m_tiling;
 		float m_angle;
 		float m_zoom;
+		float m_aspect;
 		size_t m_details;
 		bool m_stretch;
 		bool m_switch_eyes;
 		bool m_mono;
 		bool m_follow_hmd;   /* configured automatically with projection mode */
 
-		std::pair<std::vector<Vertex>, std::vector<GLuint> > setup_projection_flat(const float aspect_ratio) const;
-		std::pair<std::vector<Vertex>, std::vector<GLuint> > setup_projection_cylinder(const float aspect_ratio) const;
+		std::pair<std::vector<Vertex>, std::vector<GLuint> > setup_projection_flat(void) const;
+		std::pair<std::vector<Vertex>, std::vector<GLuint> > setup_projection_cylinder(void) const;
 		std::pair<std::vector<Vertex>, std::vector<GLuint> > setup_projection_sphere(void) const;
 		std::pair<std::vector<Vertex>, std::vector<GLuint> > setup_projection_fisheye(void) const;
 		std::pair<std::vector<Vertex>, std::vector<GLuint> > setup_projection_cubemap_mono(void) const;

@@ -26,24 +26,19 @@ class Button
 		explicit Button(const action_t action, const std::string& image_name, const float min, const float max, const float value);
 		~Button(void);
 
-		bool toggleable(void) const;
-		void enable(const bool active);
-		bool active(void) const;
-		bool slideable(void) const;
 		float slide_value(void) const;
-		void update_slide_value(const float pos);
 		void set_transform(const glm::mat4& pose);
 		intersection_t intersection(const glm::mat4& pose) const;
 		bool update_on_interaction(const intersection_t isec, const bool pressed, const bool released);
 		void draw(void) const;
 
 	private:
-		action_t m_action;                // button function indicator
-		bool m_toggleable;                // enable on/off behaviour
+		const action_t m_action;          // button function indicator
+		const bool m_toggleable;          // enable on/off behaviour
+		const bool m_slideable;           // enable slidebar behaviour
 		bool m_active;                    // flag for possible interactions or visible slidebar
-		bool m_slideable;                 // enable slidebar behaviour
-		float m_slide_min;                // minimum slidebar value
-		float m_slide_max;                // maximum slidebar value
+		const float m_slide_min;          // minimum slidebar value
+		const float m_slide_max;          // maximum slidebar value
 		float m_slide_pos;                // current slidebar value
 		float m_slide_last;               // original slidebar value
 		Shape m_shape;                    // mesh
