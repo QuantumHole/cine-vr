@@ -14,8 +14,7 @@ Texture::Texture(void) :
 	m_type(),
 	m_slot(0),
 	m_format(GL_RGB),
-	m_width(0),
-	m_height(0)
+	m_size(0, 0)
 {
 }
 
@@ -69,21 +68,20 @@ float Texture::init_file(const std::string& file_name, const GLenum tex_type, co
 	return static_cast<float>(m_image.width()) / static_cast<float>(m_image.height());
 }
 
-void Texture::init_dim(const size_t width, const size_t height, const GLenum tex_type, const GLuint slot, const GLint filter)
+void Texture::init_dim(const glm::uvec2 size, const GLenum tex_type, const GLuint slot, const GLint filter)
 {
-	if (m_width || m_height)
+	if (m_size.x || m_size.y)
 	{
 		remove();
 	}
 
-	m_width = width;
-	m_height = height;
+	m_size = size;
 	init(tex_type, slot, filter);
 
-	if ((m_width > 0) && (m_height > 0))
+	if ((m_size.x > 0) && (m_size.y > 0))
 	{
-		// glTexImage2D(tex_type, 0, GL_RGB32F, static_cast<GLsizei>(m_width), static_cast<GLsizei>(m_height), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glTexStorage2D(tex_type, 1, GL_RGBA32F, static_cast<GLuint>(m_width), static_cast<GLuint>(m_height));
+		// glTexImage2D(tex_type, 0, GL_RGB32F, static_cast<GLsizei>(m_size.x), static_cast<GLsizei>(m_size.y), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glTexStorage2D(tex_type, 1, GL_RGBA32F, static_cast<GLuint>(m_size.x), static_cast<GLuint>(m_size.y));
 		glBindImageTexture(m_slot, m_id, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	}
 }
@@ -152,7 +150,7 @@ GLuint Texture::slot(void) const
 
 void Texture::bind(void) const
 {
-	if ((m_width > 0) && (m_height > 0))
+	if ((m_size.x > 0) && (m_size.y > 0))
 	{
 		glActiveTexture(GL_TEXTURE0 + m_slot);
 		glBindTextureUnit(0, m_id);

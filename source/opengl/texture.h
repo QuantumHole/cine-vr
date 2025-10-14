@@ -9,6 +9,7 @@
 #include <openvr.h>
 #include <SDL3/SDL_surface.h>
 #include <string>
+#include <glm/glm.hpp>
 
 class Texture
 {
@@ -17,8 +18,7 @@ class Texture
 		GLenum m_type;
 		GLuint m_slot;
 		GLenum m_format;
-		size_t m_width;
-		size_t m_height;
+		glm::uvec2 m_size;
 
 		void init(const GLenum tex_type, const GLuint slot, const GLint filter);
 
@@ -30,7 +30,7 @@ class Texture
 
 		float init_file(const std::string& file_name, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
 		void init_sdl(const SDL_Surface* surface, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
-		void init_dim(const size_t width, const size_t height, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
+		void init_dim(const glm::uvec2 size, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
 		void init_openvr_model(const std::string& name, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
 		void bind(void) const;
 		void unbind(void) const;

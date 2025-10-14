@@ -8,19 +8,11 @@
 #include "opengl/shape.h"
 #include "opengl/texture.h"
 #include "action.h"
+#include "panel.h"
 
 class Button
 {
 	public:
-		typedef struct
-		{
-			action_t action_id;
-			bool hit;
-			glm::vec3 global;
-			glm::vec2 local;    // texture coordinates
-		}
-		intersection_t;
-
 		explicit Button(const action_t action, const std::string& image_name);
 		explicit Button(const action_t action, const std::string& image_name, const bool value);
 		explicit Button(const action_t action, const std::string& image_name, const float min, const float max, const float value);
@@ -28,8 +20,8 @@ class Button
 
 		float slide_value(void) const;
 		void set_transform(const glm::mat4& pose);
-		intersection_t intersection(const glm::mat4& pose) const;
-		bool update_on_interaction(const intersection_t isec, const bool pressed, const bool released);
+		Panel::intersection_t intersection(const glm::mat4& pose) const;
+		bool update_on_interaction(const Panel::intersection_t isec, const bool pressed, const bool released);
 		void draw(void) const;
 
 	private:

@@ -122,9 +122,9 @@ void Button::set_transform(const glm::mat4& pose)
 	m_shape.set_transform(pose);
 }
 
-Button::intersection_t Button::intersection(const glm::mat4& pose) const
+Panel::intersection_t Button::intersection(const glm::mat4& pose) const
 {
-	intersection_t isec = {m_action, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
+	Panel::intersection_t isec = {m_action, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
 
 	if (m_action == ACTION_NONE)
 	{
@@ -169,7 +169,7 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 	return isec;
 }
 
-bool Button::update_on_interaction(const intersection_t isec, const bool pressed, const bool released)
+bool Button::update_on_interaction(const Panel::intersection_t isec, const bool pressed, const bool released)
 {
 	if (m_slideable)
 	{

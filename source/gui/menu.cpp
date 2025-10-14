@@ -18,8 +18,8 @@ Menu::Menu(void) :
 	m_hmd_pose(1.0),
 	m_active_button(ACTION_NONE),
 	m_debounce(false),
-	m_panel_dir(),
-	m_panel_file()
+	m_panel_dir(glm::uvec2(0, 0)),
+	m_panel_file(glm::uvec2(0, 0))
 {
 }
 
@@ -294,7 +294,7 @@ void Menu::file_menu(void)
 	pose = m_hmd_pose * pose;
 
 	const glm::uvec2 panel_size(300, 500);
-	m_panel_dir.init_area(panel_size.x, panel_size.y);
+	m_panel_dir.init_area(panel_size);
 	m_panel_dir.set_transform(pose);
 	list_directories();
 
@@ -303,7 +303,7 @@ void Menu::file_menu(void)
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
-	m_panel_file.init_area(panel_size.x, panel_size.y);
+	m_panel_file.init_area(panel_size);
 	m_panel_file.set_transform(pose);
 	list_files();
 }
@@ -594,7 +594,7 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 	for (std::map<action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
 	{
 		Button* b = iter->second;
-		const Button::intersection_t isec = b->intersection(controller);
+		const Panel::intersection_t isec = b->intersection(controller);
 
 		// draw point on panel
 		if (isec.hit)

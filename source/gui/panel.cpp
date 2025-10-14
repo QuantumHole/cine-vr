@@ -9,11 +9,13 @@
 #include <stdexcept>
 #include <algorithm>
 
-Panel::Panel(void) :
+Panel::Panel(const glm::uvec2 tex_size) :
+	m_action(ACTION_NONE),
 	m_shape(),
 	m_texture(),
-	m_width(0),
-	m_height(0)
+	m_pose(1.0f),
+	m_shape_size(3.0f, 5.0f),
+	m_tex_size(tex_size)
 {
 }
 
@@ -23,25 +25,23 @@ Panel::~Panel(void)
 	m_texture.remove();
 }
 
-void Panel::init_area(const size_t width, const size_t height)
+void Panel::init_area(const glm::uvec2 tex_size)
 {
-	if (m_width || m_height)
+	if (tex_size.x || tex_size.y)
 	{
 		// reinitialize
 		m_shape.remove();
 		m_texture.remove();
 	}
 
-	m_width = width;
-	m_height = height;
-	glm::vec2 m_size(3.0f, 5.0f);
+	m_tex_size = tex_size;
 
 	// positions: rectangle in XY plane centered at 0, z=0
 	const std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(-0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3(0.5f * m_size.x, 0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.5f * m_size.x, 0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3(0.5f * m_size.x, -0.5f * m_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(1.0f, 1.0f)),
+		Vertex(glm::vec3(-0.5f * m_shape_size.x, -0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3(0.5f * m_shape_size.x, 0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.5f * m_shape_size.x, 0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3(0.5f * m_shape_size.x, -0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(1.0f, 1.0f)),
 	};
 
 	const std::vector<GLuint> indices = {
@@ -50,7 +50,7 @@ void Panel::init_area(const size_t width, const size_t height)
 	};
 
 	m_shape.init_vertices(vertices, indices, GL_TRIANGLES);
-	m_texture.init_dim(width, height, GL_TEXTURE_2D, 0);
+	m_texture.init_dim(m_tex_size, GL_TEXTURE_2D, 0);
 }
 
 void Panel::set_transform(const glm::mat4& pose)
@@ -76,7 +76,7 @@ void Panel::text(const std::string& text, const int32_t x, const int32_t y) cons
 		glTexSubImage2D(GL_TEXTURE_2D, 0,
 		                x,
 		                y + static_cast<GLint>(i),
-		                std::min(static_cast<GLsizei>(width), static_cast<GLsizei>(std::max(0, static_cast<int32_t>(m_width) - x))),
+		                std::min(static_cast<GLsizei>(width), static_cast<GLsizei>(std::max(0, static_cast<int32_t>(m_tex_size.x) - x))),
 		                1,
 		                GL_RGBA, GL_UNSIGNED_BYTE,
 		                image.data() + static_cast<ptrdiff_t>(i * width));
@@ -92,4 +92,56 @@ void Panel::draw(void) const
 	m_texture.unbind();
 
 	shader().set_uniform("background", false);
+}
+
+Panel::intersection_t Panel::intersection(const glm::mat4& pose) const
+{
+	Panel::intersection_t isec = {m_action, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
+
+	if (m_action == ACTION_NONE)
+	{
+		return isec;
+	}
+
+	// pointing ray: origin = device position, direction = forward -Z in device space transformed to world
+	glm::vec3 origin = glm::vec3(pose * glm::vec4(0, 0, 0, 1));
+	glm::vec3 direction = glm::normalize(glm::vec3(pose * glm::vec4(0, 0, -1, 0)));
+
+	// Transform ray into rectangle local space.
+	// Afterwards, collision can be checked by intersection with the x/y plane at z=0.
+	glm::mat4 modelInv = glm::inverse(m_pose);
+	glm::vec3 local_origin = glm::vec3(modelInv * glm::vec4(origin, 1.0f));
+	glm::vec3 local_direction = glm::normalize(glm::vec3(modelInv * glm::vec4(direction, 0.0f))); // ignore offset/translation with 0.0
+
+	// Ray-plane intersection: plane z=0 in rectangle local space (rect centered at origin, size +/-0.5)
+	// rectangle in local coordinates lies on plane z=0
+
+	// ray parallel to z=0 plane.
+	if (fabsf(local_direction.z) < std::numeric_limits<float>::epsilon())
+	{
+		return isec;
+	}
+
+	const float t = -local_origin.z / local_direction.z;
+
+	// point of intersection in local coordinates
+	// check if it lies within the object boundaries
+	isec.global = local_origin + t * local_direction;
+
+	isec.hit = ((t > 0) &&   // target plane must be in positive direction
+	            (isec.global.x >= -0.5f * m_shape_size.x) && (isec.global.x <= 0.5f * m_shape_size.x) &&
+	            (isec.global.y >= -0.5f * m_shape_size.y) && (isec.global.y <= 0.5f * m_shape_size.y));
+
+	// button coordinates [0; 1]
+	isec.local = (glm::vec2(isec.global) + 0.5f * m_shape_size) / m_shape_size;
+
+	// transform back into global coordinate system
+	isec.global = glm::vec3(m_pose * glm::vec4(isec.global, 1.0f));
+
+	return isec;
+}
+
+bool Panel::update_on_interaction(const intersection_t isec, const bool, const bool released)
+{
+	return released && isec.hit;
 }

@@ -5,6 +5,7 @@
 #ifndef PANEL_H
 #define PANEL_H
 
+#include "action.h"
 #include "opengl/shape.h"
 #include "opengl/texture.h"
 #include <vector>
@@ -12,18 +13,33 @@
 class Panel
 {
 	private:
+		const action_t m_action;          // function indicator
 		Shape m_shape;
 		Texture m_texture;
-		size_t m_width;
-		size_t m_height;
+		glm::mat4 m_pose;                 // position and rotation
+		glm::vec2 m_shape_size;
+		glm::uvec2 m_tex_size;
 
 	public:
-		explicit Panel(void);
+		typedef struct
+		{
+			action_t action_id;
+			bool hit;
+			glm::vec3 global;
+			glm::vec2 local;    // texture coordinates
+		}
+		intersection_t;
+
+		explicit Panel(const glm::uvec2 tex_size);
 		~Panel(void);
-		void init_area(const size_t width, const size_t height);
+
+		void init_area(const glm::uvec2 tex_size);
 		void set_transform(const glm::mat4& pose);
 		void text(const std::string& text, const int32_t x = 0, const int32_t y = 0) const;
 		void draw(void) const;
+
+		intersection_t intersection(const glm::mat4& pose) const;
+		bool update_on_interaction(const intersection_t isec, const bool pressed, const bool released);
 };
 
 #endif
