@@ -58,14 +58,14 @@ void Texture::init(const GLenum tex_type, const GLenum slot, const GLint filter)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, fLargest);
 }
 
-float Texture::init_file(const std::string& file_name, const GLenum tex_type, const GLuint slot, const GLint filter)
+glm::uvec2 Texture::init_file(const std::string& file_name, const GLenum tex_type, const GLuint slot, const GLint filter)
 {
 	ImageFile m_image(file_name);
 
 	m_format = (m_image.has_alpha_channel() ? GL_RGBA : GL_RGB);
 	init(tex_type, slot, filter);
 	glTexImage2D(tex_type, 0, GL_RGBA, static_cast<GLsizei>(m_image.width()), static_cast<GLsizei>(m_image.height()), 0, m_format, GL_UNSIGNED_BYTE, m_image.pixels().data());
-	return static_cast<float>(m_image.width()) / static_cast<float>(m_image.height());
+	return glm::uvec2(m_image.width(), m_image.height());
 }
 
 void Texture::init_dim(const glm::uvec2 size, const GLenum tex_type, const GLuint slot, const GLint filter)

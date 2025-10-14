@@ -18,8 +18,8 @@ Menu::Menu(void) :
 	m_hmd_pose(1.0),
 	m_active_button(ACTION_NONE),
 	m_debounce(false),
-	m_panel_dir(glm::uvec2(0, 0)),
-	m_panel_file(glm::uvec2(0, 0))
+	m_panel_dir(ACTION_DIRECTORY_SELECT),
+	m_panel_file(ACTION_FILE_SELECT)
 {
 }
 
@@ -282,28 +282,48 @@ void Menu::projection_menu(void)
 void Menu::file_menu(void)
 {
 	m_submenu = MENU_FILE_MANAGER;
-	create_button_panel({
-		ACTION_BACK
-	});
+	m_debounce = true;
 
-	const float rot_x = 0.125f * glm::pi<float>();
+	// delete previous buttons
+	for (std::map<action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
+	{
+		delete iter->second;
+	}
+	m_button.clear();
 
+	// back button
+	const float angle_y = -0.25f * glm::pi<float>();
 	glm::mat4 pose = glm::mat4(1.0f);
+	pose = glm::rotate(pose, angle_y, glm::vec3(1.0f, 0.0f, 0.0f));
+	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
+	pose = m_hmd_pose * pose;
+
+	const action_t act = ACTION_BACK;
+	Button* b = new Button(act, "images/back.png");
+	b->set_transform(pose);
+	m_button[act] = b;
+
+	// directory panel
+	const float rot_x = 0.125f * glm::pi<float>();
+	pose = glm::mat4(1.0f);
 	pose = glm::rotate(pose, rot_x, glm::vec3(0.0f, 1.0f, 0.0f));
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
-	const glm::uvec2 panel_size(300, 500);
-	m_panel_dir.init_area(panel_size);
+	const glm::vec2 shape_size(3.0f, 5.0f);
+	const glm::vec3 color(0.5f, 0.4f, 0.2f);
+	const glm::uvec2 tex_size(300, 500);
+	m_panel_dir.init_area(shape_size, color, tex_size);
 	m_panel_dir.set_transform(pose);
 	list_directories();
 
+	// file panel
 	pose = glm::mat4(1.0f);
 	pose = glm::rotate(pose, -rot_x, glm::vec3(0.0f, 1.0f, 0.0f));
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
-	m_panel_file.init_area(panel_size);
+	m_panel_file.init_area(shape_size, color, tex_size);
 	m_panel_file.set_transform(pose);
 	list_files();
 }

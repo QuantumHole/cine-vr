@@ -13,12 +13,22 @@
 class Panel
 {
 	private:
-		const action_t m_action;          // function indicator
 		Shape m_shape;
 		Texture m_texture;
 		glm::mat4 m_pose;                 // position and rotation
 		glm::vec2 m_shape_size;
 		glm::uvec2 m_tex_size;
+
+	protected:
+		const action_t m_action;          // function indicator
+
+		const glm::mat4& pose(void) const;
+		const Shape& shape(void) const;
+		const Texture& texture(void) const;
+
+		void init_shape(const glm::vec2& shape_size, const glm::vec3& color);
+		void init_texture(const std::string& image_name);
+		void init_texture(const glm::uvec2& tex_size);
 
 	public:
 		typedef struct
@@ -26,20 +36,20 @@ class Panel
 			action_t action_id;
 			bool hit;
 			glm::vec3 global;
-			glm::vec2 local;    // texture coordinates
+			glm::vec2 local;              // texture coordinates
 		}
 		intersection_t;
 
-		explicit Panel(const glm::uvec2 tex_size);
-		~Panel(void);
+		explicit Panel(const action_t action);
+		virtual ~Panel(void);
 
-		void init_area(const glm::uvec2 tex_size);
+		void init_area(const glm::vec2& shape_size, const glm::vec3& color, const glm::uvec2& tex_size);
 		void set_transform(const glm::mat4& pose);
 		void text(const std::string& text, const int32_t x = 0, const int32_t y = 0) const;
-		void draw(void) const;
+		virtual void draw(void) const;
 
 		intersection_t intersection(const glm::mat4& pose) const;
-		bool update_on_interaction(const intersection_t isec, const bool pressed, const bool released);
+		virtual bool update_on_interaction(const intersection_t isec, const bool pressed, const bool released);
 };
 
 #endif

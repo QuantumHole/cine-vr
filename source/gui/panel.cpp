@@ -9,13 +9,13 @@
 #include <stdexcept>
 #include <algorithm>
 
-Panel::Panel(const glm::uvec2 tex_size) :
-	m_action(ACTION_NONE),
+Panel::Panel(const action_t action) :
 	m_shape(),
 	m_texture(),
 	m_pose(1.0f),
 	m_shape_size(3.0f, 5.0f),
-	m_tex_size(tex_size)
+	m_tex_size(0, 0),
+	m_action(action)
 {
 }
 
@@ -25,23 +25,19 @@ Panel::~Panel(void)
 	m_texture.remove();
 }
 
-void Panel::init_area(const glm::uvec2 tex_size)
+void Panel::init_shape(const glm::vec2& shape_size, const glm::vec3& color)
 {
-	if (tex_size.x || tex_size.y)
-	{
-		// reinitialize
-		m_shape.remove();
-		m_texture.remove();
-	}
+	// reinitialize
+	m_shape.remove();
 
-	m_tex_size = tex_size;
+	m_shape_size = shape_size;
 
 	// positions: rectangle in XY plane centered at 0, z=0
 	const std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(-0.5f * m_shape_size.x, -0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3(0.5f * m_shape_size.x, 0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.5f * m_shape_size.x, 0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3(0.5f * m_shape_size.x, -0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.5f, 0.4f, 0.2f), glm::vec2(1.0f, 1.0f)),
+		Vertex(glm::vec3(-0.5f * m_shape_size.x, -0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3(0.5f * m_shape_size.x, 0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.5f * m_shape_size.x, 0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3(0.5f * m_shape_size.x, -0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(1.0f, 1.0f)),
 	};
 
 	const std::vector<GLuint> indices = {
@@ -50,12 +46,44 @@ void Panel::init_area(const glm::uvec2 tex_size)
 	};
 
 	m_shape.init_vertices(vertices, indices, GL_TRIANGLES);
+}
+
+void Panel::init_texture(const std::string& image_name)
+{
+	m_tex_size = m_texture.init_file(image_name, GL_TEXTURE_2D, 0);
+}
+
+void Panel::init_texture(const glm::uvec2& tex_size)
+{
+	m_tex_size = tex_size;
 	m_texture.init_dim(m_tex_size, GL_TEXTURE_2D, 0);
+}
+
+void Panel::init_area(const glm::vec2& shape_size, const glm::vec3& color, const glm::uvec2& tex_size)
+{
+	init_shape(shape_size, color);
+	init_texture(tex_size);
 }
 
 void Panel::set_transform(const glm::mat4& pose)
 {
+	m_pose = pose;
 	m_shape.set_transform(pose);
+}
+
+const glm::mat4& Panel::pose(void) const
+{
+	return m_pose;
+}
+
+const Shape& Panel::shape(void) const
+{
+	return m_shape;
+}
+
+const Texture& Panel::texture(void) const
+{
+	return m_texture;
 }
 
 void Panel::text(const std::string& text, const int32_t x, const int32_t y) const

@@ -28,7 +28,7 @@ class Texture
 		GLuint id(void) const;
 		GLuint slot(void) const;
 
-		float init_file(const std::string& file_name, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
+		glm::uvec2 init_file(const std::string& file_name, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
 		void init_sdl(const SDL_Surface* surface, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
 		void init_dim(const glm::uvec2 size, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
 		void init_openvr_model(const std::string& name, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);

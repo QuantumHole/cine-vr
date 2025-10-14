@@ -155,7 +155,8 @@ int main(void)
 	reset_reference();
 	g_projection.set_stretch(true);
 
-	const float aspect = g_image.init_file("images/logo-cinevr.png", GL_TEXTURE_2D, 0);
+	const glm::uvec2 image_size = g_image.init_file("images/logo-cinevr.png", GL_TEXTURE_2D, 0);
+	const float aspect = static_cast<float>(image_size.x) / static_cast<float>(image_size.y);
 	g_image.unbind();
 
 	set_aspect_ratio(aspect);
