@@ -156,29 +156,12 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 	// check if it lies within the object boundaries
 	isec.global = local_origin + t * local_direction;
 
-	if (m_slideable && m_active)
-	{
-		// restrict y coordinate of shown icon from last slide position
-		const float frac = (m_slide_last - m_slide_min) / (m_slide_max - m_slide_min);
-		const float y0 = -slide_height * button_size.y * frac;
-		const float y1 = slide_height * button_size.y * (1.0f - frac);
-		const float global_y = std::min(std::max(isec.global.y, y0), y1);
-
-		isec.local = (glm::vec2(isec.global.x, global_y) - y0) / (y1 - y0);
-
-		// move button icon to cursor position
-		glm::mat4 shifted_pose = glm::translate(m_pose, glm::vec3(0.0f, global_y, 0.0f));
-		m_shape.set_transform(shifted_pose);
-	}
-	else
-	{
-		// button coordinates [0; 1]
-		isec.local = (glm::vec2(isec.global) + 0.5f * button_size) / button_size;
-	}
-
 	isec.hit = ((t > 0) &&   // target plane must be in positive direction
 	            (isec.global.x >= -0.5f * button_size.x) && (isec.global.x <= 0.5f * button_size.x) &&
 	            (isec.global.y >= -0.5f * button_size.y) && (isec.global.y <= 0.5f * button_size.y));
+
+	// button coordinates [0; 1]
+	isec.local = (glm::vec2(isec.global) + 0.5f * button_size) / button_size;
 
 	// transform back into global coordinate system
 	isec.global = glm::vec3(m_pose * glm::vec4(isec.global, 1.0f));
@@ -209,10 +192,22 @@ bool Button::update_on_interaction(const intersection_t isec, const bool pressed
 		}
 		else if (pressed && m_active)
 		{
-			if (m_slideable && m_active)
-			{
-				m_slide_pos = m_slide_min + isec.local.y * (m_slide_max - m_slide_min);
-			}
+			float y = isec.local.y;
+			y = (y * button_size.y) - 0.5f * button_size.y;    // global position
+
+			// restrict y coordinate of shown icon from last slide position
+			const float frac = (m_slide_last - m_slide_min) / (m_slide_max - m_slide_min);
+			const float y0 = -slide_height * button_size.y * frac;
+			const float y1 = slide_height * button_size.y * (1.0f - frac);
+			const float global_y = std::min(std::max(y, y0), y1);
+			y = (global_y - y0) / (y1 - y0);                   // relative position on slide bar
+
+			m_slide_pos = m_slide_min + y * (m_slide_max - m_slide_min);
+
+			// move button icon to cursor position
+			glm::mat4 shifted_pose = glm::translate(m_pose, glm::vec3(0.0f, global_y, 0.0f));
+			m_shape.set_transform(shifted_pose);
+
 			return true;
 		}
 	}
