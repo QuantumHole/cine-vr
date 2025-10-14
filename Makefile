@@ -46,6 +46,7 @@ IMAGES = \
 	$(IMAGE_DIR)/flat.png \
 	$(IMAGE_DIR)/forward.png \
 	$(IMAGE_DIR)/left-right.png \
+	$(IMAGE_DIR)/logo-cinevr.png \
 	$(IMAGE_DIR)/mono.png \
 	$(IMAGE_DIR)/next.png \
 	$(IMAGE_DIR)/open.png \

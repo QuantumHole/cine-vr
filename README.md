@@ -4,8 +4,8 @@ SPDX-FileCopyrightText: 2025 QuantumHole <QuantumHole@github.com>
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
-# Cine-VR
-This is a small test project to check out some mechanisms in OpenGL and OpenVR.
+# <img src="images/logo-cinevr.svg" alt="Cine-VR" width="20%" />
+Cine-VR is a small project to check out some mechanisms in OpenGL and OpenVR.
 
 It renders a single image into HMD stereoscopically.
 It also shows the left eye view in a companion window on the desktop.

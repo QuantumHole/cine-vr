@@ -151,7 +151,7 @@ int main(void)
 	g_projection.set_stretch(true);
 	update_projection();
 
-	g_image.init_file("frame.png", GL_TEXTURE_2D, 0);
+	g_image.init_file("images/logo-cinevr.png", GL_TEXTURE_2D, 0);
 	g_image.unbind();
 
 	// main loop
