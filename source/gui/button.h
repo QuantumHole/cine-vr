@@ -34,11 +34,10 @@ class Button
 		void update_slide_value(const float pos);
 		void set_transform(const glm::mat4& pose);
 		intersection_t intersection(const glm::mat4& pose) const;
+		bool update_on_interaction(const intersection_t isec, const bool pressed, const bool released);
 		void draw(void) const;
 
 	private:
-		static const glm::vec2 m_size;    // size in scene coordinate space
-
 		action_t m_action;                // button function indicator
 		bool m_toggleable;                // enable on/off behaviour
 		bool m_active;                    // flag for possible interactions or visible slidebar

@@ -580,6 +580,11 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 		m_debounce = false;
 	}
 
+	if (released)
+	{
+		m_active_button = ACTION_NONE;
+	}
+
 	bool buttonHit = false;
 	std::vector<glm::vec3> intersections;
 	for (std::map<action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
@@ -595,35 +600,9 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 			intersections.push_back(isec.global);
 		}
 
-		if (b->slideable())
+		if (((m_active_button == ACTION_NONE) || (m_active_button == iter->first)) && b->update_on_interaction(isec, pressed, released))
 		{
-			if (isec.hit && pressed && !b->active() && (m_active_button == ACTION_NONE))
-			{
-				b->enable(true);
-				m_active_button = iter->first;
-			}
-			else if (!pressed && b->active())
-			{
-				b->enable(false);
-				m_active_button = ACTION_NONE;
-			}
-			else if (pressed && b->active())
-			{
-				b->update_slide_value(isec.local.y);
-				handle_button_action(isec.action_id);
-			}
-		}
-
-		if (released && isec.hit)
-		{
-			// hit in rectangle local coords mapped to texture or 0..1 coords
-			std::cout << "Controller " << " clicked button " << isec.action_id << " at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
-
-			if (b->toggleable())
-			{
-				b->enable(!b->active());
-			}
-
+			m_active_button = iter->first;
 			handle_button_action(isec.action_id);
 
 			// buttons may have been replaced by button action.
@@ -631,6 +610,8 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 			break;
 		}
 	}
+
+	(void)m_active_button;
 
 	// update scene objects
 	// define all intersection points
