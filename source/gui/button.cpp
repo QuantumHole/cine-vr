@@ -9,7 +9,7 @@ static const float slide_height = 5.0f;
 
 const glm::vec2 Button::m_size(0.5f, 0.5f);    // size in scene coordinate space
 
-Button::Button(const button_action_t action) :
+Button::Button(const action_t action) :
 	m_action(action),
 	m_toggleable(false),
 	m_active(true),
@@ -26,7 +26,7 @@ Button::Button(const button_action_t action) :
 	init();
 }
 
-Button::Button(const button_action_t action, const bool value) :
+Button::Button(const action_t action, const bool value) :
 	m_action(action),
 	m_toggleable(true),
 	m_active(value),
@@ -43,7 +43,7 @@ Button::Button(const button_action_t action, const bool value) :
 	init();
 }
 
-Button::Button(const button_action_t action, const float min, const float max, const float value) :
+Button::Button(const action_t action, const float min, const float max, const float value) :
 	m_action(action),
 	m_toggleable(false),
 	m_active(false),
@@ -87,51 +87,51 @@ void Button::init(void)
 
 	m_shape.init_vertices(vertices, indices, GL_TRIANGLES);
 
-	std::map<Button::button_action_t, std::string> images = {
-		{Button::BUTTON_BACK, "images/back.png"},
-		{Button::BUTTON_FILE_DELETE, "images/delete.png"},
-		{Button::BUTTON_FILE_OPEN, "images/open.png"},
-		{Button::BUTTON_PLAY_BACKWARD, "images/backward.png"},
-		{Button::BUTTON_PLAY_FORWARD, "images/forward.png"},
-		{Button::BUTTON_PLAY_NEXT, "images/next.png"},
-		{Button::BUTTON_PLAY_PAUSE, "images/pause.png"},
-		{Button::BUTTON_PLAY_PLAY, "images/play.png"},
-		{Button::BUTTON_PLAY_PREVIOUS, "images/previous.png"},
-		{Button::BUTTON_POWER, "images/power.png"},
-		{Button::BUTTON_PROJECT_CUBE, "images/cube-mono.png"},
-		{Button::BUTTON_PROJECT_CYLINDER, "images/cylinder.png"},
-		{Button::BUTTON_PROJECT_FISHEYE, "images/fisheye.png"},
-		{Button::BUTTON_PROJECT_FLAT, "images/flat.png"},
-		{Button::BUTTON_PROJECT_SPHERE, "images/sphere.png"},
-		{Button::BUTTON_SETTINGS, "images/settings.png"},
-		{Button::BUTTON_TILE_CUBE_MONO, "images/cube-mono.png"},
-		{Button::BUTTON_TILE_CUBE_STEREO, "images/cube-stereo.png"},
-		{Button::BUTTON_TILE_LEFT_RIGHT, "images/left-right.png"},
-		{Button::BUTTON_TILE_MONO, "images/mono.png"},
-		{Button::BUTTON_TILE_TOP_BOTTOM, "images/top-bottom.png"},
-		{Button::BUTTON_FLAG_MONO, "images/force-mono.png"},
-		{Button::BUTTON_FLAG_STRETCH, "images/stretch.png"},
-		{Button::BUTTON_FLAG_SWITCH_EYES, "images/switch-eyes.png"},
-		{Button::BUTTON_PARAM_ANGLE, "images/angle.png"},
-		{Button::BUTTON_PARAM_ZOOM, "images/zoom.png"}
+	std::map<action_t, std::string> images = {
+		{ACTION_BACK, "images/back.png"},
+		{ACTION_FILE_DELETE, "images/delete.png"},
+		{ACTION_FILE_OPEN, "images/open.png"},
+		{ACTION_PLAY_BACKWARD, "images/backward.png"},
+		{ACTION_PLAY_FORWARD, "images/forward.png"},
+		{ACTION_PLAY_NEXT, "images/next.png"},
+		{ACTION_PLAY_PAUSE, "images/pause.png"},
+		{ACTION_PLAY_PLAY, "images/play.png"},
+		{ACTION_PLAY_PREVIOUS, "images/previous.png"},
+		{ACTION_POWER, "images/power.png"},
+		{ACTION_PROJECT_CUBE, "images/cube-mono.png"},
+		{ACTION_PROJECT_CYLINDER, "images/cylinder.png"},
+		{ACTION_PROJECT_FISHEYE, "images/fisheye.png"},
+		{ACTION_PROJECT_FLAT, "images/flat.png"},
+		{ACTION_PROJECT_SPHERE, "images/sphere.png"},
+		{ACTION_SETTINGS, "images/settings.png"},
+		{ACTION_TILE_CUBE_MONO, "images/cube-mono.png"},
+		{ACTION_TILE_CUBE_STEREO, "images/cube-stereo.png"},
+		{ACTION_TILE_LEFT_RIGHT, "images/left-right.png"},
+		{ACTION_TILE_MONO, "images/mono.png"},
+		{ACTION_TILE_TOP_BOTTOM, "images/top-bottom.png"},
+		{ACTION_FLAG_MONO, "images/force-mono.png"},
+		{ACTION_FLAG_STRETCH, "images/stretch.png"},
+		{ACTION_FLAG_SWITCH_EYES, "images/switch-eyes.png"},
+		{ACTION_PARAM_ANGLE, "images/angle.png"},
+		{ACTION_PARAM_ZOOM, "images/zoom.png"}
 	};
 
-	std::map<Button::button_action_t, std::string>::const_iterator iter = images.find(m_action);
+	std::map<action_t, std::string>::const_iterator iter = images.find(m_action);
 
 	if (iter != images.end())
 	{
 		m_tex.init_file(iter->second, GL_TEXTURE_2D, 0);
 	}
 
-	std::set<Button::button_action_t> toggleables = {
-		BUTTON_FLAG_MONO,
-		BUTTON_FLAG_STRETCH,
-		BUTTON_FLAG_SWITCH_EYES
+	std::set<action_t> toggleables = {
+		ACTION_FLAG_MONO,
+		ACTION_FLAG_STRETCH,
+		ACTION_FLAG_SWITCH_EYES
 	};
 
-	std::set<Button::button_action_t> slideables = {
-		BUTTON_PARAM_ANGLE,
-		BUTTON_PARAM_ZOOM
+	std::set<action_t> slideables = {
+		ACTION_PARAM_ANGLE,
+		ACTION_PARAM_ZOOM
 	};
 
 	if (slideables.find(m_action) != slideables.end())
@@ -214,7 +214,7 @@ Button::intersection_t Button::intersection(const glm::mat4& pose) const
 {
 	intersection_t isec = {m_action, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
 
-	if (m_action == BUTTON_NONE)
+	if (m_action == ACTION_NONE)
 	{
 		return isec;
 	}

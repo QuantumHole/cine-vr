@@ -7,54 +7,23 @@
 
 #include "opengl/shape.h"
 #include "opengl/texture.h"
+#include "action.h"
 
 class Button
 {
 	public:
-		typedef enum
-		{
-			BUTTON_NONE,
-			BUTTON_BACK,
-			BUTTON_FILE_DELETE,
-			BUTTON_FILE_OPEN,
-			BUTTON_PLAY_BACKWARD,
-			BUTTON_PLAY_FORWARD,
-			BUTTON_PLAY_NEXT,
-			BUTTON_PLAY_PAUSE,
-			BUTTON_PLAY_PLAY,
-			BUTTON_PLAY_PREVIOUS,
-			BUTTON_POWER,
-			BUTTON_PROJECT_CUBE,
-			BUTTON_PROJECT_CYLINDER,
-			BUTTON_PROJECT_FISHEYE,
-			BUTTON_PROJECT_FLAT,
-			BUTTON_PROJECT_SPHERE,
-			BUTTON_SETTINGS,
-			BUTTON_TILE_CUBE_MONO,
-			BUTTON_TILE_CUBE_STEREO,
-			BUTTON_TILE_LEFT_RIGHT,
-			BUTTON_TILE_MONO,
-			BUTTON_TILE_TOP_BOTTOM,
-			BUTTON_FLAG_MONO,
-			BUTTON_FLAG_STRETCH,
-			BUTTON_FLAG_SWITCH_EYES,
-			BUTTON_PARAM_ANGLE,
-			BUTTON_PARAM_ZOOM
-		}
-		button_action_t;
-
 		typedef struct
 		{
-			button_action_t action_id;
+			action_t action_id;
 			bool hit;
 			glm::vec3 global;
 			glm::vec2 local;    // texture coordinates
 		}
 		intersection_t;
 
-		explicit Button(const button_action_t action);
-		explicit Button(const button_action_t action, const bool value);
-		explicit Button(const button_action_t action, const float min, const float max, const float value);
+		explicit Button(const action_t action);
+		explicit Button(const action_t action, const bool value);
+		explicit Button(const action_t action, const float min, const float max, const float value);
 		~Button(void);
 
 		bool toggleable(void) const;
@@ -70,7 +39,7 @@ class Button
 	private:
 		static const glm::vec2 m_size;    // size in scene coordinate space
 
-		button_action_t m_action;         // button function indicator
+		action_t m_action;                // button function indicator
 		bool m_toggleable;                // enable on/off behaviour
 		bool m_active;                    // flag for possible interactions or visible slidebar
 		bool m_slideable;                 // enable slidebar behaviour

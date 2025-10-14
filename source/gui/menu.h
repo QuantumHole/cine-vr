@@ -23,16 +23,16 @@ class Menu
 		}
 		menu_t;
 
-		std::map<Button::button_action_t, Button*> m_button;
+		std::map<action_t, Button*> m_button;
 		Shape m_points;
 		menu_t m_submenu;
 		glm::mat4 m_hmd_pose;
-		Button::button_action_t m_active_button;
+		action_t m_active_button;
 		bool m_debounce;
 		Panel m_panel_dir;
 		Panel m_panel_file;
 
-		void create_button_panel(const std::vector<Button::button_action_t>& actions);
+		void create_button_panel(const std::vector<action_t>& actions);
 		void create_points(void);
 		void list_directories(void) const;
 		void list_files(void) const;
@@ -42,7 +42,7 @@ class Menu
 		void projection_menu(void);
 		void settings_menu(void);
 		void file_menu(void);
-		void handle_button_action(const Button::button_action_t action);
+		void handle_button_action(const action_t action);
 
 	public:
 		Menu(void);

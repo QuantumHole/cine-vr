@@ -16,7 +16,7 @@ Menu::Menu(void) :
 	m_points(),
 	m_submenu(MENU_NONE),
 	m_hmd_pose(1.0),
-	m_active_button(Button::BUTTON_NONE),
+	m_active_button(ACTION_NONE),
 	m_debounce(false),
 	m_panel_dir(),
 	m_panel_file()
@@ -37,7 +37,7 @@ void Menu::draw(void) const
 		case MENU_PROJECTION:
 		case MENU_SETTINGS:
 		case MENU_FILE_MANAGER:
-			for (std::map<Button::button_action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
+			for (std::map<action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
 			{
 				iter->second->draw();
 			}
@@ -108,7 +108,7 @@ void Menu::create_points(void)
 	m_points.init_vertices(vertices, indices, GL_POINTS);
 }
 
-void Menu::create_button_panel(const std::vector<Button::button_action_t>& actions)
+void Menu::create_button_panel(const std::vector<action_t>& actions)
 {
 	// determine number of buttons in all rows
 	std::vector<size_t> rows;
@@ -124,7 +124,7 @@ void Menu::create_button_panel(const std::vector<Button::button_action_t>& actio
 	const float range_x = 0.25f * glm::pi<float>();
 	const float step_xy = range_x / static_cast<float>(rows.at(0));
 
-	for (std::map<Button::button_action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
+	for (std::map<action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
 	{
 		delete iter->second;
 	}
@@ -144,47 +144,47 @@ void Menu::create_button_panel(const std::vector<Button::button_action_t>& actio
 			pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 			pose = m_hmd_pose * pose;
 
-			const Button::button_action_t act = actions.at(i);
+			const action_t act = actions.at(i);
 
 			Button* b;
 			switch (act)
 			{
-				case Button::BUTTON_BACK:
-				case Button::BUTTON_FILE_DELETE:
-				case Button::BUTTON_FILE_OPEN:
-				case Button::BUTTON_PLAY_BACKWARD:
-				case Button::BUTTON_PLAY_FORWARD:
-				case Button::BUTTON_PLAY_NEXT:
-				case Button::BUTTON_PLAY_PAUSE:
-				case Button::BUTTON_PLAY_PLAY:
-				case Button::BUTTON_PLAY_PREVIOUS:
-				case Button::BUTTON_POWER:
-				case Button::BUTTON_PROJECT_CUBE:
-				case Button::BUTTON_PROJECT_CYLINDER:
-				case Button::BUTTON_PROJECT_FISHEYE:
-				case Button::BUTTON_PROJECT_FLAT:
-				case Button::BUTTON_PROJECT_SPHERE:
-				case Button::BUTTON_SETTINGS:
-				case Button::BUTTON_TILE_CUBE_MONO:
-				case Button::BUTTON_TILE_CUBE_STEREO:
-				case Button::BUTTON_TILE_LEFT_RIGHT:
-				case Button::BUTTON_TILE_MONO:
-				case Button::BUTTON_TILE_TOP_BOTTOM:
+				case ACTION_BACK:
+				case ACTION_FILE_DELETE:
+				case ACTION_FILE_OPEN:
+				case ACTION_PLAY_BACKWARD:
+				case ACTION_PLAY_FORWARD:
+				case ACTION_PLAY_NEXT:
+				case ACTION_PLAY_PAUSE:
+				case ACTION_PLAY_PLAY:
+				case ACTION_PLAY_PREVIOUS:
+				case ACTION_POWER:
+				case ACTION_PROJECT_CUBE:
+				case ACTION_PROJECT_CYLINDER:
+				case ACTION_PROJECT_FISHEYE:
+				case ACTION_PROJECT_FLAT:
+				case ACTION_PROJECT_SPHERE:
+				case ACTION_SETTINGS:
+				case ACTION_TILE_CUBE_MONO:
+				case ACTION_TILE_CUBE_STEREO:
+				case ACTION_TILE_LEFT_RIGHT:
+				case ACTION_TILE_MONO:
+				case ACTION_TILE_TOP_BOTTOM:
 					b = new Button(act);
 					break;
-				case Button::BUTTON_FLAG_MONO:
+				case ACTION_FLAG_MONO:
 					b = new Button(act, projection().mono());
 					break;
-				case Button::BUTTON_FLAG_STRETCH:
+				case ACTION_FLAG_STRETCH:
 					b = new Button(act, projection().stretch());
 					break;
-				case Button::BUTTON_FLAG_SWITCH_EYES:
+				case ACTION_FLAG_SWITCH_EYES:
 					b = new Button(act, projection().switch_eyes());
 					break;
-				case Button::BUTTON_PARAM_ANGLE:
+				case ACTION_PARAM_ANGLE:
 					b = new Button(act, 0.0f, 2.0f * glm::pi<float>(), projection().angle());
 					break;
-				case Button::BUTTON_PARAM_ZOOM:
+				case ACTION_PARAM_ZOOM:
 					b = new Button(act, 0.0f, 10.0f, projection().zoom());
 					break;
 				default:
@@ -204,14 +204,14 @@ void Menu::main_menu(void)
 {
 	m_submenu = MENU_MAIN;
 	create_button_panel({
-		Button::BUTTON_PLAY_PREVIOUS,
-		Button::BUTTON_PLAY_BACKWARD,
-		Button::BUTTON_PLAY_PLAY,
-		Button::BUTTON_PLAY_FORWARD,
-		Button::BUTTON_PLAY_NEXT,
-		Button::BUTTON_SETTINGS,
-		Button::BUTTON_FILE_OPEN,
-		Button::BUTTON_POWER
+		ACTION_PLAY_PREVIOUS,
+		ACTION_PLAY_BACKWARD,
+		ACTION_PLAY_PLAY,
+		ACTION_PLAY_FORWARD,
+		ACTION_PLAY_NEXT,
+		ACTION_SETTINGS,
+		ACTION_FILE_OPEN,
+		ACTION_POWER
 	});
 }
 
@@ -219,11 +219,11 @@ void Menu::tiling_menu(void)
 {
 	m_submenu = MENU_TILING;
 	create_button_panel({
-		Button::BUTTON_TILE_MONO,
-		Button::BUTTON_TILE_LEFT_RIGHT,
-		Button::BUTTON_TILE_TOP_BOTTOM,
-		Button::BUTTON_TILE_CUBE_MONO,
-		Button::BUTTON_TILE_CUBE_STEREO
+		ACTION_TILE_MONO,
+		ACTION_TILE_LEFT_RIGHT,
+		ACTION_TILE_TOP_BOTTOM,
+		ACTION_TILE_CUBE_MONO,
+		ACTION_TILE_CUBE_STEREO
 	});
 }
 
@@ -231,11 +231,11 @@ void Menu::projection_menu(void)
 {
 	m_submenu = MENU_PROJECTION;
 	create_button_panel({
-		Button::BUTTON_PROJECT_FLAT,
-		Button::BUTTON_PROJECT_CYLINDER,
-		Button::BUTTON_PROJECT_SPHERE,
-		Button::BUTTON_PROJECT_FISHEYE,
-		Button::BUTTON_PROJECT_CUBE
+		ACTION_PROJECT_FLAT,
+		ACTION_PROJECT_CYLINDER,
+		ACTION_PROJECT_SPHERE,
+		ACTION_PROJECT_FISHEYE,
+		ACTION_PROJECT_CUBE
 	});
 }
 
@@ -243,7 +243,7 @@ void Menu::file_menu(void)
 {
 	m_submenu = MENU_FILE_MANAGER;
 	create_button_panel({
-		Button::BUTTON_BACK
+		ACTION_BACK
 	});
 
 	const float rot_x = 0.125f * glm::pi<float>();
@@ -271,25 +271,25 @@ void Menu::file_menu(void)
 void Menu::settings_menu(void)
 {
 	const Projection& p = projection();
-	Button::button_action_t action_tile;
-	Button::button_action_t action_project = Button::BUTTON_PROJECT_SPHERE;
+	action_t action_tile;
+	action_t action_project = ACTION_PROJECT_SPHERE;
 
 	switch (p.tiling())
 	{
 		case Projection::TILE_MONO:
-			action_tile = Button::BUTTON_TILE_MONO;
+			action_tile = ACTION_TILE_MONO;
 			break;
 		case Projection::TILE_LEFT_RIGHT:
-			action_tile = Button::BUTTON_TILE_LEFT_RIGHT;
+			action_tile = ACTION_TILE_LEFT_RIGHT;
 			break;
 		case Projection::TILE_TOP_BOTTOM:
-			action_tile = Button::BUTTON_TILE_TOP_BOTTOM;
+			action_tile = ACTION_TILE_TOP_BOTTOM;
 			break;
 		case Projection::TILE_CUBE_MAP_MONO:
-			action_tile = Button::BUTTON_TILE_CUBE_MONO;
+			action_tile = ACTION_TILE_CUBE_MONO;
 			break;
 		case Projection::TILE_CUBE_MAP_STEREO:
-			action_tile = Button::BUTTON_TILE_CUBE_STEREO;
+			action_tile = ACTION_TILE_CUBE_STEREO;
 			break;
 		default:
 			throw std::runtime_error("invalid video tiling");
@@ -298,19 +298,19 @@ void Menu::settings_menu(void)
 	switch (p.projection())
 	{
 		case Projection::PROJECTION_FLAT:
-			action_project = Button::BUTTON_PROJECT_FLAT;
+			action_project = ACTION_PROJECT_FLAT;
 			break;
 		case Projection::PROJECTION_CYLINDER:
-			action_project = Button::BUTTON_PROJECT_CYLINDER;
+			action_project = ACTION_PROJECT_CYLINDER;
 			break;
 		case Projection::PROJECTION_SPHERE:
-			action_project = Button::BUTTON_PROJECT_SPHERE;
+			action_project = ACTION_PROJECT_SPHERE;
 			break;
 		case Projection::PROJECTION_FISHEYE:
-			action_project = Button::BUTTON_PROJECT_FISHEYE;
+			action_project = ACTION_PROJECT_FISHEYE;
 			break;
 		case Projection::PROJECTION_CUBE_MAP:
-			action_project = Button::BUTTON_PROJECT_CUBE;
+			action_project = ACTION_PROJECT_CUBE;
 			break;
 		default:
 			throw std::runtime_error("invalid video projection");
@@ -320,50 +320,50 @@ void Menu::settings_menu(void)
 	create_button_panel({
 		action_tile,
 		action_project,
-		Button::BUTTON_FLAG_MONO,
-		Button::BUTTON_FLAG_STRETCH,
-		Button::BUTTON_FLAG_SWITCH_EYES,
-		Button::BUTTON_PARAM_ANGLE,
-		Button::BUTTON_PARAM_ZOOM,
-		Button::BUTTON_BACK
+		ACTION_FLAG_MONO,
+		ACTION_FLAG_STRETCH,
+		ACTION_FLAG_SWITCH_EYES,
+		ACTION_PARAM_ANGLE,
+		ACTION_PARAM_ZOOM,
+		ACTION_BACK
 	});
 }
 
-void Menu::handle_button_action(const Button::button_action_t action)
+void Menu::handle_button_action(const action_t action)
 {
 	switch (action)
 	{
-		case Button::BUTTON_BACK:
+		case ACTION_BACK:
 			main_menu();
 			break;
-		case Button::BUTTON_FILE_DELETE:
+		case ACTION_FILE_DELETE:
 			break;
-		case Button::BUTTON_FILE_OPEN:
+		case ACTION_FILE_OPEN:
 			file_menu();
 			break;
-		case Button::BUTTON_PLAY_BACKWARD:
+		case ACTION_PLAY_BACKWARD:
 			player_backward();
 			break;
-		case Button::BUTTON_PLAY_FORWARD:
+		case ACTION_PLAY_FORWARD:
 			player_forward();
 			break;
-		case Button::BUTTON_PLAY_NEXT:
+		case ACTION_PLAY_NEXT:
 			player_next();
 			break;
-		case Button::BUTTON_PLAY_PAUSE:
+		case ACTION_PLAY_PAUSE:
 			player_pause();
 			break;
-		case Button::BUTTON_PLAY_PLAY:
+		case ACTION_PLAY_PLAY:
 			player_play();
 			break;
-		case Button::BUTTON_PLAY_PREVIOUS:
+		case ACTION_PLAY_PREVIOUS:
 			player_previous();
 			break;
-		case Button::BUTTON_POWER:
+		case ACTION_POWER:
 			m_submenu = MENU_NONE;
 			quit();
 			break;
-		case Button::BUTTON_PROJECT_CUBE:
+		case ACTION_PROJECT_CUBE:
 
 			if (m_submenu == MENU_SETTINGS)
 			{
@@ -376,7 +376,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 				settings_menu();
 			}
 			break;
-		case Button::BUTTON_PROJECT_CYLINDER:
+		case ACTION_PROJECT_CYLINDER:
 
 			if (m_submenu == MENU_SETTINGS)
 			{
@@ -389,7 +389,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 				settings_menu();
 			}
 			break;
-		case Button::BUTTON_PROJECT_FISHEYE:
+		case ACTION_PROJECT_FISHEYE:
 
 			if (m_submenu == MENU_SETTINGS)
 			{
@@ -402,7 +402,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 				settings_menu();
 			}
 			break;
-		case Button::BUTTON_PROJECT_FLAT:
+		case ACTION_PROJECT_FLAT:
 
 			if (m_submenu == MENU_SETTINGS)
 			{
@@ -415,7 +415,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 				settings_menu();
 			}
 			break;
-		case Button::BUTTON_PROJECT_SPHERE:
+		case ACTION_PROJECT_SPHERE:
 
 			if (m_submenu == MENU_SETTINGS)
 			{
@@ -428,10 +428,10 @@ void Menu::handle_button_action(const Button::button_action_t action)
 				settings_menu();
 			}
 			break;
-		case Button::BUTTON_SETTINGS:
+		case ACTION_SETTINGS:
 			settings_menu();
 			break;
-		case Button::BUTTON_TILE_CUBE_MONO:
+		case ACTION_TILE_CUBE_MONO:
 
 			if (m_submenu == MENU_SETTINGS)
 			{
@@ -444,7 +444,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 				settings_menu();
 			}
 			break;
-		case Button::BUTTON_TILE_CUBE_STEREO:
+		case ACTION_TILE_CUBE_STEREO:
 
 			if (m_submenu == MENU_SETTINGS)
 			{
@@ -457,7 +457,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 				settings_menu();
 			}
 			break;
-		case Button::BUTTON_TILE_LEFT_RIGHT:
+		case ACTION_TILE_LEFT_RIGHT:
 
 			if (m_submenu == MENU_SETTINGS)
 			{
@@ -470,7 +470,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 				settings_menu();
 			}
 			break;
-		case Button::BUTTON_TILE_MONO:
+		case ACTION_TILE_MONO:
 
 			if (m_submenu == MENU_SETTINGS)
 			{
@@ -483,7 +483,7 @@ void Menu::handle_button_action(const Button::button_action_t action)
 				settings_menu();
 			}
 			break;
-		case Button::BUTTON_TILE_TOP_BOTTOM:
+		case ACTION_TILE_TOP_BOTTOM:
 
 			if (m_submenu == MENU_SETTINGS)
 			{
@@ -496,23 +496,23 @@ void Menu::handle_button_action(const Button::button_action_t action)
 				settings_menu();
 			}
 			break;
-		case Button::BUTTON_FLAG_MONO:
+		case ACTION_FLAG_MONO:
 			projection().set_mono(!projection().mono());
 			update_projection();
 			break;
-		case Button::BUTTON_FLAG_STRETCH:
+		case ACTION_FLAG_STRETCH:
 			projection().set_stretch(!projection().stretch());
 			update_projection();
 			break;
-		case Button::BUTTON_FLAG_SWITCH_EYES:
+		case ACTION_FLAG_SWITCH_EYES:
 			projection().set_switch_eyes(!projection().switch_eyes());
 			update_projection();
 			break;
-		case Button::BUTTON_PARAM_ANGLE:
+		case ACTION_PARAM_ANGLE:
 			projection().set_angle(m_button.find(action)->second->slide_value());
 			update_projection();
 			break;
-		case Button::BUTTON_PARAM_ZOOM:
+		case ACTION_PARAM_ZOOM:
 			projection().set_zoom(m_button.find(action)->second->slide_value());
 			update_projection();
 			break;
@@ -542,7 +542,7 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 
 	bool buttonHit = false;
 	std::vector<glm::vec3> intersections;
-	for (std::map<Button::button_action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
+	for (std::map<action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
 	{
 		Button* b = iter->second;
 		const Button::intersection_t isec = b->intersection(controller);
@@ -557,7 +557,7 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 
 		if (b->slideable())
 		{
-			if (isec.hit && pressed && !b->active() && (m_active_button == Button::BUTTON_NONE))
+			if (isec.hit && pressed && !b->active() && (m_active_button == ACTION_NONE))
 			{
 				b->enable(true);
 				m_active_button = iter->first;
@@ -565,7 +565,7 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 			else if (!pressed && b->active())
 			{
 				b->enable(false);
-				m_active_button = Button::BUTTON_NONE;
+				m_active_button = ACTION_NONE;
 			}
 			else if (pressed && b->active())
 			{
