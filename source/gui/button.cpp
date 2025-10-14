@@ -8,9 +8,10 @@
 
 static const float slide_height = 5.0f;
 static const glm::vec2 button_size(0.5f, 0.5f);    // size in scene coordinate space
+static const glm::vec3 button_color(0.0f, 0.0f, 0.0f);
 
 Button::Button(const action_t action, const std::string& image_name) :
-	m_action(action),
+	Panel(action),
 	m_toggleable(false),
 	m_slideable(false),
 	m_active(true),
@@ -18,16 +19,14 @@ Button::Button(const action_t action, const std::string& image_name) :
 	m_slide_max(0.0f),
 	m_slide_pos(0.0f),
 	m_slide_last(0.0f),
-	m_shape(),
-	m_slidebar(),
-	m_tex(),
-	m_pose(1.0f)
+	m_slidebar()
 {
-	init_shape(image_name);
+	init_shape(button_size, button_color);
+	init_texture(image_name);
 }
 
 Button::Button(const action_t action, const std::string& image_name, const bool value) :
-	m_action(action),
+	Panel(action),
 	m_toggleable(true),
 	m_slideable(false),
 	m_active(value),
@@ -35,16 +34,14 @@ Button::Button(const action_t action, const std::string& image_name, const bool 
 	m_slide_max(0.0f),
 	m_slide_pos(0.0f),
 	m_slide_last(0.0f),
-	m_shape(),
-	m_slidebar(),
-	m_tex(),
-	m_pose(1.0f)
+	m_slidebar()
 {
-	init_shape(image_name);
+	init_shape(button_size, button_color);
+	init_texture(image_name);
 }
 
 Button::Button(const action_t action, const std::string& image_name, const float min, const float max, const float value) :
-	m_action(action),
+	Panel(action),
 	m_toggleable(false),
 	m_slideable(true),
 	m_active(false),
@@ -52,42 +49,16 @@ Button::Button(const action_t action, const std::string& image_name, const float
 	m_slide_max(max),
 	m_slide_pos(value),
 	m_slide_last(value),
-	m_shape(),
-	m_slidebar(),
-	m_tex(),
-	m_pose(1.0f)
+	m_slidebar()
 {
-	init_shape(image_name);
+	init_shape(button_size, button_color);
+	init_texture(image_name);
 	init_slidebar();
 }
 
 Button::~Button(void)
 {
-	m_shape.remove();
-
-	if (m_slideable)
-	{
-		m_slidebar.remove();
-	}
-}
-
-void Button::init_shape(const std::string& image_name)
-{
-	// positions: rectangle in XY plane centered at 0, z=0
-	const std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(-0.5f * button_size.x, -0.5f * button_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3(0.5f * button_size.x, 0.5f * button_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.5f * button_size.x, 0.5f * button_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3(0.5f * button_size.x, -0.5f * button_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f)),
-	};
-
-	const std::vector<GLuint> indices = {
-		0, 1, 2,
-		0, 3, 1,
-	};
-
-	m_shape.init_vertices(vertices, indices, GL_TRIANGLES);
-	m_tex.init_file(image_name, GL_TEXTURE_2D, 0);
+	m_slidebar.remove();
 }
 
 void Button::init_slidebar(void)
@@ -116,59 +87,6 @@ float Button::slide_value(void) const
 	return m_slide_pos;
 }
 
-void Button::set_transform(const glm::mat4& pose)
-{
-	m_pose = pose;
-	m_shape.set_transform(pose);
-}
-
-Panel::intersection_t Button::intersection(const glm::mat4& pose) const
-{
-	Panel::intersection_t isec = {m_action, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};
-
-	if (m_action == ACTION_NONE)
-	{
-		return isec;
-	}
-
-	// pointing ray: origin = device position, direction = forward -Z in device space transformed to world
-	glm::vec3 origin = glm::vec3(pose * glm::vec4(0, 0, 0, 1));
-	glm::vec3 direction = glm::normalize(glm::vec3(pose * glm::vec4(0, 0, -1, 0)));
-
-	// Transform ray into rectangle local space.
-	// Afterwards, collision can be checked by intersection with the x/y plane at z=0.
-	glm::mat4 modelInv = glm::inverse(m_pose);
-	glm::vec3 local_origin = glm::vec3(modelInv * glm::vec4(origin, 1.0f));
-	glm::vec3 local_direction = glm::normalize(glm::vec3(modelInv * glm::vec4(direction, 0.0f))); // ignore offset/translation with 0.0
-
-	// Ray-plane intersection: plane z=0 in rectangle local space (rect centered at origin, size +/-0.5)
-	// rectangle in local coordinates lies on plane z=0
-
-	// ray parallel to z=0 plane.
-	if (fabsf(local_direction.z) < std::numeric_limits<float>::epsilon())
-	{
-		return isec;
-	}
-
-	const float t = -local_origin.z / local_direction.z;
-
-	// point of intersection in local coordinates
-	// check if it lies within the object boundaries
-	isec.global = local_origin + t * local_direction;
-
-	isec.hit = ((t > 0) &&   // target plane must be in positive direction
-	            (isec.global.x >= -0.5f * button_size.x) && (isec.global.x <= 0.5f * button_size.x) &&
-	            (isec.global.y >= -0.5f * button_size.y) && (isec.global.y <= 0.5f * button_size.y));
-
-	// button coordinates [0; 1]
-	isec.local = (glm::vec2(isec.global) + 0.5f * button_size) / button_size;
-
-	// transform back into global coordinate system
-	isec.global = glm::vec3(m_pose * glm::vec4(isec.global, 1.0f));
-
-	return isec;
-}
-
 bool Button::update_on_interaction(const Panel::intersection_t isec, const bool pressed, const bool released)
 {
 	if (m_slideable)
@@ -181,13 +99,13 @@ bool Button::update_on_interaction(const Panel::intersection_t isec, const bool 
 			const float y0 = -slide_height * button_size.y * frac;
 
 			// move selection strip to current position
-			glm::mat4 shifted_pose = glm::translate(m_pose, glm::vec3(0.0f, y0, 0.0f));
+			glm::mat4 shifted_pose = glm::translate(Panel::pose(), glm::vec3(0.0f, y0, 0.0f));
 			m_slidebar.set_transform(shifted_pose);
 			m_active = true;
 		}
 		else if (!pressed && m_active)
 		{
-			m_shape.set_transform(m_pose);
+			shape().set_transform(Panel::pose());
 			m_active = false;
 		}
 		else if (pressed && m_active)
@@ -205,8 +123,8 @@ bool Button::update_on_interaction(const Panel::intersection_t isec, const bool 
 			m_slide_pos = m_slide_min + y * (m_slide_max - m_slide_min);
 
 			// move button icon to cursor position
-			glm::mat4 shifted_pose = glm::translate(m_pose, glm::vec3(0.0f, global_y, 0.0f));
-			m_shape.set_transform(shifted_pose);
+			glm::mat4 shifted_pose = glm::translate(Panel::pose(), glm::vec3(0.0f, global_y, 0.0f));
+			shape().set_transform(shifted_pose);
 
 			return true;
 		}
@@ -214,9 +132,6 @@ bool Button::update_on_interaction(const Panel::intersection_t isec, const bool 
 
 	if (released && isec.hit)
 	{
-		// hit in rectangle local coords mapped to texture or 0..1 coords
-		// std::cout << "Controller " << " clicked button " << isec.action_id << " at local coords (u,v)=(" << isec.local.x << "," << isec.local.y << ")" << std::endl;
-
 		if (m_toggleable)
 		{
 			m_active = !m_active;
@@ -240,9 +155,9 @@ void Button::draw(void) const
 		shader().set_uniform("greyscale", true);
 	}
 
-	m_tex.bind();
-	m_shape.draw();
-	m_tex.unbind();
+	texture().bind();
+	shape().draw();
+	texture().unbind();
 
 	if (m_toggleable && !m_active)
 	{

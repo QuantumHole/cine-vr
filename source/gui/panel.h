@@ -48,7 +48,7 @@ class Panel
 		void text(const std::string& text, const int32_t x = 0, const int32_t y = 0) const;
 		virtual void draw(void) const;
 
-		intersection_t intersection(const glm::mat4& pose) const;
+		virtual intersection_t intersection(const glm::mat4& pose) const;
 		virtual bool update_on_interaction(const intersection_t isec, const bool pressed, const bool released);
 };
 

@@ -23,19 +23,17 @@ class Menu
 		}
 		menu_t;
 
-		std::map<action_t, Button*> m_button;
+		std::map<action_t, Panel*> m_panel;
 		Shape m_points;
 		menu_t m_submenu;
 		glm::mat4 m_hmd_pose;
 		action_t m_active_button;
 		bool m_debounce;
-		Panel m_panel_dir;
-		Panel m_panel_file;
 
 		void create_button_panel(const std::vector<action_t>& actions);
 		void create_points(void);
-		void list_directories(void) const;
-		void list_files(void) const;
+		void list_directories(Panel& panel) const;
+		void list_files(Panel& panel) const;
 
 		void main_menu(void);
 		void tiling_menu(void);

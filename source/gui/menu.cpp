@@ -12,14 +12,12 @@
 // #define DEBUG_LINE std::cout << "########## " << __FILE__ << "(" << __LINE__ << "): " << __FUNCTION__ << "()" << std::endl
 
 Menu::Menu(void) :
-	m_button(),
+	m_panel(),
 	m_points(),
 	m_submenu(MENU_NONE),
 	m_hmd_pose(1.0),
 	m_active_button(ACTION_NONE),
-	m_debounce(false),
-	m_panel_dir(ACTION_DIRECTORY_SELECT),
-	m_panel_file(ACTION_FILE_SELECT)
+	m_debounce(false)
 {
 }
 
@@ -37,17 +35,11 @@ void Menu::draw(void) const
 		case MENU_PROJECTION:
 		case MENU_SETTINGS:
 		case MENU_FILE_MANAGER:
-			for (std::map<action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
+			for (std::map<action_t, Panel*>::const_iterator iter = m_panel.begin(); iter != m_panel.end(); ++iter)
 			{
 				iter->second->draw();
 			}
 			m_points.draw();
-
-			if (m_submenu == MENU_FILE_MANAGER)
-			{
-				m_panel_dir.draw();
-				m_panel_file.draw();
-			}
 			break;
 
 		case MENU_NONE:
@@ -56,9 +48,9 @@ void Menu::draw(void) const
 	}
 }
 
-void Menu::list_directories(void) const
+void Menu::list_directories(Panel& panel) const
 {
-	m_panel_dir.text("Directories", 0, 0);
+	panel.text("Directories", 0, 0);
 
 	FileSystem fs;
 	const std::string current_dir = fs.current_directory();
@@ -66,7 +58,7 @@ void Menu::list_directories(void) const
 
 	for (size_t i = 0; i < entries.size(); i++)
 	{
-		m_panel_dir.text(entries[i], static_cast<int32_t>(i) * 5, static_cast<int32_t>(i + 1) * 20);
+		panel.text(entries[i], static_cast<int32_t>(i) * 5, static_cast<int32_t>(i + 1) * 20);
 	}
 
 	const size_t num_ent = entries.size();
@@ -74,14 +66,14 @@ void Menu::list_directories(void) const
 	size_t i = 0;
 	for (std::set<std::string>::const_iterator iter = dirs.begin(); iter != dirs.end(); iter++)
 	{
-		m_panel_dir.text(*iter, static_cast<int32_t>(num_ent) * 5, static_cast<int32_t>(num_ent + i + 1) * 20);
+		panel.text(*iter, static_cast<int32_t>(num_ent) * 5, static_cast<int32_t>(num_ent + i + 1) * 20);
 		i++;
 	}
 }
 
-void Menu::list_files(void) const
+void Menu::list_files(Panel& panel) const
 {
-	m_panel_file.text("Files", 0, 0);
+	panel.text("Files", 0, 0);
 
 	FileSystem fs;
 	const std::string current_dir = fs.current_directory();
@@ -90,7 +82,7 @@ void Menu::list_files(void) const
 	size_t i = 0;
 	for (std::set<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); iter++)
 	{
-		m_panel_file.text(*iter, 0, static_cast<int32_t>(i + 1) * 20);
+		panel.text(*iter, 0, static_cast<int32_t>(i + 1) * 20);
 		i++;
 	}
 }
@@ -124,11 +116,11 @@ void Menu::create_button_panel(const std::vector<action_t>& actions)
 	const float range_x = 0.25f * glm::pi<float>();
 	const float step_xy = range_x / static_cast<float>(rows.at(0));
 
-	for (std::map<action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
+	for (std::map<action_t, Panel*>::const_iterator iter = m_panel.begin(); iter != m_panel.end(); ++iter)
 	{
 		delete iter->second;
 	}
-	m_button.clear();
+	m_panel.clear();
 
 	i = 0;
 	for (size_t y = 0; y < rows.size(); y++)
@@ -232,7 +224,7 @@ void Menu::create_button_panel(const std::vector<action_t>& actions)
 			}
 
 			b->set_transform(pose);
-			m_button[act] = b;
+			m_panel[act] = b;
 			i++;
 		}
 	}
@@ -285,47 +277,50 @@ void Menu::file_menu(void)
 	m_debounce = true;
 
 	// delete previous buttons
-	for (std::map<action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
+	for (std::map<action_t, Panel*>::const_iterator iter = m_panel.begin(); iter != m_panel.end(); ++iter)
 	{
 		delete iter->second;
 	}
-	m_button.clear();
+	m_panel.clear();
 
 	// back button
-	const float angle_y = -0.25f * glm::pi<float>();
+	const float rot_angle = 0.125f * glm::pi<float>();
 	glm::mat4 pose = glm::mat4(1.0f);
-	pose = glm::rotate(pose, angle_y, glm::vec3(1.0f, 0.0f, 0.0f));
+	pose = glm::rotate(pose, -rot_angle, glm::vec3(1.0f, 0.0f, 0.0f));
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
 	const action_t act = ACTION_BACK;
-	Button* b = new Button(act, "images/back.png");
+	Panel* b = new Button(act, "images/back.png");
 	b->set_transform(pose);
-	m_button[act] = b;
+	m_panel[act] = b;
 
 	// directory panel
-	const float rot_x = 0.125f * glm::pi<float>();
 	pose = glm::mat4(1.0f);
-	pose = glm::rotate(pose, rot_x, glm::vec3(0.0f, 1.0f, 0.0f));
+	pose = glm::rotate(pose, rot_angle, glm::vec3(0.0f, 1.0f, 0.0f));
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
 	const glm::vec2 shape_size(3.0f, 5.0f);
 	const glm::vec3 color(0.5f, 0.4f, 0.2f);
 	const glm::uvec2 tex_size(300, 500);
-	m_panel_dir.init_area(shape_size, color, tex_size);
-	m_panel_dir.set_transform(pose);
-	list_directories();
+	Panel* p = new Panel(ACTION_DIRECTORY_SELECT);
+	p->init_area(shape_size, color, tex_size);
+	p->set_transform(pose);
+	list_directories(*p);
+	m_panel[ACTION_DIRECTORY_SELECT] = p;
 
 	// file panel
 	pose = glm::mat4(1.0f);
-	pose = glm::rotate(pose, -rot_x, glm::vec3(0.0f, 1.0f, 0.0f));
+	pose = glm::rotate(pose, -rot_angle, glm::vec3(0.0f, 1.0f, 0.0f));
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
-	m_panel_file.init_area(shape_size, color, tex_size);
-	m_panel_file.set_transform(pose);
-	list_files();
+	p = new Panel(ACTION_FILE_SELECT);
+	p->init_area(shape_size, color, tex_size);
+	p->set_transform(pose);
+	list_files(*p);
+	m_panel[ACTION_FILE_SELECT] = p;
 }
 
 void Menu::settings_menu(void)
@@ -573,11 +568,11 @@ void Menu::handle_button_action(const action_t action)
 			update_projection();
 			break;
 		case ACTION_PARAM_ANGLE:
-			projection().set_angle(m_button.find(action)->second->slide_value());
+			projection().set_angle(dynamic_cast<Button*>(m_panel.find(action)->second)->slide_value());
 			update_projection();
 			break;
 		case ACTION_PARAM_ZOOM:
-			projection().set_zoom(m_button.find(action)->second->slide_value());
+			projection().set_zoom(dynamic_cast<Button*>(m_panel.find(action)->second)->slide_value());
 			update_projection();
 			break;
 		default:
@@ -611,9 +606,9 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 
 	bool buttonHit = false;
 	std::vector<glm::vec3> intersections;
-	for (std::map<action_t, Button*>::const_iterator iter = m_button.begin(); iter != m_button.end(); ++iter)
+	for (std::map<action_t, Panel*>::const_iterator iter = m_panel.begin(); iter != m_panel.end(); ++iter)
 	{
-		Button* b = iter->second;
+		Panel* b = iter->second;
 		const Panel::intersection_t isec = b->intersection(controller);
 
 		// draw point on panel
