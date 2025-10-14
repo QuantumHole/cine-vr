@@ -9,7 +9,7 @@ static const float slide_height = 5.0f;
 
 const glm::vec2 Button::m_size(0.5f, 0.5f);    // size in scene coordinate space
 
-Button::Button(const action_t action) :
+Button::Button(const action_t action, const std::string& image_name) :
 	m_action(action),
 	m_toggleable(false),
 	m_active(true),
@@ -23,10 +23,10 @@ Button::Button(const action_t action) :
 	m_tex(),
 	m_pose(1.0f)
 {
-	init();
+	init_shape(image_name);
 }
 
-Button::Button(const action_t action, const bool value) :
+Button::Button(const action_t action, const std::string& image_name, const bool value) :
 	m_action(action),
 	m_toggleable(true),
 	m_active(value),
@@ -40,10 +40,10 @@ Button::Button(const action_t action, const bool value) :
 	m_tex(),
 	m_pose(1.0f)
 {
-	init();
+	init_shape(image_name);
 }
 
-Button::Button(const action_t action, const float min, const float max, const float value) :
+Button::Button(const action_t action, const std::string& image_name, const float min, const float max, const float value) :
 	m_action(action),
 	m_toggleable(false),
 	m_active(false),
@@ -57,7 +57,8 @@ Button::Button(const action_t action, const float min, const float max, const fl
 	m_tex(),
 	m_pose(1.0f)
 {
-	init();
+	init_shape(image_name);
+	init_slidebar();
 }
 
 Button::~Button(void)
@@ -70,7 +71,7 @@ Button::~Button(void)
 	}
 }
 
-void Button::init(void)
+void Button::init_shape(const std::string& image_name)
 {
 	// positions: rectangle in XY plane centered at 0, z=0
 	const std::vector<Vertex> vertices = {
@@ -86,74 +87,28 @@ void Button::init(void)
 	};
 
 	m_shape.init_vertices(vertices, indices, GL_TRIANGLES);
+	m_tex.init_file(image_name, GL_TEXTURE_2D, 0);
+}
 
-	std::map<action_t, std::string> images = {
-		{ACTION_BACK, "images/back.png"},
-		{ACTION_FILE_DELETE, "images/delete.png"},
-		{ACTION_FILE_OPEN, "images/open.png"},
-		{ACTION_PLAY_BACKWARD, "images/backward.png"},
-		{ACTION_PLAY_FORWARD, "images/forward.png"},
-		{ACTION_PLAY_NEXT, "images/next.png"},
-		{ACTION_PLAY_PAUSE, "images/pause.png"},
-		{ACTION_PLAY_PLAY, "images/play.png"},
-		{ACTION_PLAY_PREVIOUS, "images/previous.png"},
-		{ACTION_POWER, "images/power.png"},
-		{ACTION_PROJECT_CUBE, "images/cube-mono.png"},
-		{ACTION_PROJECT_CYLINDER, "images/cylinder.png"},
-		{ACTION_PROJECT_FISHEYE, "images/fisheye.png"},
-		{ACTION_PROJECT_FLAT, "images/flat.png"},
-		{ACTION_PROJECT_SPHERE, "images/sphere.png"},
-		{ACTION_SETTINGS, "images/settings.png"},
-		{ACTION_TILE_CUBE_MONO, "images/cube-mono.png"},
-		{ACTION_TILE_CUBE_STEREO, "images/cube-stereo.png"},
-		{ACTION_TILE_LEFT_RIGHT, "images/left-right.png"},
-		{ACTION_TILE_MONO, "images/mono.png"},
-		{ACTION_TILE_TOP_BOTTOM, "images/top-bottom.png"},
-		{ACTION_FLAG_MONO, "images/force-mono.png"},
-		{ACTION_FLAG_STRETCH, "images/stretch.png"},
-		{ACTION_FLAG_SWITCH_EYES, "images/switch-eyes.png"},
-		{ACTION_PARAM_ANGLE, "images/angle.png"},
-		{ACTION_PARAM_ZOOM, "images/zoom.png"}
+void Button::init_slidebar(void)
+{
+	const float eps = 1e-4f;
+	const float y0 = 0.0f;
+	const float y1 = slide_height * m_size.y;
+
+	const std::vector<Vertex> svertices = {
+		Vertex(glm::vec3(-0.4f * m_size.x, y0, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3(0.4f * m_size.x, y1, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.4f * m_size.x, y1, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3(0.4f * m_size.x, y0, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)),
 	};
 
-	std::map<action_t, std::string>::const_iterator iter = images.find(m_action);
-
-	if (iter != images.end())
-	{
-		m_tex.init_file(iter->second, GL_TEXTURE_2D, 0);
-	}
-
-	std::set<action_t> toggleables = {
-		ACTION_FLAG_MONO,
-		ACTION_FLAG_STRETCH,
-		ACTION_FLAG_SWITCH_EYES
+	const std::vector<GLuint> sindices = {
+		0, 1, 2,
+		0, 3, 1,
 	};
 
-	std::set<action_t> slideables = {
-		ACTION_PARAM_ANGLE,
-		ACTION_PARAM_ZOOM
-	};
-
-	if (slideables.find(m_action) != slideables.end())
-	{
-		const float eps = 1e-4f;
-		const float y0 = 0.0f;
-		const float y1 = slide_height * m_size.y;
-
-		const std::vector<Vertex> svertices = {
-			Vertex(glm::vec3(-0.4f * m_size.x, y0, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)),
-			Vertex(glm::vec3(0.4f * m_size.x, y1, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f)),
-			Vertex(glm::vec3(-0.4f * m_size.x, y1, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)),
-			Vertex(glm::vec3(0.4f * m_size.x, y0, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)),
-		};
-
-		const std::vector<GLuint> sindices = {
-			0, 1, 2,
-			0, 3, 1,
-		};
-
-		m_slidebar.init_vertices(svertices, sindices, GL_TRIANGLES);
-	}
+	m_slidebar.init_vertices(svertices, sindices, GL_TRIANGLES);
 }
 
 bool Button::toggleable(void) const

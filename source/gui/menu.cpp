@@ -150,42 +150,82 @@ void Menu::create_button_panel(const std::vector<action_t>& actions)
 			switch (act)
 			{
 				case ACTION_BACK:
+					b = new Button(ACTION_BACK, "images/back.png");
+					break;
 				case ACTION_FILE_DELETE:
+					b = new Button(ACTION_FILE_DELETE, "images/delete.png");
+					break;
 				case ACTION_FILE_OPEN:
+					b = new Button(ACTION_FILE_OPEN, "images/open.png");
+					break;
 				case ACTION_PLAY_BACKWARD:
+					b = new Button(ACTION_PLAY_BACKWARD, "images/backward.png");
+					break;
 				case ACTION_PLAY_FORWARD:
+					b = new Button(ACTION_PLAY_FORWARD, "images/forward.png");
+					break;
 				case ACTION_PLAY_NEXT:
+					b = new Button(ACTION_PLAY_NEXT, "images/next.png");
+					break;
 				case ACTION_PLAY_PAUSE:
+					b = new Button(ACTION_PLAY_PAUSE, "images/pause.png");
+					break;
 				case ACTION_PLAY_PLAY:
+					b = new Button(ACTION_PLAY_PLAY, "images/play.png");
+					break;
 				case ACTION_PLAY_PREVIOUS:
+					b = new Button(ACTION_PLAY_PREVIOUS, "images/previous.png");
+					break;
 				case ACTION_POWER:
+					b = new Button(ACTION_POWER, "images/power.png");
+					break;
 				case ACTION_PROJECT_CUBE:
+					b = new Button(ACTION_PROJECT_CUBE, "images/cube-mono.png");
+					break;
 				case ACTION_PROJECT_CYLINDER:
+					b = new Button(ACTION_PROJECT_CYLINDER, "images/cylinder.png");
+					break;
 				case ACTION_PROJECT_FISHEYE:
+					b = new Button(ACTION_PROJECT_FISHEYE, "images/fisheye.png");
+					break;
 				case ACTION_PROJECT_FLAT:
+					b = new Button(ACTION_PROJECT_FLAT, "images/flat.png");
+					break;
 				case ACTION_PROJECT_SPHERE:
+					b = new Button(ACTION_PROJECT_SPHERE, "images/sphere.png");
+					break;
 				case ACTION_SETTINGS:
+					b = new Button(ACTION_SETTINGS, "images/settings.png");
+					break;
 				case ACTION_TILE_CUBE_MONO:
+					b = new Button(ACTION_TILE_CUBE_MONO, "images/cube-mono.png");
+					break;
 				case ACTION_TILE_CUBE_STEREO:
+					b = new Button(ACTION_TILE_CUBE_STEREO, "images/cube-stereo.png");
+					break;
 				case ACTION_TILE_LEFT_RIGHT:
+					b = new Button(ACTION_TILE_LEFT_RIGHT, "images/left-right.png");
+					break;
 				case ACTION_TILE_MONO:
+					b = new Button(ACTION_TILE_MONO, "images/mono.png");
+					break;
 				case ACTION_TILE_TOP_BOTTOM:
-					b = new Button(act);
+					b = new Button(ACTION_TILE_TOP_BOTTOM, "images/top-bottom.png");
 					break;
 				case ACTION_FLAG_MONO:
-					b = new Button(act, projection().mono());
+					b = new Button(act, "images/force-mono.png", projection().mono());
 					break;
 				case ACTION_FLAG_STRETCH:
-					b = new Button(act, projection().stretch());
+					b = new Button(act, "images/stretch.png", projection().stretch());
 					break;
 				case ACTION_FLAG_SWITCH_EYES:
-					b = new Button(act, projection().switch_eyes());
+					b = new Button(act, "images/switch-eyes.png", projection().switch_eyes());
 					break;
 				case ACTION_PARAM_ANGLE:
-					b = new Button(act, 0.0f, 2.0f * glm::pi<float>(), projection().angle());
+					b = new Button(act, "images/angle.png", 0.0f, 2.0f * glm::pi<float>(), projection().angle());
 					break;
 				case ACTION_PARAM_ZOOM:
-					b = new Button(act, 0.0f, 10.0f, projection().zoom());
+					b = new Button(act, "images/zoom.png", 0.0f, 10.0f, projection().zoom());
 					break;
 				default:
 					throw std::runtime_error("invalid button ID");

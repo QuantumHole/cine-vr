@@ -21,9 +21,9 @@ class Button
 		}
 		intersection_t;
 
-		explicit Button(const action_t action);
-		explicit Button(const action_t action, const bool value);
-		explicit Button(const action_t action, const float min, const float max, const float value);
+		explicit Button(const action_t action, const std::string& image_name);
+		explicit Button(const action_t action, const std::string& image_name, const bool value);
+		explicit Button(const action_t action, const std::string& image_name, const float min, const float max, const float value);
 		~Button(void);
 
 		bool toggleable(void) const;
@@ -52,7 +52,8 @@ class Button
 		Texture m_tex;                    // optional texture
 		glm::mat4 m_pose;                 // position and rotation
 
-		void init(void);
+		void init_shape(const std::string& image_name);
+		void init_slidebar(void);
 };
 
 #endif
