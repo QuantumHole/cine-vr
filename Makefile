@@ -23,7 +23,9 @@ OBJECTS = \
 	$(BUILD_DIR)/vbo.o \
 	$(BUILD_DIR)/vertex.o \
 	$(BUILD_DIR)/shape.o \
-	$(BUILD_DIR)/button.o \
+	$(BUILD_DIR)/simple_button.o \
+	$(BUILD_DIR)/toggle_button.o \
+	$(BUILD_DIR)/slide_button.o \
 	$(BUILD_DIR)/controller.o \
 	$(BUILD_DIR)/texture.o \
 	$(BUILD_DIR)/image_data.o \
@@ -31,6 +33,7 @@ OBJECTS = \
 	$(BUILD_DIR)/projection.o \
 	$(BUILD_DIR)/menu.o \
 	$(BUILD_DIR)/panel.o \
+	$(BUILD_DIR)/line_panel.o \
 	$(BUILD_DIR)/font_renderer.o \
 	$(BUILD_DIR)/file_system.o \
 

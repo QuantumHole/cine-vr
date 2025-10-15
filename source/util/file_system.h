@@ -18,6 +18,7 @@ class FileSystem
 		FileSystem(void);
 		std::string current_directory(void) const;
 		std::vector<std::string> split_path(const std::string& path) const;
+		std::string join_path(const std::vector<std::string>::const_iterator start, const std::vector<std::string>::const_iterator end ) const;
 		std::set<std::string> file_names(const std::string& dir) const;
 		std::set<std::string> directory_names(const std::string& dir) const;
 };

@@ -5,6 +5,9 @@
 #include "menu.h"
 #include "main.h"
 #include "util/file_system.h"
+#include "simple_button.h"
+#include "toggle_button.h"
+#include "slide_button.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
@@ -48,30 +51,31 @@ void Menu::draw(void) const
 	}
 }
 
-void Menu::list_directories(Panel& panel) const
+void Menu::list_directories(LinePanel& panel) const
 {
-	panel.text("Directories", 0, 0);
+	panel.add_line("Directories");
 
 	FileSystem fs;
 	const std::string current_dir = fs.current_directory();
 	std::vector<std::string> entries = fs.split_path(current_dir);
 
-	for (size_t i = 0; i < entries.size(); i++)
+	size_t i = 0;
+	for (std::vector<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); ++iter)
 	{
-		panel.text(entries[i], static_cast<int32_t>(i) * 5, static_cast<int32_t>(i + 1) * 20);
+		const std::string full = fs.join_path(entries.begin(), iter);
+		panel.add_line(*iter, full, i);
+		i++;
 	}
 
-	const size_t num_ent = entries.size();
 	std::set<std::string> dirs = fs.directory_names(current_dir);
-	size_t i = 0;
 	for (std::set<std::string>::const_iterator iter = dirs.begin(); iter != dirs.end(); iter++)
 	{
-		panel.text(*iter, static_cast<int32_t>(num_ent) * 5, static_cast<int32_t>(num_ent + i + 1) * 20);
-		i++;
+		const std::string full = current_dir + "/" + *iter;
+		panel.add_line(*iter, full, i);
 	}
 }
 
-void Menu::list_files(Panel& panel) const
+void Menu::list_files(LinePanel& panel) const
 {
 	panel.text("Files", 0, 0);
 
@@ -138,86 +142,86 @@ void Menu::create_button_panel(const std::vector<action_t>& actions)
 
 			const action_t act = actions.at(i);
 
-			Button* b;
+			Panel* b;
 			switch (act)
 			{
 				case ACTION_BACK:
-					b = new Button(ACTION_BACK, "images/back.png");
+					b = new SimpleButton(ACTION_BACK, "images/back.png");
 					break;
 				case ACTION_FILE_DELETE:
-					b = new Button(ACTION_FILE_DELETE, "images/delete.png");
+					b = new SimpleButton(ACTION_FILE_DELETE, "images/delete.png");
 					break;
 				case ACTION_FILE_OPEN:
-					b = new Button(ACTION_FILE_OPEN, "images/open.png");
+					b = new SimpleButton(ACTION_FILE_OPEN, "images/open.png");
 					break;
 				case ACTION_PLAY_BACKWARD:
-					b = new Button(ACTION_PLAY_BACKWARD, "images/backward.png");
+					b = new SimpleButton(ACTION_PLAY_BACKWARD, "images/backward.png");
 					break;
 				case ACTION_PLAY_FORWARD:
-					b = new Button(ACTION_PLAY_FORWARD, "images/forward.png");
+					b = new SimpleButton(ACTION_PLAY_FORWARD, "images/forward.png");
 					break;
 				case ACTION_PLAY_NEXT:
-					b = new Button(ACTION_PLAY_NEXT, "images/next.png");
+					b = new SimpleButton(ACTION_PLAY_NEXT, "images/next.png");
 					break;
 				case ACTION_PLAY_PAUSE:
-					b = new Button(ACTION_PLAY_PAUSE, "images/pause.png");
+					b = new SimpleButton(ACTION_PLAY_PAUSE, "images/pause.png");
 					break;
 				case ACTION_PLAY_PLAY:
-					b = new Button(ACTION_PLAY_PLAY, "images/play.png");
+					b = new SimpleButton(ACTION_PLAY_PLAY, "images/play.png");
 					break;
 				case ACTION_PLAY_PREVIOUS:
-					b = new Button(ACTION_PLAY_PREVIOUS, "images/previous.png");
+					b = new SimpleButton(ACTION_PLAY_PREVIOUS, "images/previous.png");
 					break;
 				case ACTION_POWER:
-					b = new Button(ACTION_POWER, "images/power.png");
+					b = new SimpleButton(ACTION_POWER, "images/power.png");
 					break;
 				case ACTION_PROJECT_CUBE:
-					b = new Button(ACTION_PROJECT_CUBE, "images/cube-mono.png");
+					b = new SimpleButton(ACTION_PROJECT_CUBE, "images/cube-mono.png");
 					break;
 				case ACTION_PROJECT_CYLINDER:
-					b = new Button(ACTION_PROJECT_CYLINDER, "images/cylinder.png");
+					b = new SimpleButton(ACTION_PROJECT_CYLINDER, "images/cylinder.png");
 					break;
 				case ACTION_PROJECT_FISHEYE:
-					b = new Button(ACTION_PROJECT_FISHEYE, "images/fisheye.png");
+					b = new SimpleButton(ACTION_PROJECT_FISHEYE, "images/fisheye.png");
 					break;
 				case ACTION_PROJECT_FLAT:
-					b = new Button(ACTION_PROJECT_FLAT, "images/flat.png");
+					b = new SimpleButton(ACTION_PROJECT_FLAT, "images/flat.png");
 					break;
 				case ACTION_PROJECT_SPHERE:
-					b = new Button(ACTION_PROJECT_SPHERE, "images/sphere.png");
+					b = new SimpleButton(ACTION_PROJECT_SPHERE, "images/sphere.png");
 					break;
 				case ACTION_SETTINGS:
-					b = new Button(ACTION_SETTINGS, "images/settings.png");
+					b = new SimpleButton(ACTION_SETTINGS, "images/settings.png");
 					break;
 				case ACTION_TILE_CUBE_MONO:
-					b = new Button(ACTION_TILE_CUBE_MONO, "images/cube-mono.png");
+					b = new SimpleButton(ACTION_TILE_CUBE_MONO, "images/cube-mono.png");
 					break;
 				case ACTION_TILE_CUBE_STEREO:
-					b = new Button(ACTION_TILE_CUBE_STEREO, "images/cube-stereo.png");
+					b = new SimpleButton(ACTION_TILE_CUBE_STEREO, "images/cube-stereo.png");
 					break;
 				case ACTION_TILE_LEFT_RIGHT:
-					b = new Button(ACTION_TILE_LEFT_RIGHT, "images/left-right.png");
+					b = new SimpleButton(ACTION_TILE_LEFT_RIGHT, "images/left-right.png");
 					break;
 				case ACTION_TILE_MONO:
-					b = new Button(ACTION_TILE_MONO, "images/mono.png");
+					b = new SimpleButton(ACTION_TILE_MONO, "images/mono.png");
 					break;
 				case ACTION_TILE_TOP_BOTTOM:
-					b = new Button(ACTION_TILE_TOP_BOTTOM, "images/top-bottom.png");
+					b = new SimpleButton(ACTION_TILE_TOP_BOTTOM, "images/top-bottom.png");
 					break;
 				case ACTION_FLAG_MONO:
-					b = new Button(act, "images/force-mono.png", projection().mono());
+					b = new ToggleButton(act, "images/force-mono.png", projection().mono());
 					break;
 				case ACTION_FLAG_STRETCH:
-					b = new Button(act, "images/stretch.png", projection().stretch());
+					b = new ToggleButton(act, "images/stretch.png", projection().stretch());
 					break;
 				case ACTION_FLAG_SWITCH_EYES:
-					b = new Button(act, "images/switch-eyes.png", projection().switch_eyes());
+					b = new ToggleButton(act, "images/switch-eyes.png", projection().switch_eyes());
 					break;
 				case ACTION_PARAM_ANGLE:
-					b = new Button(act, "images/angle.png", 0.0f, 2.0f * glm::pi<float>(), projection().angle());
+					b = new SlideButton(act, "images/angle.png", 0.0f, 2.0f * glm::pi<float>(), projection().angle());
 					break;
 				case ACTION_PARAM_ZOOM:
-					b = new Button(act, "images/zoom.png", 0.0f, 10.0f, projection().zoom());
+					b = new SlideButton(act, "images/zoom.png", 0.0f, 10.0f, projection().zoom());
 					break;
 				default:
 					throw std::runtime_error("invalid button ID");
@@ -291,7 +295,7 @@ void Menu::file_menu(void)
 	pose = m_hmd_pose * pose;
 
 	const action_t act = ACTION_BACK;
-	Panel* b = new Button(act, "images/back.png");
+	Panel* b = new SimpleButton(act, "images/back.png");
 	b->set_transform(pose);
 	m_panel[act] = b;
 
@@ -301,11 +305,7 @@ void Menu::file_menu(void)
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
-	const glm::vec2 shape_size(3.0f, 5.0f);
-	const glm::vec3 color(0.5f, 0.4f, 0.2f);
-	const glm::uvec2 tex_size(300, 500);
-	Panel* p = new Panel(ACTION_DIRECTORY_SELECT);
-	p->init_area(shape_size, color, tex_size);
+	LinePanel* p = new LinePanel(ACTION_DIRECTORY_SELECT);
 	p->set_transform(pose);
 	list_directories(*p);
 	m_panel[ACTION_DIRECTORY_SELECT] = p;
@@ -316,8 +316,7 @@ void Menu::file_menu(void)
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
-	p = new Panel(ACTION_FILE_SELECT);
-	p->init_area(shape_size, color, tex_size);
+	p = new LinePanel(ACTION_FILE_SELECT);
 	p->set_transform(pose);
 	list_files(*p);
 	m_panel[ACTION_FILE_SELECT] = p;
@@ -568,11 +567,11 @@ void Menu::handle_button_action(const action_t action)
 			update_projection();
 			break;
 		case ACTION_PARAM_ANGLE:
-			projection().set_angle(dynamic_cast<Button*>(m_panel.find(action)->second)->slide_value());
+			projection().set_angle(dynamic_cast<SlideButton*>(m_panel.find(action)->second)->slide_value());
 			update_projection();
 			break;
 		case ACTION_PARAM_ZOOM:
-			projection().set_zoom(dynamic_cast<Button*>(m_panel.find(action)->second)->slide_value());
+			projection().set_zoom(dynamic_cast<SlideButton*>(m_panel.find(action)->second)->slide_value());
 			update_projection();
 			break;
 		default:

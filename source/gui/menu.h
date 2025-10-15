@@ -5,8 +5,7 @@
 #ifndef MENU_H
 #define MENU_H
 
-#include "button.h"
-#include "panel.h"
+#include "line_panel.h"
 #include <map>
 
 class Menu
@@ -32,8 +31,8 @@ class Menu
 
 		void create_button_panel(const std::vector<action_t>& actions);
 		void create_points(void);
-		void list_directories(Panel& panel) const;
-		void list_files(Panel& panel) const;
+		void list_directories(LinePanel& panel) const;
+		void list_files(LinePanel& panel) const;
 
 		void main_menu(void);
 		void tiling_menu(void);

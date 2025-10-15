@@ -25,7 +25,6 @@
 #include "util/openvr_interface.h"
 #include "util/enum_iterator.h"
 #include "opengl/shape.h"
-#include "gui/button.h"
 #include "gui/controller.h"
 #include "gui/menu.h"
 
