@@ -21,6 +21,7 @@ class LinePanel : public Panel
 		}
 		line_entry_t;
 
+		const std::string m_title;
 		std::vector<line_entry_t> m_lines;
 		size_t m_active_line;
 		Shape m_selection_bar;
@@ -30,10 +31,12 @@ class LinePanel : public Panel
 	protected:
 
 	public:
-		explicit LinePanel(const action_t action);
+		explicit LinePanel(const action_t action, const std::string& title);
 		~LinePanel(void) override;
 
-		void add_line(const std::string& text, const std::string& content = "", const size_t level = 0);
+		void clear(void);
+		void add_line(const std::string& text, const std::string& content, const size_t level = 0);
+		const std::string& get_selection(void) const;
 
 		bool update_on_interaction(const intersection_t isec, const bool pressed, const bool released) override;
 		void draw(void) const override;

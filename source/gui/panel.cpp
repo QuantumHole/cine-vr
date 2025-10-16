@@ -86,6 +86,12 @@ const Texture& Panel::texture(void) const
 	return m_texture;
 }
 
+void Panel::clear(void)
+{
+	m_texture.remove();
+	init_texture(m_tex_size);
+}
+
 void Panel::text(const std::string& text, const int32_t x, const int32_t y) const
 {
 	FontRenderer renderer;
@@ -99,6 +105,7 @@ void Panel::text(const std::string& text, const int32_t x, const int32_t y) cons
 	const size_t width = image.size() / height;
 
 	/* copy only the visible section of the surface */
+	m_texture.bind();
 	for (size_t i = 0; i < height; i++)
 	{
 		glTexSubImage2D(GL_TEXTURE_2D, 0,
@@ -109,6 +116,7 @@ void Panel::text(const std::string& text, const int32_t x, const int32_t y) cons
 		                GL_RGBA, GL_UNSIGNED_BYTE,
 		                image.data() + static_cast<ptrdiff_t>(i * width));
 	}
+	m_texture.unbind();
 }
 
 void Panel::draw(void) const

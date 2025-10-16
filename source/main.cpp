@@ -74,6 +74,11 @@ void player_next(void)
 {
 }
 
+void player_open_file(const std::string& file_name)
+{
+	std::cout << "open file: " << file_name << std::endl;
+}
+
 Projection& projection(void)
 {
 	return g_projection;

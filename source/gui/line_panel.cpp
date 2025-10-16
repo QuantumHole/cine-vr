@@ -6,25 +6,40 @@
 #include "main.h"
 
 static const glm::vec2 shape_size(3.0f, 5.0f);
-static const glm::vec4 panel_color(0.5f, 0.4f, 0.2f, 1.0f);
+static const glm::vec4 panel_color(0.5f, 0.4f, 0.2f, 0.8f);
 static const glm::vec4 selection_color(0.5f * panel_color);
 static const glm::uvec2 tex_size(300, 500);
 static const size_t line_height = 20;
 static const size_t level_offset = line_height / 2;
 
-LinePanel::LinePanel(const action_t action) :
+LinePanel::LinePanel(const action_t action, const std::string& title) :
 	Panel(action),
+	m_title(title),
 	m_lines(),
 	m_active_line(0),
 	m_selection_bar()
 {
 	init_area(shape_size, panel_color, tex_size);
 	init_selection();
+	Panel::text(m_title, 0, 0);
 }
 
 LinePanel::~LinePanel(void)
 {
 	m_selection_bar.remove();
+}
+
+void LinePanel::clear(void)
+{
+	m_lines.clear();
+	Panel::clear();
+	Panel::text(m_title, 0, 0);
+}
+
+const std::string& LinePanel::get_selection(void) const
+{
+	// ignore title line
+	return m_lines.at(m_active_line - 1).content;
 }
 
 void LinePanel::init_selection(void)
@@ -58,7 +73,7 @@ void LinePanel::draw(void) const
 
 	shader().set_uniform("background", false);
 
-	if (m_active_line < m_lines.size())
+	if ((m_active_line > 0) && (m_active_line < 1 + m_lines.size()))
 	{
 		m_selection_bar.draw();
 	}
@@ -79,7 +94,7 @@ bool LinePanel::update_on_interaction(const intersection_t isec, const bool /*pr
 	}
 	else
 	{
-		m_active_line = m_lines.size();
+		m_active_line = 1 + m_lines.size();  // count title line
 	}
 
 	return released && isec.hit;
@@ -93,7 +108,7 @@ void LinePanel::add_line(const std::string& text, const std::string& content, co
 		level
 	};
 
-	Panel::text(text, static_cast<int32_t>(level * level_offset), static_cast<int32_t>(m_lines.size() * line_height));
+	Panel::text(text, static_cast<int32_t>(level * level_offset), static_cast<int32_t>((1 + m_lines.size()) * line_height));
 	m_lines.push_back(entry);
-	m_active_line = m_lines.size();    // no active selected line
+	m_active_line = 1 + m_lines.size();    // no active selected line, count title line
 }

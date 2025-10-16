@@ -9,12 +9,46 @@
 #include <sys/stat.h>
 #include <stdexcept>
 #include <linux/limits.h>
-#include <iostream>
 
 static const std::string directory_separator = "/";
 
 FileSystem::FileSystem(void)
 {
+}
+
+std::string FileSystem::extension(const std::string& name) const
+{
+	const size_t index = name.rfind(".");
+
+	if (index == std::string::npos)
+	{
+		return "";
+	}
+	return name.substr(index + 1);
+}
+
+bool FileSystem::is_image(const std::string& ext) const
+{
+	static const std::set<std::string> image_extensions = {
+		"png",
+		"jpg",
+		"tga",
+		"bmp"
+	};
+
+	return image_extensions.find(ext) != image_extensions.end();
+}
+
+bool FileSystem::is_video(const std::string& ext) const
+{
+	static const std::set<std::string> video_extensions = {
+		"avi",
+		"mkv",
+		"mpg",
+		"mp4"
+	};
+
+	return video_extensions.find(ext) != video_extensions.end();
 }
 
 std::vector<std::string> FileSystem::split_path(const std::string& path) const
@@ -26,21 +60,12 @@ std::vector<std::string> FileSystem::split_path(const std::string& path) const
 	for (size_t i = path.find(directory_separator); i != std::string::npos; i = path.find(directory_separator, last))
 	{
 		const std::string s = path.substr(last, i - last);
-		std::cout << "directory part: " << s << std::endl;
 
-		if (s.empty())
-		{
-			parts.push_back(directory_separator);
-		}
-		else
-		{
-			parts.push_back(s);
-		}
+		parts.push_back(s);
 		last = i + 1;
 	}
 
 	const std::string s = path.substr(last);
-	std::cout << "directory part: " << s << std::endl;
 	parts.push_back(s);
 
 	return parts;
@@ -52,12 +77,18 @@ std::string FileSystem::join_path(const std::vector<std::string>::const_iterator
 
 	for (std::vector<std::string>::const_iterator iter = start; iter != end; ++iter)
 	{
-		path += directory_separator + *iter;
+		const size_t index = path.rfind(directory_separator);
+
+		if ((index == std::string::npos) || (index < path.size() - directory_separator.size()))
+		{
+			path += directory_separator;
+		}
+		path += *iter;
 	}
 	return path;
 }
 
-std::set<std::string> FileSystem::select_files(const std::string& dir, const bool use_files, const bool use_dirs) const
+std::set<std::string> FileSystem::select_files(const std::string& dir, const bool use_files, const bool use_dirs, const bool show_hidden) const
 {
 	std::set<std::string> entries;
 	DIR* direct = opendir(dir.c_str());
@@ -72,13 +103,16 @@ std::set<std::string> FileSystem::select_files(const std::string& dir, const boo
 	{
 		const std::string en = ent->d_name;
 		const std::string name = dir + directory_separator + en;
+		const std::string ext = extension(en);
 
 		struct stat sb;
 
 		if (!stat(name.c_str(), &sb) &&
 		    (en != ".") &&
 		    (en != "..") &&
-		    ((use_files && S_ISREG(sb.st_mode)) ||
+		    (!en.empty()) &&
+		    (show_hidden || (!show_hidden && (en[0] != '.'))) &&
+		    ((use_files && S_ISREG(sb.st_mode) && (is_image(ext) || is_video(ext))) ||
 		     (use_dirs && S_ISDIR(sb.st_mode))))
 		{
 			entries.insert(en);
@@ -101,12 +135,12 @@ std::string FileSystem::current_directory(void) const
 	return std::string(dir);
 }
 
-std::set<std::string> FileSystem::file_names(const std::string& dir) const
+std::set<std::string> FileSystem::file_names(const std::string& dir, const bool show_hidden) const
 {
-	return select_files(dir, true, false);
+	return select_files(dir, true, false, show_hidden);
 }
 
-std::set<std::string> FileSystem::directory_names(const std::string& dir) const
+std::set<std::string> FileSystem::directory_names(const std::string& dir, const bool show_hidden) const
 {
-	return select_files(dir, false, true);
+	return select_files(dir, false, true, show_hidden);
 }

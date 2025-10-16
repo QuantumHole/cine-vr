@@ -20,8 +20,21 @@ Menu::Menu(void) :
 	m_submenu(MENU_NONE),
 	m_hmd_pose(1.0),
 	m_focus(ACTION_NONE),
-	m_debounce(false)
+	m_debounce(false),
+	m_current_directory("")
 {
+	FileSystem fs;
+
+	m_current_directory = fs.current_directory();
+}
+
+Menu::~Menu(void)
+{
+	// delete previous buttons
+	for (std::map<action_t, Panel*>::const_iterator iter = m_panel.begin(); iter != m_panel.end(); ++iter)
+	{
+		delete iter->second;
+	}
 }
 
 void Menu::init(void)
@@ -53,39 +66,37 @@ void Menu::draw(void) const
 
 void Menu::list_directories(LinePanel& panel) const
 {
-	panel.add_line("Directories");
-
 	FileSystem fs;
-	const std::string current_dir = fs.current_directory();
-	std::vector<std::string> entries = fs.split_path(current_dir);
+	std::vector<std::string> entries = fs.split_path(m_current_directory);
+
+	panel.clear();
 
 	size_t i = 0;
 	for (std::vector<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); ++iter)
 	{
-		const std::string full = fs.join_path(entries.begin(), iter);
-		panel.add_line(*iter, full, i);
+		const std::string full = fs.join_path(entries.begin(), iter + 1);
+		panel.add_line(iter->empty() ? full : (*iter), full, i);
 		i++;
 	}
 
-	std::set<std::string> dirs = fs.directory_names(current_dir);
+	std::set<std::string> dirs = fs.directory_names(m_current_directory);
 	for (std::set<std::string>::const_iterator iter = dirs.begin(); iter != dirs.end(); iter++)
 	{
-		const std::string full = current_dir + "/" + *iter;
+		const std::string full = m_current_directory + "/" + *iter;
 		panel.add_line(*iter, full, i);
 	}
 }
 
 void Menu::list_files(LinePanel& panel) const
 {
-	panel.add_line("Files");
-
 	FileSystem fs;
-	const std::string current_dir = fs.current_directory();
-	std::set<std::string> entries = fs.file_names(current_dir);
+	std::set<std::string> entries = fs.file_names(m_current_directory);
+
+	panel.clear();
 
 	for (std::set<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); iter++)
 	{
-		const std::string full = current_dir + "/" + *iter;
+		const std::string full = m_current_directory + "/" + *iter;
 		panel.add_line(*iter, full, 0);
 	}
 }
@@ -306,7 +317,7 @@ void Menu::file_menu(void)
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
-	LinePanel* p = new LinePanel(ACTION_DIRECTORY_SELECT);
+	LinePanel* p = new LinePanel(ACTION_DIRECTORY_SELECT, "directories");
 	p->set_transform(pose);
 	list_directories(*p);
 	m_panel[ACTION_DIRECTORY_SELECT] = p;
@@ -317,7 +328,7 @@ void Menu::file_menu(void)
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
-	p = new LinePanel(ACTION_FILE_SELECT);
+	p = new LinePanel(ACTION_FILE_SELECT, "files");
 	p->set_transform(pose);
 	list_files(*p);
 	m_panel[ACTION_FILE_SELECT] = p;
@@ -392,11 +403,21 @@ void Menu::handle_button_action(const action_t action)
 			main_menu();
 			break;
 		case ACTION_DIRECTORY_SELECT:
-			std::cout << "select directory" << std::endl;
-			break;
+		{
+			LinePanel& panel = *dynamic_cast<LinePanel*>(m_panel.find(action)->second);
+			m_current_directory = panel.get_selection();
+			list_directories(panel);
+			list_files(*dynamic_cast<LinePanel*>(m_panel.find(ACTION_FILE_SELECT)->second));
+		}
+		break;
 		case ACTION_FILE_SELECT:
-			std::cout << "select file" << std::endl;
-			break;
+		{
+			m_submenu = MENU_NONE;
+			LinePanel& panel = *dynamic_cast<LinePanel*>(m_panel.find(action)->second);
+			const std::string file_name = panel.get_selection();
+			player_open_file(file_name);
+		}
+		break;
 		case ACTION_FILE_DELETE:
 			break;
 		case ACTION_FILE_OPEN:

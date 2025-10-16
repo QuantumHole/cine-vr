@@ -15,6 +15,7 @@ void player_pause(void);
 void player_play(void);
 void player_previous(void);
 void player_next(void);
+void player_open_file(const std::string& file_name);
 Projection& projection(void);
 void set_aspect_ratio(const float aspect);
 void update_projection(void);
