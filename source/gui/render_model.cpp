@@ -42,7 +42,7 @@ RenderModel::~RenderModel(void)
 void RenderModel::init_openvr_model(const std::string& name)
 {
 	m_shape.init_openvr_model(name);
-	m_tex.init_openvr_model(name, GL_TEXTURE_2D, 0, GL_LINEAR);
+	m_tex.init_openvr_model(name, 0);
 	m_tex.unbind();
 }
 

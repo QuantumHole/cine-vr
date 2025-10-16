@@ -50,13 +50,13 @@ void Panel::init_shape(const glm::vec2& shape_size, const glm::vec4& color)
 
 void Panel::init_texture(const std::string& image_name)
 {
-	m_tex_size = m_texture.init_image_file(image_name, GL_TEXTURE_2D, 0);
+	m_tex_size = m_texture.init_image_file(image_name, 0);
 }
 
 void Panel::init_texture(const glm::uvec2& tex_size)
 {
 	m_tex_size = tex_size;
-	m_texture.init_dim(m_tex_size, GL_TEXTURE_2D, 0);
+	m_texture.init_dim(m_tex_size, 0);
 }
 
 void Panel::init_area(const glm::vec2& shape_size, const glm::vec4& color, const glm::uvec2& tex_size)

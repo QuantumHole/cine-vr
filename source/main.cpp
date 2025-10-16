@@ -82,7 +82,7 @@ void player_open_file(const std::string& file_name)
 
 	if (fs.is_image(ext))
 	{
-		const glm::uvec2 image_size = g_image.init_image_file(file_name, GL_TEXTURE_2D, 0);
+		const glm::uvec2 image_size = g_image.init_image_file(file_name, 0);
 		const float aspect = static_cast<float>(image_size.x) / static_cast<float>(image_size.y);
 		g_image.unbind();
 		set_aspect_ratio(aspect);
@@ -91,6 +91,10 @@ void player_open_file(const std::string& file_name)
 	else if (fs.is_video(ext))
 	{
 	}
+}
+
+void player_show_desktop(void)
+{
 }
 
 Projection& projection(void)

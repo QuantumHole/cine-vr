@@ -15,12 +15,11 @@ class Texture
 {
 	private:
 		GLuint m_id;
-		GLenum m_type;
 		GLuint m_slot;
 		GLenum m_format;
 		glm::uvec2 m_size;
 
-		void init(const GLenum tex_type, const GLuint slot, const GLint filter);
+		void init(const GLuint slot);
 
 	public:
 		Texture(void);
@@ -28,10 +27,10 @@ class Texture
 		GLuint id(void) const;
 		GLuint slot(void) const;
 
-		glm::uvec2 init_image_file(const std::string& file_name, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
-		void init_sdl(const SDL_Surface* surface, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
-		void init_dim(const glm::uvec2 size, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
-		void init_openvr_model(const std::string& name, const GLenum tex_type, const GLuint slot, const GLint filter = GL_NEAREST);
+		glm::uvec2 init_image_file(const std::string& file_name, const GLuint slot);
+		void init_sdl(const SDL_Surface* surface, const GLuint slot);
+		void init_dim(const glm::uvec2 size, const GLuint slot);
+		void init_openvr_model(const std::string& name, const GLuint slot);
 		void bind(void) const;
 		void unbind(void) const;
 		void remove(void);

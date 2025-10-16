@@ -45,6 +45,7 @@ IMAGES = \
 	$(IMAGE_DIR)/cube-stereo.png \
 	$(IMAGE_DIR)/cylinder.png \
 	$(IMAGE_DIR)/delete.png \
+	$(IMAGE_DIR)/desktop.png \
 	$(IMAGE_DIR)/fisheye.png \
 	$(IMAGE_DIR)/flat.png \
 	$(IMAGE_DIR)/forward.png \
@@ -63,6 +64,7 @@ IMAGES = \
 	$(IMAGE_DIR)/force-mono.png \
 	$(IMAGE_DIR)/switch-eyes.png \
 	$(IMAGE_DIR)/stretch.png \
+	$(IMAGE_DIR)/window.png \
 	$(IMAGE_DIR)/zoom.png \
 
 all: $(TARGET) $(IMAGES)

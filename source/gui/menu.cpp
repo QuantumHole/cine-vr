@@ -160,6 +160,12 @@ void Menu::create_button_panel(const std::vector<action_t>& actions)
 				case ACTION_BACK:
 					b = new SimpleButton(ACTION_BACK, "images/back.png");
 					break;
+				case ACTION_DESKTOP:
+					b = new SimpleButton(ACTION_DESKTOP, "images/desktop.png");
+					break;
+				case ACTION_DESKTOP_WINDOW:
+					b = new SimpleButton(ACTION_DESKTOP_WINDOW, "images/window.png");
+					break;
 				case ACTION_FILE_DELETE:
 					b = new SimpleButton(ACTION_FILE_DELETE, "images/delete.png");
 					break;
@@ -306,8 +312,30 @@ void Menu::file_menu(void)
 	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 	pose = m_hmd_pose * pose;
 
-	const action_t act = ACTION_BACK;
+	action_t act = ACTION_BACK;
 	Panel* b = new SimpleButton(act, "images/back.png");
+	b->set_transform(pose);
+	m_panel[act] = b;
+
+	// desktop button
+	pose = glm::mat4(1.0f);
+	pose = glm::rotate(pose, 0.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
+	pose = m_hmd_pose * pose;
+
+	act = ACTION_DESKTOP;
+	b = new SimpleButton(act, "images/desktop.png");
+	b->set_transform(pose);
+	m_panel[act] = b;
+
+	// window button
+	pose = glm::mat4(1.0f);
+	pose = glm::rotate(pose, -0.5f * rot_angle, glm::vec3(1.0f, 0.0f, 0.0f));
+	pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
+	pose = m_hmd_pose * pose;
+
+	act = ACTION_DESKTOP_WINDOW;
+	b = new SimpleButton(act, "images/window.png");
 	b->set_transform(pose);
 	m_panel[act] = b;
 
@@ -401,6 +429,13 @@ void Menu::handle_button_action(const action_t action)
 	{
 		case ACTION_BACK:
 			main_menu();
+			break;
+		case ACTION_DESKTOP:
+			m_submenu = MENU_NONE;
+			player_show_desktop();
+			break;
+		case ACTION_DESKTOP_WINDOW:
+			m_submenu = MENU_NONE;
 			break;
 		case ACTION_DIRECTORY_SELECT:
 		{

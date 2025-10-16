@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "controller.h"
-#include <iostream>
 
 Controller::Controller(void) :
 	m_body(),
@@ -43,7 +42,6 @@ void Controller::init_line(void)
 
 void Controller::init(const std::string& model_name)
 {
-	std::cout << "init model name: " << model_name << std::endl;
 	m_body.init_openvr_model(model_name);
 	init_line();
 }
