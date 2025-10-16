@@ -19,7 +19,7 @@ Menu::Menu(void) :
 	m_points(),
 	m_submenu(MENU_NONE),
 	m_hmd_pose(1.0),
-	m_active_button(ACTION_NONE),
+	m_focus(ACTION_NONE),
 	m_debounce(false)
 {
 }
@@ -77,17 +77,16 @@ void Menu::list_directories(LinePanel& panel) const
 
 void Menu::list_files(LinePanel& panel) const
 {
-	panel.text("Files", 0, 0);
+	panel.add_line("Files");
 
 	FileSystem fs;
 	const std::string current_dir = fs.current_directory();
 	std::set<std::string> entries = fs.file_names(current_dir);
 
-	size_t i = 0;
 	for (std::set<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); iter++)
 	{
-		panel.text(*iter, 0, static_cast<int32_t>(i + 1) * 20);
-		i++;
+		const std::string full = current_dir + "/" + *iter;
+		panel.add_line(*iter, full, 0);
 	}
 }
 
@@ -391,8 +390,10 @@ void Menu::handle_button_action(const action_t action)
 			main_menu();
 			break;
 		case ACTION_DIRECTORY_SELECT:
+			std::cout << "select directory" << std::endl;
 			break;
 		case ACTION_FILE_SELECT:
+			std::cout << "select file" << std::endl;
 			break;
 		case ACTION_FILE_DELETE:
 			break;
@@ -589,6 +590,9 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 		return;
 	}
 
+	(void)m_focus;
+
+	/* wait for button release after a new menu has been activated */
 	if (m_debounce)
 	{
 		if (pressed || released)
@@ -596,15 +600,13 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 			return;
 		}
 		m_debounce = false;
+		m_focus = ACTION_NONE;
 	}
 
-	if (released)
-	{
-		m_active_button = ACTION_NONE;
-	}
-
+	/* check interactions with all active elements */
 	bool buttonHit = false;
 	std::vector<glm::vec3> intersections;
+	std::set<action_t> active_actions;
 	for (std::map<action_t, Panel*>::const_iterator iter = m_panel.begin(); iter != m_panel.end(); ++iter)
 	{
 		Panel* b = iter->second;
@@ -614,19 +616,28 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 		if (isec.hit)
 		{
 			buttonHit |= isec.hit;
-			// std::cout << "panel hit at (" << isec.global.x << ", " << isec.global.y << ", " << isec.global.z << ")" << std::endl;
 			intersections.push_back(isec.global);
 		}
 
-		if (((m_active_button == ACTION_NONE) || (m_active_button == iter->first)) && b->update_on_interaction(isec, pressed, released))
+		if (isec.hit && !pressed && !released)
 		{
-			m_active_button = iter->first;
-			handle_button_action(isec.action_id);
-
-			// buttons may have been replaced by button action.
-			// stop iteration over buttons of previous menu.
-			break;
+			m_focus = iter->first;
 		}
+
+		if ((m_focus == iter->first) && b->update_on_interaction(isec, pressed, released))
+		{
+			/* actions may change button set.
+			 * Therefore, actions must not be processed,
+			 * before all buttons have been iterated over
+			 */
+			active_actions.insert(iter->first);
+		}
+	}
+
+	/* process activated actions */
+	for (std::set<action_t>::iterator iter = active_actions.begin(); iter != active_actions.end(); ++iter)
+	{
+		handle_button_action(*iter);
 	}
 
 	// update scene objects
@@ -642,5 +653,6 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 	if (released && !buttonHit)
 	{
 		m_submenu = MENU_NONE;
+		m_focus = ACTION_NONE;
 	}
 }

@@ -90,7 +90,7 @@ bool SlideButton::update_on_interaction(const Panel::intersection_t isec, const 
 		return true;
 	}
 
-	return (released && isec.hit);
+	return released && isec.hit;
 }
 
 void SlideButton::draw(void) const

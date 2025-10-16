@@ -46,16 +46,16 @@ std::vector<std::string> FileSystem::split_path(const std::string& path) const
 	return parts;
 }
 
-std::string FileSystem::join_path(const std::vector<std::string>::const_iterator start, const std::vector<std::string>::const_iterator end ) const
+std::string FileSystem::join_path(const std::vector<std::string>::const_iterator start, const std::vector<std::string>::const_iterator end) const
 {
 	std::string path;
+
 	for (std::vector<std::string>::const_iterator iter = start; iter != end; ++iter)
 	{
 		path += directory_separator + *iter;
 	}
 	return path;
 }
-
 
 std::set<std::string> FileSystem::select_files(const std::string& dir, const bool use_files, const bool use_dirs) const
 {

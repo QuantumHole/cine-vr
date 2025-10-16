@@ -26,7 +26,7 @@ class Menu
 		Shape m_points;
 		menu_t m_submenu;
 		glm::mat4 m_hmd_pose;
-		action_t m_active_button;
+		action_t m_focus;
 		bool m_debounce;
 
 		void create_button_panel(const std::vector<action_t>& actions);
