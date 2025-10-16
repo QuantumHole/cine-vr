@@ -28,6 +28,7 @@ void Texture::init(const GLenum slot)
 {
 	m_slot = slot;
 	const GLint filter(GL_NEAREST);
+
 	if (!m_id)
 	{
 		glGenTextures(1, &m_id);

@@ -127,6 +127,94 @@ static void reset_reference(void)
 	g_hmd_reference_rot = glm::quat_cast(hmd_pose);
 }
 
+static void setup_shader(ShaderSet& shader, const vr::Hmd_Eye eye)
+{
+	glm::vec2 offset;
+	glm::vec2 scale;
+
+	if (g_projection.mono() ||
+	    (!g_projection.switch_eyes() && (eye == vr::Eye_Left)) ||
+	    (g_projection.switch_eyes() && (eye == vr::Eye_Right)))
+	{
+		switch (g_projection.tiling())
+		{
+			case Projection::TILE_LEFT_RIGHT:
+			case Projection::TILE_CUBE_MAP_STEREO:
+				offset = glm::vec2(0.0f, 0.0f);
+				scale  = glm::vec2(0.5f, 1.0f);
+				break;
+			case Projection::TILE_TOP_BOTTOM:
+				offset = glm::vec2(0.0f, 0.0f);
+				scale  = glm::vec2(1.0f, 0.5f);
+				break;
+			case Projection::TILE_MONO:
+			case Projection::TILE_CUBE_MAP_MONO:
+				offset = glm::vec2(0.0f, 0.0f);
+				scale  = glm::vec2(1.0f, 1.0f);
+				break;
+			default:
+				throw std::runtime_error("invalid projection");
+		}
+	}
+	else if ((g_projection.switch_eyes() && (eye == vr::Eye_Left)) ||
+	         (!g_projection.switch_eyes() && (eye == vr::Eye_Right)))
+	{
+		switch (g_projection.tiling())
+		{
+			case Projection::TILE_LEFT_RIGHT:
+			case Projection::TILE_CUBE_MAP_STEREO:
+				offset = glm::vec2(0.5f, 0.0f);
+				scale  = glm::vec2(0.5f, 1.0f);
+				// mouse.x += offset.x;
+				break;
+			case Projection::TILE_TOP_BOTTOM:
+				offset = glm::vec2(0.0f, 0.5f);
+				scale  = glm::vec2(1.0f, 0.5f);
+				// mouse.y += offset.y;
+				break;
+			case Projection::TILE_MONO:
+			case Projection::TILE_CUBE_MAP_MONO:
+				offset = glm::vec2(0.0f, 0.0f);
+				scale  = glm::vec2(1.0f, 1.0f);
+				break;
+			default:
+				throw std::runtime_error("invalid projection");
+		}
+	}
+	else
+	{
+		throw std::runtime_error("invalid eye projection");
+	}
+
+	// compute view/proj
+	const glm::mat4 proj = g_vr.projection(eye);
+	const glm::mat4 view = g_vr.view(eye);
+
+	shader.activate();
+	shader.set_uniform("projview", proj * view);
+	shader.set_uniform("diffuse0", 0);
+	shader.set_uniform("texture_offset", offset);
+	shader.set_uniform("texture_scale", scale);
+}
+
+static void setup_hmd(const glm::mat4& hmdPose)
+{
+	glm::mat4 reference;
+
+	if (g_projection.follow_hmd())
+	{
+		glm::vec4 hmd_position = hmdPose * glm::vec4(0, 0, 0, 1);
+		reference = glm::translate(glm::mat4(1.0f), glm::vec3(hmd_position));
+	}
+	else
+	{
+		reference = translate(glm::mat4(1.0f), g_hmd_reference_pos);
+	}
+	reference *= mat4_cast(g_hmd_reference_rot);
+
+	g_canvas.set_transform(reference);
+}
+
 int main(void)
 {
 	// GLFW init
@@ -269,20 +357,7 @@ int main(void)
 			g_menu.checkMenuInteraction(devPose, hmdPose, triggerReleased, triggerPressed);
 		}
 
-		glm::mat4 reference;
-
-		if (g_projection.follow_hmd())
-		{
-			glm::vec4 hmd_position = hmdPose * glm::vec4(0, 0, 0, 1);
-			reference = glm::translate(glm::mat4(1.0f), glm::vec3(hmd_position));
-		}
-		else
-		{
-			reference = translate(glm::mat4(1.0f), g_hmd_reference_pos);
-		}
-		reference *= mat4_cast(g_hmd_reference_rot);
-
-		g_canvas.set_transform(reference);
+		setup_hmd(hmdPose);
 
 		// For each eye: render scene to texture
 		for (vr::Hmd_Eye eye : Eyes())
@@ -294,17 +369,15 @@ int main(void)
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glPointSize(8.0f);
 
-			// compute view/proj
-			glm::mat4 proj = g_vr.projection(eye);
-			glm::mat4 view = g_vr.view(eye);
-
-			g_shaders.activate();
-			g_shaders.set_uniform("projview", proj * view);
-			g_shaders.set_uniform("diffuse0", 0);
+			setup_shader(g_shaders, eye);
 
 			g_image.bind();
 			g_canvas.draw();
 			g_image.unbind();
+
+			/* reset to monoscopic mode for menu */
+			g_shaders.set_uniform("texture_offset", glm::vec2(0.0f, 0.0f));
+			g_shaders.set_uniform("texture_scale",  glm::vec2(1.0f, 1.0f));
 
 			// glDisable(GL_DEPTH_TEST);                     // always draw transparent objects on top of previously drawn ones
 			g_menu.draw();
