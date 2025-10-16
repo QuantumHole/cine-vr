@@ -26,10 +26,12 @@ Controller& Controller::operator=(const Controller& c)
 
 void Controller::init_line(void)
 {
+	const glm::vec4 color(0.1f, 0.9f, 0.1f, 1.0f);
+
 	// simple line with two vertices, will update dynamically
 	std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.1f, 0.9f, 0.1f), glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.1f, 0.9f, 0.1f), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3(0.0f, 0.0f,  0.0f), glm::vec3(0.0f, 0.0f,  1.0f), color, glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(0.0f, 0.0f)),
 	};
 
 	const std::vector<GLuint> indices = {

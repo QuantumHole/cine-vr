@@ -7,26 +7,31 @@
 #include <stdexcept>
 #include "projection.h"
 
-// projection    tiling        angle        zoom        stretch        follow HMD
-// ------------------------------------------------------------------------------
-// FLAT          MONO          -           screen       fix aspect     free movement
-// LEFT_RIGHT                distance     ratio (*2)
-// TOP_BOTTOM
-//
-// CYLINDER      MONO          section of  screen       fix aspect     free movement
-// LEFT_RIGHT    cylinder    distance     ratio (*2)
-// TOP_BOTTOM
-//
-// SPHERE        MONO          longitude   screen       -              geometry
-// LEFT_RIGHT    section of  distance                    follows HMD
-// TOP_BOTTOM    sphere
-//
-// CUBE_MAP      MONO          -           -            -              geometry
-// LEFT_RIGHT                                            follows HMD
-//
-// FISHEYE       MONO          longitude   screen       -              geometry
-// LEFT_RIGHT    section of  distance                    follows HMD
-// sphere
+/*
+ * projection    tiling        angle        zoom        stretch        follow HMD
+ * ------------------------------------------------------------------------------
+ * FLAT          MONO          -           screen       fix aspect     free movement
+ *               LEFT_RIGHT                distance     ratio (*2)
+ *               TOP_BOTTOM
+ *
+ * CYLINDER      MONO          section of  screen       fix aspect     free movement
+ *               LEFT_RIGHT    cylinder    distance     ratio (*2)
+ *               TOP_BOTTOM
+ *
+ * SPHERE        MONO          longitude   screen       -              geometry
+ *               LEFT_RIGHT    section of  distance                    follows HMD
+ *               TOP_BOTTOM    sphere
+ *
+ * CUBE_MAP      MONO          -           -            -              geometry
+ *               LEFT_RIGHT                                            follows HMD
+ *
+ * FISHEYE       MONO          longitude   screen       -              geometry
+ *               LEFT_RIGHT    section of  distance                    follows HMD
+ *                             sphere
+ */
+
+static const glm::vec4 color_none(0.0f, 0.0f, 0.0f, 0.0f);
+static const float radius = 10.0f;      // minimum distance to screen
 
 Projection::Projection(void) :
 	m_projection(PROJECTION_FLAT),
@@ -187,7 +192,7 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 	const float aspect = (m_stretch ? 1.0f : 0.5f) * m_aspect;
 	const float hheight = 0.5f;
 	const float hwidth = hheight * aspect;
-	const float screen_distance = 1.0f + m_zoom;
+	const float screen_distance = radius + m_zoom;
 
 	// 0--1 1
 	// | / /|
@@ -195,10 +200,10 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 	// 2 2--3
 	std::vector<Vertex> vertdata =
 	{
-		Vertex(glm::vec3(-hwidth, hheight, -screen_distance), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3(hwidth, hheight, -screen_distance), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-hwidth, -hheight, -screen_distance), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3(hwidth, -hheight, -screen_distance), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f))
+		Vertex(glm::vec3(-hwidth,  hheight, -screen_distance), glm::vec3(0.0f, 0.0f, 1.0f), color_none, glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3( hwidth,  hheight, -screen_distance), glm::vec3(0.0f, 0.0f, 1.0f), color_none, glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-hwidth, -hheight, -screen_distance), glm::vec3(0.0f, 0.0f, 1.0f), color_none, glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3( hwidth, -hheight, -screen_distance), glm::vec3(0.0f, 0.0f, 1.0f), color_none, glm::vec2(1.0f, 1.0f))
 	};
 
 	std::vector<GLuint> indices = {
@@ -212,7 +217,6 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_cylinder(void) const
 {
 	const float angle_start = -m_angle / 2;
-	const float radius = 2.0f;
 	const float aspect = (m_stretch ? 1.0f : 0.5f) * m_aspect;
 	const float height = m_angle * radius / aspect;
 
@@ -234,10 +238,10 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 		// | / |_/   | _/ |
 		// |/  2     n/   |
 		// 1              m
-		vertdata.push_back(Vertex(glm::vec3(x1, height / 2, -m_zoom - y1), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(t1, 0)));
-		vertdata.push_back(Vertex(glm::vec3(x2, height / 2, -m_zoom - y2), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(t2, 0)));
-		vertdata.push_back(Vertex(glm::vec3(x1, -height / 2, -m_zoom - y1), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(t1, 1)));
-		vertdata.push_back(Vertex(glm::vec3(x2, -height / 2, -m_zoom - y2), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(t2, 1)));
+		vertdata.push_back(Vertex(glm::vec3(x1,  height / 2, -m_zoom - y1), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(t1, 0)));
+		vertdata.push_back(Vertex(glm::vec3(x2,  height / 2, -m_zoom - y2), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(t2, 0)));
+		vertdata.push_back(Vertex(glm::vec3(x1, -height / 2, -m_zoom - y1), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(t1, 1)));
+		vertdata.push_back(Vertex(glm::vec3(x2, -height / 2, -m_zoom - y2), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(t2, 1)));
 
 		indices.push_back(static_cast<GLuint>(column * 4 + 0));
 		indices.push_back(static_cast<GLuint>(column * 4 + 2));
@@ -252,7 +256,6 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_sphere(void) const
 {
-	const float radius = 10.0f;
 	const float angle_start = -m_angle / 2;
 
 	std::vector<Vertex> vertdata;
@@ -299,10 +302,10 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 			// | / /|
 			// |/ / |
 			// 2 2--3
-			vertdata.push_back(Vertex(glm::vec3(x1, y1, -z1 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(tx1, ty1)));
-			vertdata.push_back(Vertex(glm::vec3(x2, y2, -z2 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(tx2, ty1)));
-			vertdata.push_back(Vertex(glm::vec3(x3, y3, -z3 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(tx1, ty2)));
-			vertdata.push_back(Vertex(glm::vec3(x4, y4, -z4 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(tx2, ty2)));
+			vertdata.push_back(Vertex(glm::vec3(x1, y1, -z1 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(tx1, ty1)));
+			vertdata.push_back(Vertex(glm::vec3(x2, y2, -z2 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(tx2, ty1)));
+			vertdata.push_back(Vertex(glm::vec3(x3, y3, -z3 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(tx1, ty2)));
+			vertdata.push_back(Vertex(glm::vec3(x4, y4, -z4 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(tx2, ty2)));
 
 			indices.push_back(static_cast<GLuint>((row * m_details + column) * 4 + 0));
 			indices.push_back(static_cast<GLuint>((row * m_details + column) * 4 + 2));
@@ -318,7 +321,6 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_fisheye(void) const
 {
-	const float radius = 10.0f;
 	const float angle_max = m_angle / 2.0f;
 	const float eps = std::numeric_limits<float>::epsilon();
 
@@ -393,10 +395,10 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 			// | / /|
 			// |/ / |
 			// 2 2--3
-			vertdata.push_back(Vertex(glm::vec3(x1, y1, -z1 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f + tx1, ty1 + 0.5f)));
-			vertdata.push_back(Vertex(glm::vec3(x2, y2, -z2 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f + tx2, ty1 + 0.5f)));
-			vertdata.push_back(Vertex(glm::vec3(x3, y3, -z3 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f + tx1, ty2 + 0.5f)));
-			vertdata.push_back(Vertex(glm::vec3(x4, y4, -z4 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f + tx2, ty2 + 0.5f)));
+			vertdata.push_back(Vertex(glm::vec3(x1, y1, -z1 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.5f + tx1, ty1 + 0.5f)));
+			vertdata.push_back(Vertex(glm::vec3(x2, y2, -z2 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.5f + tx2, ty1 + 0.5f)));
+			vertdata.push_back(Vertex(glm::vec3(x3, y3, -z3 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.5f + tx1, ty2 + 0.5f)));
+			vertdata.push_back(Vertex(glm::vec3(x4, y4, -z4 - m_zoom), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.5f + tx2, ty2 + 0.5f)));
 
 			indices.push_back(static_cast<GLuint>((row * m_details + column) * 4 + 0));
 			indices.push_back(static_cast<GLuint>((row * m_details + column) * 4 + 2));
@@ -412,36 +414,35 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_cubemap_mono(void) const
 {
-	const float r = 10.0f;
 	std::vector<Vertex> vertdata =
 	{
 		/* left side */
-		Vertex(glm::vec3(-r, r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f / 3.0f, 0.0f)),
-		Vertex(glm::vec3(-r, r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f / 3.0f, 0.0f)),
-		Vertex(glm::vec3(-r, -r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f / 3.0f, 0.5f)),
-		Vertex(glm::vec3(-r, -r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f / 3.0f, 0.5f)),
+		Vertex(glm::vec3(-radius,  radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(1.0f / 3.0f, 0.0f)),
+		Vertex(glm::vec3(-radius,  radius,  radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.0f / 3.0f, 0.0f)),
+		Vertex(glm::vec3(-radius, -radius,  radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.0f / 3.0f, 0.5f)),
+		Vertex(glm::vec3(-radius, -radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(1.0f / 3.0f, 0.5f)),
 
 		/* front view */
-		Vertex(glm::vec3(r, r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(2.0f / 3.0f, 0.0f)),
-		Vertex(glm::vec3(r, -r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(2.0f / 3.0f, 0.5f)),
+		Vertex(glm::vec3(radius,  radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(2.0f / 3.0f, 0.0f)),
+		Vertex(glm::vec3(radius, -radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(2.0f / 3.0f, 0.5f)),
 
 		/* right side */
-		Vertex(glm::vec3(r, r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(3.0f / 3.0f, 0.0f)),
-		Vertex(glm::vec3(r, -r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(3.0f / 3.0f, 0.5f)),
+		Vertex(glm::vec3(radius,  radius, radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(3.0f / 3.0f, 0.0f)),
+		Vertex(glm::vec3(radius, -radius, radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(3.0f / 3.0f, 0.5f)),
 
 		/* top */
-		Vertex(glm::vec3(r, r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(3.0f / 3.0f, 0.5f)),
-		Vertex(glm::vec3(r, r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(2.0f / 3.0f, 0.5f)),
-		Vertex(glm::vec3(-r, r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(2.0f / 3.0f, 1.0f)),
-		Vertex(glm::vec3(-r, r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(3.0f / 3.0f, 1.0f)),
+		Vertex(glm::vec3( radius, radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(3.0f / 3.0f, 0.5f)),
+		Vertex(glm::vec3( radius, radius,  radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(2.0f / 3.0f, 0.5f)),
+		Vertex(glm::vec3(-radius, radius,  radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(2.0f / 3.0f, 1.0f)),
+		Vertex(glm::vec3(-radius, radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(3.0f / 3.0f, 1.0f)),
 
 		/* back view */
-		Vertex(glm::vec3(r, -r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f / 3.0f, 0.5f)),
-		Vertex(glm::vec3(-r, -r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f / 3.0f, 1.0f)),
+		Vertex(glm::vec3( radius, -radius, radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(1.0f / 3.0f, 0.5f)),
+		Vertex(glm::vec3(-radius, -radius, radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(1.0f / 3.0f, 1.0f)),
 
 		/* bottom */
-		Vertex(glm::vec3(r, -r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f / 3.0f, 0.5f)),
-		Vertex(glm::vec3(-r, -r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f / 3.0f, 1.0f))
+		Vertex(glm::vec3( radius, -radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.0f / 3.0f, 0.5f)),
+		Vertex(glm::vec3(-radius, -radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.0f / 3.0f, 1.0f))
 	};
 
 	std::vector<GLuint> indices = {
@@ -464,25 +465,24 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_cubemap_stereo(void) const
 {
-	const float r = 10.0f;
 	std::vector<Vertex> vertdata =
 	{
-		Vertex(glm::vec3(r, r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f / 3.0f)),
-		Vertex(glm::vec3(r, -r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f, 1.0f / 3.0f)),
-		Vertex(glm::vec3(r, -r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f, 0.0f / 3.0f)),
-		Vertex(glm::vec3(r, r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f / 3.0f)),
-		Vertex(glm::vec3(-r, r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 2.0f / 3.0f)),
-		Vertex(glm::vec3(-r, -r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f, 2.0f / 3.0f)),
-		Vertex(glm::vec3(-r, r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 3.0f / 3.0f)),
-		Vertex(glm::vec3(-r, -r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f, 3.0f / 3.0f)),
-		Vertex(glm::vec3(-r, r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f / 3.0f)),
-		Vertex(glm::vec3(r, r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f, 0.0f / 3.0f)),
-		Vertex(glm::vec3(r, r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f, 1.0f / 3.0f)),
-		Vertex(glm::vec3(-r, r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f / 3.0f)),
-		Vertex(glm::vec3(r, -r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f, 2.0f / 3.0f)),
-		Vertex(glm::vec3(-r, -r, r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 2.0f / 3.0f)),
-		Vertex(glm::vec3(r, -r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f, 3.0f / 3.0f)),
-		Vertex(glm::vec3(-r, -r, -r), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 3.0f / 3.0f)),
+		Vertex(glm::vec3( radius,  radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.0f, 1.0f / 3.0f)),
+		Vertex(glm::vec3( radius, -radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.5f, 1.0f / 3.0f)),
+		Vertex(glm::vec3( radius, -radius,  radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.5f, 0.0f / 3.0f)),
+		Vertex(glm::vec3( radius,  radius,  radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.0f, 0.0f / 3.0f)),
+		Vertex(glm::vec3(-radius,  radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.0f, 2.0f / 3.0f)),
+		Vertex(glm::vec3(-radius, -radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.5f, 2.0f / 3.0f)),
+		Vertex(glm::vec3(-radius,  radius,  radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.0f, 3.0f / 3.0f)),
+		Vertex(glm::vec3(-radius, -radius,  radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.5f, 3.0f / 3.0f)),
+		Vertex(glm::vec3(-radius,  radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(1.0f, 0.0f / 3.0f)),
+		Vertex(glm::vec3( radius,  radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.5f, 0.0f / 3.0f)),
+		Vertex(glm::vec3( radius,  radius,  radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.5f, 1.0f / 3.0f)),
+		Vertex(glm::vec3(-radius,  radius,  radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(1.0f, 1.0f / 3.0f)),
+		Vertex(glm::vec3( radius, -radius,  radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.5f, 2.0f / 3.0f)),
+		Vertex(glm::vec3(-radius, -radius,  radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(1.0f, 2.0f / 3.0f)),
+		Vertex(glm::vec3( radius, -radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(0.5f, 3.0f / 3.0f)),
+		Vertex(glm::vec3(-radius, -radius, -radius), glm::vec3(0.0f, 0.0f, 0.0f), color_none, glm::vec2(1.0f, 3.0f / 3.0f)),
 	};
 
 	std::vector<GLuint> indices = {

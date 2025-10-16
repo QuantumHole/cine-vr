@@ -5,7 +5,7 @@
 #include "simple_button.h"
 #include "main.h"
 
-static const glm::vec3 button_color(0.0f, 0.0f, 0.0f);
+static const glm::vec4 button_color(0.0f, 0.0f, 0.0f, 0.0f);
 
 const glm::vec2 SimpleButton::m_button_size(0.5f, 0.5f);    // size in scene coordinate space
 

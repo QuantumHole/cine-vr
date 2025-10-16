@@ -6,7 +6,8 @@
 #include "main.h"
 
 static const glm::vec2 shape_size(3.0f, 5.0f);
-static const glm::vec3 color(0.5f, 0.4f, 0.2f);
+static const glm::vec4 panel_color(0.5f, 0.4f, 0.2f, 1.0f);
+static const glm::vec4 selection_color(0.5f * panel_color);
 static const glm::uvec2 tex_size(300, 500);
 static const size_t line_height = 20;
 static const size_t level_offset = line_height / 2;
@@ -17,7 +18,7 @@ LinePanel::LinePanel(const action_t action) :
 	m_active_line(0),
 	m_selection_bar()
 {
-	init_area(shape_size, color, tex_size);
+	init_area(shape_size, panel_color, tex_size);
 	init_selection();
 }
 
@@ -33,10 +34,10 @@ void LinePanel::init_selection(void)
 	const float y1 = shape_size.y * line_height / static_cast<float>(tex_size.y);
 
 	const std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(-0.5f * shape_size.x, y0, eps), glm::vec3(0.0f, 0.0f, -1.0f), 0.5f * color, glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3(0.5f * shape_size.x, y1, eps), glm::vec3(0.0f, 0.0f, -1.0f), 0.5f * color, glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.5f * shape_size.x, y1, eps), glm::vec3(0.0f, 0.0f, -1.0f), 0.5f * color, glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3(0.5f * shape_size.x, y0, eps), glm::vec3(0.0f, 0.0f, -1.0f), 0.5f * color, glm::vec2(1.0f, 1.0f)),
+		Vertex(glm::vec3(-0.5f * shape_size.x, y0, eps), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3( 0.5f * shape_size.x, y1, eps), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.5f * shape_size.x, y1, eps), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3( 0.5f * shape_size.x, y0, eps), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(1.0f, 1.0f)),
 	};
 
 	const std::vector<GLuint> indices = {

@@ -23,7 +23,6 @@ GLuint VBO::num_vertices(void) const
 void VBO::init(void)
 {
 	glGenBuffers(1, &m_id);
-	// glCreateBuffers(1, &VBO);
 }
 
 void VBO::load_data(const std::vector<Vertex>& vertices)

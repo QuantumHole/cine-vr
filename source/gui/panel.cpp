@@ -25,7 +25,7 @@ Panel::~Panel(void)
 	m_texture.remove();
 }
 
-void Panel::init_shape(const glm::vec2& shape_size, const glm::vec3& color)
+void Panel::init_shape(const glm::vec2& shape_size, const glm::vec4& color)
 {
 	// reinitialize
 	m_shape.remove();
@@ -59,7 +59,7 @@ void Panel::init_texture(const glm::uvec2& tex_size)
 	m_texture.init_dim(m_tex_size, GL_TEXTURE_2D, 0);
 }
 
-void Panel::init_area(const glm::vec2& shape_size, const glm::vec3& color, const glm::uvec2& tex_size)
+void Panel::init_area(const glm::vec2& shape_size, const glm::vec4& color, const glm::uvec2& tex_size)
 {
 	init_shape(shape_size, color);
 	init_texture(tex_size);

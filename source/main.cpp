@@ -288,9 +288,9 @@ int main(void)
 			g_canvas.draw();
 			g_image.unbind();
 
-			glDisable(GL_DEPTH_TEST);                     // always draw transparent objects on top of previously drawn ones
+			// glDisable(GL_DEPTH_TEST);                     // always draw transparent objects on top of previously drawn ones
 			g_menu.draw();
-			glEnable(GL_DEPTH_TEST);
+			// glEnable(GL_DEPTH_TEST);
 
 			// For each controller: render simple ray and do intersection with rectangle
 			for (std::map<vr::TrackedDeviceIndex_t, Controller>::const_iterator iter = g_controller.begin(); iter != g_controller.end(); ++iter)

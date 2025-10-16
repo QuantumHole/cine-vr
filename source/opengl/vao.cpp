@@ -26,13 +26,6 @@ void VAO::link_attrib(const VBO& vbo, const GLuint layout, const GLuint num_comp
 	vbo.bind();
 	glVertexAttribPointer(layout, num_components, type, GL_FALSE, stride, offset);
 	glEnableVertexAttribArray(layout);
-
-	// glEnableVertexArrayAttrib(iVAO, 3);
-	// glVertexArrayAttribBinding(iVAO, 3, 0);
-	// glVertexArrayAttribFormat(iVAO, 3, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat));
-
-	// glVertexArrayVertexBuffer(m_vao.id(), 0, m_vbo.id(), 0, sizeof(Vertex));
-	// glVertexArrayElementBuffer(m_vao.id(), m_ebo.id());
 }
 
 void VAO::link_openvr_model(const VBO& vbo) const

@@ -8,7 +8,7 @@ uniform sampler2D diffuse0;
 uniform bool background;
 uniform bool greyscale;
 
-in vec3 vColor;
+in vec4 vtxColor;
 in vec2 texCoords;
 
 out vec4 outColor;
@@ -16,7 +16,6 @@ out vec4 outColor;
 void main(void)
 {
 	vec4 texColor = texture(diffuse0, texCoords);
-	vec4 vtxColor = vec4(vColor,1.0);
 
 	if (greyscale)
 	{

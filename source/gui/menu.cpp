@@ -92,9 +92,11 @@ void Menu::list_files(LinePanel& panel) const
 
 void Menu::create_points(void)
 {
+	const glm::vec4 point_color(0.2f, 1.0f, 0.2f, 1.0f);
+
 	// simple line with two vertices, will update dynamically
 	std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 1.0f, 0.2f), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), point_color, glm::vec2(0.0f, 0.0f)),
 	};
 	const std::vector<GLuint> indices = {
 		0,

@@ -14,7 +14,7 @@ Vertex::Vertex(void) :
 
 Vertex::Vertex(const glm::vec3& position,
                const glm::vec3& normal,
-               const glm::vec3& color,
+               const glm::vec4& color,
                const glm::vec2& tex_uv) :
 	m_position(position),
 	m_normal(normal),
@@ -55,7 +55,7 @@ const glm::vec3& Vertex::normal(void) const
 	return m_normal;
 }
 
-const glm::vec3& Vertex::color(void) const
+const glm::vec4& Vertex::color(void) const
 {
 	return m_color;
 }

@@ -26,7 +26,7 @@ class Panel
 		const Shape& shape(void) const;
 		const Texture& texture(void) const;
 
-		void init_shape(const glm::vec2& shape_size, const glm::vec3& color);
+		void init_shape(const glm::vec2& shape_size, const glm::vec4& color);
 		void init_texture(const std::string& image_name);
 		void init_texture(const glm::uvec2& tex_size);
 
@@ -43,7 +43,7 @@ class Panel
 		explicit Panel(const action_t action);
 		virtual ~Panel(void);
 
-		void init_area(const glm::vec2& shape_size, const glm::vec3& color, const glm::uvec2& tex_size);
+		void init_area(const glm::vec2& shape_size, const glm::vec4& color, const glm::uvec2& tex_size);
 		void set_transform(const glm::mat4& pose);
 		void text(const std::string& text, const int32_t x = 0, const int32_t y = 0) const;
 		virtual void draw(void) const;

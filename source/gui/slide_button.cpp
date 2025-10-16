@@ -29,12 +29,13 @@ void SlideButton::init_slidebar(void)
 	const float eps = 1e-4f;
 	const float y0 = 0.0f;
 	const float y1 = slide_height * m_button_size.y;
+	const float opacity = 0.8f;
 
 	const std::vector<Vertex> svertices = {
-		Vertex(glm::vec3(-0.4f * m_button_size.x, y0, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3(0.4f * m_button_size.x, y1, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.4f * m_button_size.x, y1, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3(0.4f * m_button_size.x, y0, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)),
+		Vertex(glm::vec3(-0.4f * m_button_size.x, y0, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f, 0.0f, 1.0f, opacity), glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3( 0.4f * m_button_size.x, y1, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(1.0f, 0.0f, 0.0f, opacity), glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.4f * m_button_size.x, y1, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(1.0f, 0.0f, 0.0f, opacity), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3( 0.4f * m_button_size.x, y0, -eps), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f, 0.0f, 1.0f, opacity), glm::vec2(1.0f, 1.0f)),
 	};
 
 	const std::vector<GLuint> sindices = {

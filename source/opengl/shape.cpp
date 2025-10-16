@@ -86,8 +86,8 @@ void Shape::init_vertices(const std::vector<Vertex>& vertices, const std::vector
 	m_ebo.init(indices);
 	m_vao.link_attrib(m_vbo, 0, 3, GL_FLOAT, sizeof(Vertex), nullptr);
 	m_vao.link_attrib(m_vbo, 1, 3, GL_FLOAT, sizeof(Vertex), reinterpret_cast<void*>(1 * sizeof(glm::vec3)));
-	m_vao.link_attrib(m_vbo, 2, 3, GL_FLOAT, sizeof(Vertex), reinterpret_cast<void*>(2 * sizeof(glm::vec3)));
-	m_vao.link_attrib(m_vbo, 3, 2, GL_FLOAT, sizeof(Vertex), reinterpret_cast<void*>(3 * sizeof(glm::vec3)));
+	m_vao.link_attrib(m_vbo, 2, 4, GL_FLOAT, sizeof(Vertex), reinterpret_cast<void*>(2 * sizeof(glm::vec3)));
+	m_vao.link_attrib(m_vbo, 3, 2, GL_FLOAT, sizeof(Vertex), reinterpret_cast<void*>(2 * sizeof(glm::vec3) + sizeof(glm::vec4)));
 
 	/* mat4 needs to be declared as 4 vec4. */
 	m_vao.link_attrib(m_vbo_instances, 4, 4, GL_FLOAT, sizeof(glm::mat4), nullptr);
