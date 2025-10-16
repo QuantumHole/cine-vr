@@ -308,3 +308,15 @@ void OpenVRInterface::haptic(const input_action_t action) const
 	const float amplitude = 0.5f;
 	vr::VRInput()->TriggerHapticVibrationAction(iter->second, start_time, duration, frequency, amplitude, vr::k_ulInvalidInputValueHandle);
 }
+
+float OpenVRInterface::battery(const vr::TrackedDeviceIndex_t device) const
+{
+	vr::ETrackedPropertyError error;
+	float battery = m_system->GetFloatTrackedDeviceProperty(device, vr::Prop_DeviceBatteryPercentage_Float, &error);
+
+	if (error != vr::TrackedProp_Success)
+	{
+		return -1.0f;
+	}
+	return battery;
+}

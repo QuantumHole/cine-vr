@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "image_data.h"
+#include "file_system.h"
 #include <fstream>
 #include <string.h>
 #include <iostream>
@@ -22,7 +23,8 @@ ImageFile::ImageFile(const std::string& file_name, const bool flip_y) :
 	{
 		return;
 	}
-	const std::string ext = file_extension(file_name);
+	FileSystem fs;
+	const std::string ext = fs.extension(file_name);
 
 	if (ext == "bmp")
 	{
@@ -63,23 +65,6 @@ ImageFile::ImageFile(const size_t width, const size_t height, const size_t line_
 		m_pixels.assign(data, data + m_pixels.size());
 		// memcpy((m_pixels.data()), data, m_pixels.size());
 	}
-}
-
-std::string ImageFile::file_extension(const std::string& file_name) const
-{
-	const size_t index = file_name.rfind(".");
-
-	if (index == std::string::npos)
-	{
-		return "";
-	}
-	std::string s = file_name.substr(index + 1);
-
-	/* convert to lower case characters */
-	std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){
-		return std::tolower(c);
-	});
-	return s;
 }
 
 const std::vector<uint8_t>& ImageFile::pixels(void) const

@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <stdexcept>
 #include <linux/limits.h>
+#include <algorithm>
 
 static const std::string directory_separator = "/";
 
@@ -24,7 +25,15 @@ std::string FileSystem::extension(const std::string& name) const
 	{
 		return "";
 	}
-	return name.substr(index + 1);
+
+	std::string ext = name.substr(index + 1);
+
+	/* convert to lower case characters */
+	std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){
+		return std::tolower(c);
+	});
+
+	return ext;
 }
 
 bool FileSystem::is_image(const std::string& ext) const
@@ -32,6 +41,7 @@ bool FileSystem::is_image(const std::string& ext) const
 	static const std::set<std::string> image_extensions = {
 		"png",
 		"jpg",
+		"jpeg",
 		"tga",
 		"bmp"
 	};

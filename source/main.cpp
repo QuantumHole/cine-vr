@@ -27,6 +27,7 @@
 #include "opengl/shape.h"
 #include "gui/controller.h"
 #include "gui/menu.h"
+#include "util/file_system.h"
 
 // #define DEBUG_LINE std::cout << "########## " << __FILE__ << "(" << __LINE__ << "): " << __FUNCTION__ << "()" << std::endl
 
@@ -76,7 +77,20 @@ void player_next(void)
 
 void player_open_file(const std::string& file_name)
 {
-	std::cout << "open file: " << file_name << std::endl;
+	FileSystem fs;
+	const std::string ext = fs.extension(file_name);
+
+	if (fs.is_image(ext))
+	{
+		const glm::uvec2 image_size = g_image.init_image_file(file_name, GL_TEXTURE_2D, 0);
+		const float aspect = static_cast<float>(image_size.x) / static_cast<float>(image_size.y);
+		g_image.unbind();
+		set_aspect_ratio(aspect);
+		update_projection();
+	}
+	else if (fs.is_video(ext))
+	{
+	}
 }
 
 Projection& projection(void)
@@ -159,12 +173,7 @@ int main(void)
 	reset_reference();
 	g_projection.set_stretch(true);
 
-	const glm::uvec2 image_size = g_image.init_file("images/logo-cinevr.png", GL_TEXTURE_2D, 0);
-	const float aspect = static_cast<float>(image_size.x) / static_cast<float>(image_size.y);
-	g_image.unbind();
-
-	set_aspect_ratio(aspect);
-	update_projection();
+	player_open_file("images/logo-cinevr.png");
 
 	// main loop
 	while (g_Running)

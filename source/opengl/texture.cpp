@@ -58,7 +58,7 @@ void Texture::init(const GLenum tex_type, const GLenum slot, const GLint filter)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, fLargest);
 }
 
-glm::uvec2 Texture::init_file(const std::string& file_name, const GLenum tex_type, const GLuint slot, const GLint filter)
+glm::uvec2 Texture::init_image_file(const std::string& file_name, const GLenum tex_type, const GLuint slot, const GLint filter)
 {
 	ImageFile m_image(file_name);
 

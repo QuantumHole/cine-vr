@@ -54,6 +54,7 @@ class OpenVRInterface
 		bool getButtonAction(const input_action_t action, const bool debounce = true) const;
 		glm::vec3 getButtonPosition(const input_action_t action) const;
 		void haptic(const input_action_t input) const;
+		float battery(const vr::TrackedDeviceIndex_t device) const;
 
 	private:
 		const float m_clip_near;
