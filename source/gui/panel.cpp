@@ -88,8 +88,16 @@ const Texture& Panel::texture(void) const
 
 void Panel::clear(void)
 {
-	m_texture.remove();
-	init_texture(m_tex_size);
+	std::vector<uint32_t> image(m_tex_size.x * m_tex_size.y, 0);
+	m_texture.bind();
+	glTexSubImage2D(GL_TEXTURE_2D, 0,
+					0,
+					0,
+					static_cast<GLsizei>(m_tex_size.x),
+					static_cast<GLsizei>(m_tex_size.y),
+					GL_RGBA, GL_UNSIGNED_BYTE,
+					image.data());
+	m_texture.unbind();
 }
 
 void Panel::text(const std::string& text, const int32_t x, const int32_t y) const
