@@ -25,6 +25,7 @@ class Panel
 		const glm::mat4& pose(void) const;
 		const Shape& shape(void) const;
 		const Texture& texture(void) const;
+		const glm::uvec2& tex_size(void) const;
 
 		void init_shape(const glm::vec2& shape_size, const glm::vec4& color);
 		void init_texture(const std::string& image_name);

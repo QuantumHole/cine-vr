@@ -86,17 +86,23 @@ const Texture& Panel::texture(void) const
 	return m_texture;
 }
 
+const glm::uvec2& Panel::tex_size(void) const
+{
+	return m_tex_size;
+}
+
 void Panel::clear(void)
 {
 	std::vector<uint32_t> image(m_tex_size.x * m_tex_size.y, 0);
+
 	m_texture.bind();
 	glTexSubImage2D(GL_TEXTURE_2D, 0,
-					0,
-					0,
-					static_cast<GLsizei>(m_tex_size.x),
-					static_cast<GLsizei>(m_tex_size.y),
-					GL_RGBA, GL_UNSIGNED_BYTE,
-					image.data());
+	                0,
+	                0,
+	                static_cast<GLsizei>(m_tex_size.x),
+	                static_cast<GLsizei>(m_tex_size.y),
+	                GL_RGBA, GL_UNSIGNED_BYTE,
+	                image.data());
 	m_texture.unbind();
 }
 

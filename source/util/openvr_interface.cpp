@@ -38,6 +38,7 @@ static glm::mat4 ConvertSteamVRMatrixToGLMMat(const vr::HmdMatrix44_t& mat)
 OpenVRInterface::OpenVRInterface(void) :
 	m_clip_near(0.1f),
 	m_clip_far(100.0f),
+	m_input_state(),
 	m_poses(vr::k_unMaxTrackedDeviceCount),
 	m_actionset(vr::k_ulInvalidActionSetHandle),
 	m_input_handle(),
@@ -104,15 +105,15 @@ void OpenVRInterface::init(void)
 		throw std::runtime_error("failed importing action set: " + std::to_string(status));
 	}
 
-	initActionHandle(ACTION_PADCLICK, "/actions/cinevr/in/PadClick");
-	initActionHandle(ACTION_GRIP, "/actions/cinevr/in/Grip");
-	initActionHandle(ACTION_TRIGGER, "/actions/cinevr/in/Trigger");
-	initActionHandle(ACTION_MENU, "/actions/cinevr/in/Menu");
-	initActionHandle(ACTION_SYSTEM, "/actions/cinevr/in/System");
-	initActionHandle(ACTION_TRIGGER_VALUE, "/actions/cinevr/in/TriggerValue");
-	initActionHandle(ACTION_ANALOG, "/actions/cinevr/in/AnalogInput");
-	initActionHandle(ACTION_HAPTIC_LEFT, "/actions/cinevr/out/haptic_left");
-	initActionHandle(ACTION_HAPTIC_RIGHT, "/actions/cinevr/out/haptic_right");
+	initActionHandle(INPUT_PADCLICK,      "/actions/cinevr/in/PadClick");
+	initActionHandle(INPUT_GRIP,          "/actions/cinevr/in/Grip");
+	initActionHandle(INPUT_TRIGGER,       "/actions/cinevr/in/Trigger");
+	initActionHandle(INPUT_MENU,          "/actions/cinevr/in/Menu");
+	initActionHandle(INPUT_SYSTEM,        "/actions/cinevr/in/System");
+	initActionHandle(INPUT_TRIGGER_VALUE, "/actions/cinevr/in/TriggerValue");
+	initActionHandle(INPUT_ANALOG,        "/actions/cinevr/in/AnalogInput");
+	initActionHandle(HAPTIC_LEFT,         "/actions/cinevr/out/haptic_left");
+	initActionHandle(HAPTIC_RIGHT,        "/actions/cinevr/out/haptic_right");
 
 	// Ensure compositor present
 	// try to init compositor explicitly
@@ -291,6 +292,29 @@ glm::vec3 OpenVRInterface::getButtonPosition(const input_action_t action) const
 	}
 
 	return glm::vec3(0.0f, 0.0f, 0.0f);
+}
+
+const OpenVRInterface::input_state_t& OpenVRInterface::read_input(void)
+{
+	m_input_state.system.pressed  = getButtonAction(INPUT_SYSTEM, false);
+	m_input_state.system.released = getButtonAction(INPUT_SYSTEM, true);
+
+	m_input_state.menu.pressed  = getButtonAction(INPUT_MENU, false);
+	m_input_state.menu.released = getButtonAction(INPUT_MENU, true);
+
+	m_input_state.grip.pressed  = getButtonAction(INPUT_GRIP, false);
+	m_input_state.grip.released = getButtonAction(INPUT_GRIP, true);
+
+	m_input_state.trigger.button.pressed  = getButtonAction(INPUT_TRIGGER, false);
+	m_input_state.trigger.button.released = getButtonAction(INPUT_TRIGGER, true);
+	m_input_state.trigger.value = getButtonPosition(INPUT_TRIGGER_VALUE).x;
+
+	m_input_state.pad.button.pressed  = getButtonAction(INPUT_PADCLICK, false);
+	m_input_state.pad.button.released = getButtonAction(INPUT_PADCLICK, true);
+	m_input_state.pad.position = glm::vec2(getButtonPosition(INPUT_ANALOG));
+	m_input_state.pad.touched = (glm::length(m_input_state.pad.position) > 0.0f);
+
+	return m_input_state;
 }
 
 void OpenVRInterface::haptic(const input_action_t action) const

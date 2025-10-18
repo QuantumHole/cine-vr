@@ -21,6 +21,7 @@ Menu::Menu(void) :
 	m_hmd_pose(1.0),
 	m_focus(ACTION_NONE),
 	m_debounce(false),
+	m_playable(false),
 	m_current_directory("")
 {
 	FileSystem fs;
@@ -40,6 +41,11 @@ Menu::~Menu(void)
 void Menu::init(void)
 {
 	create_points();
+}
+
+void Menu::set_playable(const bool playable)
+{
+	m_playable = playable;
 }
 
 void Menu::draw(void) const
@@ -257,16 +263,28 @@ void Menu::create_button_panel(const std::vector<action_t>& actions)
 void Menu::main_menu(void)
 {
 	m_submenu = MENU_MAIN;
-	create_button_panel({
-		ACTION_PLAY_PREVIOUS,
-		ACTION_PLAY_BACKWARD,
-		ACTION_PLAY_PLAY,
-		ACTION_PLAY_FORWARD,
-		ACTION_PLAY_NEXT,
-		ACTION_SETTINGS,
-		ACTION_FILE_OPEN,
-		ACTION_POWER
-	});
+
+	if (m_playable)
+	{
+		create_button_panel({
+			ACTION_PLAY_PREVIOUS,
+			ACTION_PLAY_BACKWARD,
+			ACTION_PLAY_PLAY,
+			ACTION_PLAY_FORWARD,
+			ACTION_PLAY_NEXT,
+			ACTION_SETTINGS,
+			ACTION_FILE_OPEN,
+			ACTION_POWER
+		});
+	}
+	else
+	{
+		create_button_panel({
+			ACTION_SETTINGS,
+			ACTION_FILE_OPEN,
+			ACTION_POWER
+		});
+	}
 }
 
 void Menu::tiling_menu(void)
@@ -638,10 +656,10 @@ void Menu::handle_button_action(const action_t action)
 	}
 }
 
-void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hmd, const bool released, const bool pressed)
+void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hmd, const OpenVRInterface::input_state_t& input)
 {
 	// activate menu, if disabled
-	if (released && (m_submenu == MENU_NONE))
+	if (input.trigger.button.released && (m_submenu == MENU_NONE))
 	{
 		m_hmd_pose = hmd;
 		main_menu();
@@ -653,7 +671,7 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 	/* wait for button release after a new menu has been activated */
 	if (m_debounce)
 	{
-		if (pressed || released)
+		if (input.trigger.button.pressed || input.trigger.button.released)
 		{
 			return;
 		}
@@ -677,12 +695,12 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 			intersections.push_back(isec.global);
 		}
 
-		if (isec.hit && !pressed && !released)
+		if (isec.hit && !input.trigger.button.pressed && !input.trigger.button.released)
 		{
 			m_focus = iter->first;
 		}
 
-		if ((m_focus == iter->first) && b->update_on_interaction(isec, pressed, released))
+		if ((m_focus == iter->first) && b->update_on_interaction(isec, input.trigger.button.pressed, input.trigger.button.released))
 		{
 			/* actions may change button set.
 			 * Therefore, actions must not be processed,
@@ -708,7 +726,7 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 	}
 
 	// deactivate menu, if no button was hit
-	if (released && !buttonHit)
+	if (input.trigger.button.released && !buttonHit)
 	{
 		m_submenu = MENU_NONE;
 		m_focus = ACTION_NONE;

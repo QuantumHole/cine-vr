@@ -87,9 +87,11 @@ void player_open_file(const std::string& file_name)
 		g_image.unbind();
 		set_aspect_ratio(aspect);
 		update_projection();
+		g_menu.set_playable(false);
 	}
 	else if (fs.is_video(ext))
 	{
+		// g_menu.set_playable(true);
 	}
 }
 
@@ -274,12 +276,12 @@ int main(void)
 		g_vr.update();
 		g_vr.read_poses();
 
-		glm::vec3 trackpad = g_vr.getButtonPosition(OpenVRInterface::ACTION_ANALOG);
-		float length = glm::length(trackpad);
+		const OpenVRInterface::input_state_t& input_state = g_vr.read_input();
+		float length = glm::length(input_state.pad.position);
 
 		if (length > 0.5f)
 		{
-			const glm::vec2 step = glm::vec2(trackpad) * 0.01f / length;
+			const glm::vec2 step = input_state.pad.position * 0.01f / length;
 			const float cx = cosf(step.x);
 			const float sx = sinf(step.x);
 			const float cy = cosf(step.y);
@@ -290,41 +292,36 @@ int main(void)
 			g_hmd_reference_rot = rotx * g_hmd_reference_rot * roty;
 		}
 
-		if ((length < 0.5f) && g_vr.getButtonAction(OpenVRInterface::ACTION_PADCLICK))
+		if ((length < 0.5f) && input_state.pad.button.released)
 		{
 			reset_reference();
 		}
 
-		if (g_vr.getButtonAction(OpenVRInterface::ACTION_MENU))
+		if (input_state.menu.released)
 		{
 			std::cout << "action: menu" << std::endl;
 		}
 
-		if (g_vr.getButtonAction(OpenVRInterface::ACTION_SYSTEM))
+		if (input_state.system.released)
 		{
 			std::cout << "action: system" << std::endl;
 		}
 
-		if (g_vr.getButtonAction(OpenVRInterface::ACTION_GRIP))
+		if (input_state.grip.released)
 		{
 			std::cout << "action: grip" << std::endl;
 		}
 
-		const bool triggerPressed = g_vr.getButtonAction(OpenVRInterface::ACTION_TRIGGER, false);
-		const bool triggerReleased = g_vr.getButtonAction(OpenVRInterface::ACTION_TRIGGER, true);
-
-		if (triggerReleased)
+		if (input_state.trigger.button.released)
 		{
 			std::cout << "action: trigger" << std::endl;
-			g_vr.haptic(OpenVRInterface::ACTION_HAPTIC_LEFT);
-			g_vr.haptic(OpenVRInterface::ACTION_HAPTIC_RIGHT);
+			g_vr.haptic(OpenVRInterface::HAPTIC_LEFT);
+			g_vr.haptic(OpenVRInterface::HAPTIC_RIGHT);
 		}
 
-		glm::vec3 trigger = g_vr.getButtonPosition(OpenVRInterface::ACTION_TRIGGER_VALUE);
-
-		if (glm::length(trigger) > 0.0f)
+		if (glm::length(input_state.trigger.value) > 0.0f)
 		{
-			std::cout << "action: trigger: " << trigger.x << std::endl;
+			std::cout << "action: trigger: " << input_state.trigger.value << std::endl;
 		}
 
 		const glm::mat4 hmdPose = g_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
@@ -354,7 +351,7 @@ int main(void)
 
 			// check menu interaction
 			// TODO: check for trigger of correct controller
-			g_menu.checkMenuInteraction(devPose, hmdPose, triggerReleased, triggerPressed);
+			g_menu.checkMenuInteraction(devPose, hmdPose, input_state);
 		}
 
 		setup_hmd(hmdPose);

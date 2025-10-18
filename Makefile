@@ -36,6 +36,7 @@ OBJECTS = \
 	$(BUILD_DIR)/line_panel.o \
 	$(BUILD_DIR)/font_renderer.o \
 	$(BUILD_DIR)/file_system.o \
+	$(BUILD_DIR)/scroll_panel.o \
 
 IMAGES = \
 	$(IMAGE_DIR)/angle.png \
@@ -78,8 +79,11 @@ lint:
 	-$(MAKE) license-annotate
 	$(MAKE) license-lint
 
-run:
-	clear && $(MAKE) clean && $(MAKE) -j gnu && $(MAKE) clean && $(MAKE) -j llvm && ./$(TARGET)
+compile:
+	clear && $(MAKE) clean && $(MAKE) -j gnu && $(MAKE) clean && $(MAKE) -j llvm
+
+run: compile
+	./$(TARGET)
 
 kill:
 	killall -9 vrserver vrcompositor vrdashboard $(TARGET)

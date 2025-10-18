@@ -8,7 +8,7 @@
 static const glm::vec2 shape_size(3.0f, 5.0f);
 static const glm::vec4 panel_color(0.5f, 0.4f, 0.2f, 0.8f);
 static const glm::vec4 selection_color(0.5f * panel_color);
-static const glm::uvec2 tex_size(300, 500);
+static const glm::uvec2 texture_size(300, 500);
 static const size_t line_height = 20;
 static const size_t level_offset = line_height / 2;
 
@@ -19,7 +19,7 @@ LinePanel::LinePanel(const action_t action, const std::string& title) :
 	m_active_line(0),
 	m_selection_bar()
 {
-	init_area(shape_size, panel_color, tex_size);
+	init_area(shape_size, panel_color, texture_size);
 	init_selection();
 	Panel::text(m_title, 0, 0);
 }
@@ -46,7 +46,7 @@ void LinePanel::init_selection(void)
 {
 	const float eps = 1e-4f;
 	const float y0 = 0.0f;
-	const float y1 = shape_size.y * line_height / static_cast<float>(tex_size.y);
+	const float y1 = shape_size.y * line_height / static_cast<float>(texture_size.y);
 
 	const std::vector<Vertex> vertices = {
 		Vertex(glm::vec3(-0.5f * shape_size.x, y0, eps), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(0.0f, 1.0f)),
@@ -83,9 +83,9 @@ bool LinePanel::update_on_interaction(const intersection_t isec, const bool /*pr
 {
 	if (isec.hit)
 	{
-		m_active_line = static_cast<size_t>((1.0f - isec.local.y) * static_cast<float>(tex_size.y) / line_height);
+		m_active_line = static_cast<size_t>((1.0f - isec.local.y) * static_cast<float>(texture_size.y) / line_height);
 
-		const size_t num_lines = tex_size.y / line_height;
+		const size_t num_lines = texture_size.y / line_height;
 		float y = 0.5f * shape_size.y - static_cast<float>(m_active_line + 1) * shape_size.y / static_cast<float>(num_lines);
 
 		// move button icon to cursor position

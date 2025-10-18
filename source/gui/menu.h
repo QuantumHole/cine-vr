@@ -6,6 +6,7 @@
 #define MENU_H
 
 #include "line_panel.h"
+#include "util/openvr_interface.h"
 #include <map>
 
 class Menu
@@ -28,6 +29,7 @@ class Menu
 		glm::mat4 m_hmd_pose;
 		action_t m_focus;
 		bool m_debounce;
+		bool m_playable;
 		std::string m_current_directory;
 
 		void create_button_panel(const std::vector<action_t>& actions);
@@ -46,7 +48,8 @@ class Menu
 		Menu(void);
 		~Menu(void);
 		void init(void);
-		void checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hmd, const bool released, const bool pressed);
+		void set_playable(const bool playable);
+		void checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hmd, const OpenVRInterface::input_state_t& input);
 		void draw(void) const;
 };
 
