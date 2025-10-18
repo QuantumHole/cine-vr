@@ -8,6 +8,7 @@
 #include "action.h"
 #include "opengl/shape.h"
 #include "opengl/texture.h"
+#include "util/openvr_interface.h"
 #include <vector>
 
 class Panel
@@ -51,7 +52,7 @@ class Panel
 		virtual void draw(void) const;
 
 		virtual intersection_t intersection(const glm::mat4& pose) const;
-		virtual bool update_on_interaction(const intersection_t isec, const bool pressed, const bool released);
+		virtual bool update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input);
 };
 
 #endif

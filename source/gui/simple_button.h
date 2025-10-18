@@ -19,7 +19,7 @@ class SimpleButton : public Panel
 		explicit SimpleButton(const action_t action, const std::string& image_name);
 		~SimpleButton(void) override;
 
-		virtual bool update_on_interaction(const Panel::intersection_t isec, const bool pressed, const bool released) override;
+		virtual bool update_on_interaction(const Panel::intersection_t isec, const OpenVRInterface::input_state_t& input) override;
 		virtual void draw(void) const override;
 };
 

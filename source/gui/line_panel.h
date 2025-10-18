@@ -38,7 +38,7 @@ class LinePanel : public Panel
 		void add_line(const std::string& text, const std::string& content, const size_t level = 0);
 		const std::string& get_selection(void) const;
 
-		bool update_on_interaction(const intersection_t isec, const bool pressed, const bool released) override;
+		bool update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input) override;
 		void draw(void) const override;
 };
 

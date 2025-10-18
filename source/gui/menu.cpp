@@ -700,7 +700,7 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 			m_focus = iter->first;
 		}
 
-		if ((m_focus == iter->first) && b->update_on_interaction(isec, input.trigger.button.pressed, input.trigger.button.released))
+		if ((m_focus == iter->first) && b->update_on_interaction(isec, input))
 		{
 			/* actions may change button set.
 			 * Therefore, actions must not be processed,

@@ -14,7 +14,7 @@ class ToggleButton : public SimpleButton
 		explicit ToggleButton(const action_t action, const std::string& image_name, const bool value);
 		~ToggleButton(void) override;
 
-		bool update_on_interaction(const Panel::intersection_t isec, const bool pressed, const bool released) override;
+		bool update_on_interaction(const Panel::intersection_t isec, const OpenVRInterface::input_state_t& input) override;
 		void draw(void) const override;
 
 	private:

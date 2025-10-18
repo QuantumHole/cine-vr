@@ -191,7 +191,7 @@ Panel::intersection_t Panel::intersection(const glm::mat4& pose) const
 	return isec;
 }
 
-bool Panel::update_on_interaction(const intersection_t isec, const bool, const bool released)
+bool Panel::update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input)
 {
-	return released && isec.hit;
+	return input.trigger.button.released && isec.hit;
 }

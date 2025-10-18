@@ -17,7 +17,7 @@ class SlideButton : public SimpleButton
 		~SlideButton(void) override;
 
 		float slide_value(void) const;
-		bool update_on_interaction(const Panel::intersection_t isec, const bool pressed, const bool released) override;
+		bool update_on_interaction(const Panel::intersection_t isec, const OpenVRInterface::input_state_t& input) override;
 		void draw(void) const override;
 
 	private:

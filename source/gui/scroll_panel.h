@@ -22,7 +22,7 @@ class ScrollPanel : public Panel
 
 		virtual void draw(void) const override;
 
-		virtual bool update_on_interaction(const intersection_t isec, const bool pressed, const bool released) override;
+		virtual bool update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input) override;
 };
 
 #endif

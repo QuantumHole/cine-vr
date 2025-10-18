@@ -15,9 +15,9 @@ ToggleButton::~ToggleButton(void)
 {
 }
 
-bool ToggleButton::update_on_interaction(const Panel::intersection_t isec, const bool, const bool released)
+bool ToggleButton::update_on_interaction(const Panel::intersection_t isec, const OpenVRInterface::input_state_t& input)
 {
-	if (released && isec.hit)
+	if (input.trigger.button.released && isec.hit)
 	{
 		m_active = !m_active;
 		return true;

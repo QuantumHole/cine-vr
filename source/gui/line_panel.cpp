@@ -79,7 +79,7 @@ void LinePanel::draw(void) const
 	}
 }
 
-bool LinePanel::update_on_interaction(const intersection_t isec, const bool /*pressed*/, const bool released)
+bool LinePanel::update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input)
 {
 	if (isec.hit)
 	{
@@ -97,7 +97,7 @@ bool LinePanel::update_on_interaction(const intersection_t isec, const bool /*pr
 		m_active_line = 1 + m_lines.size();  // count title line
 	}
 
-	return released && isec.hit;
+	return input.trigger.button.released && isec.hit;
 }
 
 void LinePanel::add_line(const std::string& text, const std::string& content, const size_t level)

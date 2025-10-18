@@ -51,9 +51,9 @@ float SlideButton::slide_value(void) const
 	return m_slide_pos;
 }
 
-bool SlideButton::update_on_interaction(const Panel::intersection_t isec, const bool pressed, const bool released)
+bool SlideButton::update_on_interaction(const Panel::intersection_t isec, const OpenVRInterface::input_state_t& input)
 {
-	if (isec.hit && pressed && !m_active)
+	if (isec.hit && input.trigger.button.pressed && !m_active)
 	{
 		m_slide_last = m_slide_pos;
 
@@ -65,12 +65,12 @@ bool SlideButton::update_on_interaction(const Panel::intersection_t isec, const 
 		m_slidebar.set_transform(shifted_pose);
 		m_active = true;
 	}
-	else if (!pressed && m_active)
+	else if (!input.trigger.button.pressed && m_active)
 	{
 		shape().set_transform(Panel::pose());
 		m_active = false;
 	}
-	else if (pressed && m_active)
+	else if (input.trigger.button.pressed && m_active)
 	{
 		float y = isec.local.y;
 		y = (y * m_button_size.y) - 0.5f * m_button_size.y;    // global position
@@ -91,7 +91,7 @@ bool SlideButton::update_on_interaction(const Panel::intersection_t isec, const 
 		return true;
 	}
 
-	return released && isec.hit;
+	return input.trigger.button.released && isec.hit;
 }
 
 void SlideButton::draw(void) const

@@ -36,7 +36,7 @@ void ScrollPanel::draw(void) const
 	shader().set_uniform("texture_scale", glm::vec2(1.0f, 1.0f));
 }
 
-bool ScrollPanel::update_on_interaction(const intersection_t isec, const bool, const bool released)
+bool ScrollPanel::update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input)
 {
-	return released && isec.hit;
+	return input.trigger.button.released && isec.hit;
 }
