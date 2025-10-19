@@ -13,7 +13,7 @@ Panel::Panel(const action_t action) :
 	m_shape(),
 	m_texture(),
 	m_pose(1.0f),
-	m_shape_size(3.0f, 5.0f),
+	m_shape_size(0.0f, 0.0f),
 	m_tex_size(0, 0),
 	m_action(action)
 {

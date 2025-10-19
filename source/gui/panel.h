@@ -46,7 +46,7 @@ class Panel
 		virtual ~Panel(void);
 
 		void init_area(const glm::vec2& shape_size, const glm::vec4& color, const glm::uvec2& tex_size);
-		void set_transform(const glm::mat4& pose);
+		virtual void set_transform(const glm::mat4& pose);
 		void clear(void);
 		void text(const std::string& text, const int32_t x = 0, const int32_t y = 0) const;
 		virtual void draw(void) const;

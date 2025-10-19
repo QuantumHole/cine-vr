@@ -24,9 +24,10 @@ class LinePanel : public Panel
 		const std::string m_title;
 		std::vector<line_entry_t> m_lines;
 		size_t m_active_line;
+		Panel m_title_bar;
 		Shape m_selection_bar;
 
-		void init_selection(void);
+		void init_text_bar(Shape& bar);
 
 	protected:
 
@@ -34,9 +35,11 @@ class LinePanel : public Panel
 		explicit LinePanel(const action_t action, const std::string& title);
 		~LinePanel(void) override;
 
+		void set_transform(const glm::mat4& pose) override;
+
 		void clear(void);
 		void add_line(const std::string& text, const std::string& content, const size_t level = 0);
-		const std::string& get_selection(void) const;
+		const std::string get_selection(void) const;
 
 		bool update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input) override;
 		void draw(void) const override;

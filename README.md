@@ -17,25 +17,25 @@ Some debug information is printed to the console.
 
 ## Runtime Dependencies
 * [OpenGL](https://www.opengl.org)
-* [GLFW](https://www.glfw.org/)
-* [GLEW](https://www.opengl.org/sdk/libs/GLEW/)
+* [GLFW](https://www.glfw.org)
+* [GLEW](https://www.opengl.org/sdk/libs/GLEW)
 * [OpenVR](https://github.com/ValveSoftware/openvr)
 * [libpng](https://www.libpng.org/pub/png/libpng.html)
-* [libjpeg](https://jpegclub.org/reference/reference-sources/)
+* [libjpeg](https://jpegclub.org/reference/reference-sources)
 * [FreeType2](https://freetype.org/index.html)
 
 ## Build Dependencies
 
-* gcc or clang
-* make
-* image magick
-* pkg-config
-* bc
+* [gcc](https://gcc.gnu.org) or [clang](https://clang.llvm.org)
+* [GNU make](https://www.gnu.org/software/make)
+* [image magick](https://imagemagick.org)
+* [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config)
+* [bc](https://www.gnu.org/software/bc/manual/html_mono/bc.html)
 
 ## Lint Dependencies
 
-* uncrustify
-* reuse
+* [uncrustify](https://github.com/uncrustify/uncrustify)
+* [reuse](https://reuse.software)
 
 # Building
 

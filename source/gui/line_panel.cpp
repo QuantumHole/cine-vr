@@ -17,11 +17,16 @@ LinePanel::LinePanel(const action_t action, const std::string& title) :
 	m_title(title),
 	m_lines(),
 	m_active_line(0),
+	m_title_bar(ACTION_NONE),
 	m_selection_bar()
 {
 	init_area(shape_size, panel_color, texture_size);
-	init_selection();
-	Panel::text(m_title, 0, 0);
+
+	const glm::vec2 title_size(shape_size.x, line_height * shape_size.x / static_cast<float>(texture_size.x));
+	m_title_bar.init_area(title_size, panel_color, glm::uvec2(texture_size.x, line_height));
+	m_title_bar.text(m_title, 0, 0);
+
+	init_text_bar(m_selection_bar);
 }
 
 LinePanel::~LinePanel(void)
@@ -29,20 +34,33 @@ LinePanel::~LinePanel(void)
 	m_selection_bar.remove();
 }
 
+void LinePanel::set_transform(const glm::mat4& pose)
+{
+	// move title bar above selection panel
+	const float y = 0.5f * shape_size.y + line_height * shape_size.x / static_cast<float>(texture_size.x);
+	glm::mat4 shifted_pose = glm::translate(pose, glm::vec3(0.0f, y, 0.0f));
+
+	m_title_bar.set_transform(shifted_pose);
+
+	Panel::set_transform(pose);
+}
+
 void LinePanel::clear(void)
 {
 	m_lines.clear();
 	Panel::clear();
-	Panel::text(m_title, 0, 0);
 }
 
-const std::string& LinePanel::get_selection(void) const
+const std::string LinePanel::get_selection(void) const
 {
-	// ignore title line
-	return m_lines.at(m_active_line - 1).content;
+	if (m_active_line < m_lines.size())
+	{
+		return m_lines.at(m_active_line).content;
+	}
+	return "";
 }
 
-void LinePanel::init_selection(void)
+void LinePanel::init_text_bar(Shape& bar)
 {
 	const float eps = 1e-4f;
 	const float y0 = 0.0f;
@@ -60,11 +78,13 @@ void LinePanel::init_selection(void)
 		0, 3, 1,
 	};
 
-	m_selection_bar.init_vertices(vertices, indices, GL_TRIANGLES);
+	bar.init_vertices(vertices, indices, GL_TRIANGLES);
 }
 
 void LinePanel::draw(void) const
 {
+	m_title_bar.draw();
+
 	shader().set_uniform("background", true);
 
 	texture().bind();
@@ -73,7 +93,7 @@ void LinePanel::draw(void) const
 
 	shader().set_uniform("background", false);
 
-	if ((m_active_line > 0) && (m_active_line < 1 + m_lines.size()))
+	if (m_active_line < m_lines.size())
 	{
 		m_selection_bar.draw();
 	}
@@ -88,13 +108,13 @@ bool LinePanel::update_on_interaction(const intersection_t isec, const OpenVRInt
 		const size_t num_lines = texture_size.y / line_height;
 		float y = 0.5f * shape_size.y - static_cast<float>(m_active_line + 1) * shape_size.y / static_cast<float>(num_lines);
 
-		// move button icon to cursor position
+		// move selection bar to cursor position
 		glm::mat4 shifted_pose = glm::translate(Panel::pose(), glm::vec3(0.0f, y, 0.0f));
 		m_selection_bar.set_transform(shifted_pose);
 	}
 	else
 	{
-		m_active_line = 1 + m_lines.size();  // count title line
+		m_active_line = m_lines.size();
 	}
 
 	return input.trigger.button.released && isec.hit;
@@ -108,7 +128,7 @@ void LinePanel::add_line(const std::string& text, const std::string& content, co
 		level
 	};
 
-	Panel::text(text, static_cast<int32_t>(level * level_offset), static_cast<int32_t>((1 + m_lines.size()) * line_height));
+	Panel::text(text, static_cast<int32_t>(level * level_offset), static_cast<int32_t>(m_lines.size() * line_height));
 	m_lines.push_back(entry);
-	m_active_line = 1 + m_lines.size();    // no active selected line, count title line
+	m_active_line = m_lines.size();    // no active selected line, count title line
 }

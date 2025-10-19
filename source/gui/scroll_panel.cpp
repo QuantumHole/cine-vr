@@ -7,6 +7,7 @@
 
 #include <stdexcept>
 #include <algorithm>
+#include <iostream>
 
 ScrollPanel::ScrollPanel(const action_t action) :
 	Panel(action),
@@ -38,5 +39,32 @@ void ScrollPanel::draw(void) const
 
 bool ScrollPanel::update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input)
 {
-	return input.trigger.button.released && isec.hit;
+	const float length = glm::length(input.pad.position);
+
+	if (isec.hit && (length > 0.5f))
+	{
+		std::cout << "scrolling panel" << std::endl;
+		const glm::uvec2& ts = tex_size();
+
+		if (input.pad.position.x > 0.5f)
+		{
+			m_tex_offset.x = std::min(m_tex_offset.x + 1, ts.x - m_tex_view.x);
+		}
+		else if ((input.pad.position.x < -0.5f) && (m_tex_offset.x > 0))
+		{
+			m_tex_offset.x--;
+		}
+
+		if (input.pad.position.y > 0.5f)
+		{
+			m_tex_offset.y = std::min(m_tex_offset.y + 1, ts.y - m_tex_view.y);
+		}
+		else if ((input.pad.position.y < -0.5f) && (m_tex_offset.y > 0))
+		{
+			m_tex_offset.y--;
+		}
+	}
+
+	// return input.trigger.button.released && isec.hit;
+	return false;
 }
