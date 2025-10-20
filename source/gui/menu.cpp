@@ -75,7 +75,7 @@ void Menu::list_directories(LinePanel& panel) const
 	FileSystem fs;
 	std::vector<std::string> entries = fs.split_path(m_current_directory);
 
-	panel.clear();
+	panel.clear_lines();
 
 	size_t i = 0;
 	for (std::vector<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); ++iter)
@@ -91,6 +91,7 @@ void Menu::list_directories(LinePanel& panel) const
 		const std::string full = m_current_directory + "/" + *iter;
 		panel.add_line(*iter, full, i);
 	}
+	panel.render_lines();
 }
 
 void Menu::list_files(LinePanel& panel) const
@@ -98,13 +99,14 @@ void Menu::list_files(LinePanel& panel) const
 	FileSystem fs;
 	std::set<std::string> entries = fs.file_names(m_current_directory);
 
-	panel.clear();
+	panel.clear_lines();
 
 	for (std::set<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); iter++)
 	{
 		const std::string full = m_current_directory + "/" + *iter;
 		panel.add_line(*iter, full, 0);
 	}
+	panel.render_lines();
 }
 
 void Menu::create_points(void)

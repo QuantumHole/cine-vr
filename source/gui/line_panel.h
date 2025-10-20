@@ -6,11 +6,11 @@
 #define LINE_PANEL_H
 
 #include "action.h"
-#include "panel.h"
+#include "scroll_panel.h"
 #include <vector>
 #include <string>
 
-class LinePanel : public Panel
+class LinePanel : public ScrollPanel
 {
 	private:
 		typedef struct
@@ -37,8 +37,10 @@ class LinePanel : public Panel
 
 		void set_transform(const glm::mat4& pose) override;
 
-		void clear(void);
+		void clear_lines(void);
 		void add_line(const std::string& text, const std::string& content, const size_t level = 0);
+		void render_lines(void);
+
 		const std::string get_selection(void) const;
 
 		bool update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input) override;

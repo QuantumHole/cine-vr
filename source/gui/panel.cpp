@@ -137,9 +137,16 @@ void Panel::draw(void) const
 {
 	shader().set_uniform("background", true);
 
-	m_texture.bind();
+	if (m_tex_size.x && m_tex_size.y)
+	{
+		m_texture.bind();
+	}
 	m_shape.draw();
-	m_texture.unbind();
+
+	if (m_tex_size.x && m_tex_size.y)
+	{
+		m_texture.unbind();
+	}
 
 	shader().set_uniform("background", false);
 }

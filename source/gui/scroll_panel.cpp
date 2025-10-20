@@ -21,15 +21,23 @@ void ScrollPanel::set_view_size(const glm::uvec2& view)
 	m_tex_view = view;
 }
 
+const glm::uvec2& ScrollPanel::texture_offset(void) const
+{
+	return m_tex_offset;
+}
+
 void ScrollPanel::draw(void) const
 {
 	const glm::uvec2& ts = tex_size();
 
-	glm::vec2 offset(m_tex_offset.x / ts.x, m_tex_offset.y / ts.y);
-	glm::vec2 scale(m_tex_view.x / ts.x, m_tex_view.y / ts.y);
+	if (ts.x && ts.y)
+	{
+		glm::vec2 offset = glm::vec2(m_tex_offset) / glm::vec2(ts);
+		glm::vec2 scale  = glm::vec2(m_tex_view) / glm::vec2(ts);
 
-	shader().set_uniform("texture_offset", offset);
-	shader().set_uniform("texture_scale", scale);
+		shader().set_uniform("texture_offset", offset);
+		shader().set_uniform("texture_scale", scale);
+	}
 
 	Panel::draw();
 
@@ -43,7 +51,6 @@ bool ScrollPanel::update_on_interaction(const intersection_t isec, const OpenVRI
 
 	if (isec.hit && (length > 0.5f))
 	{
-		std::cout << "scrolling panel" << std::endl;
 		const glm::uvec2& ts = tex_size();
 
 		if (input.pad.position.x > 0.5f)
@@ -55,16 +62,15 @@ bool ScrollPanel::update_on_interaction(const intersection_t isec, const OpenVRI
 			m_tex_offset.x--;
 		}
 
-		if (input.pad.position.y > 0.5f)
-		{
-			m_tex_offset.y = std::min(m_tex_offset.y + 1, ts.y - m_tex_view.y);
-		}
-		else if ((input.pad.position.y < -0.5f) && (m_tex_offset.y > 0))
+		if ((input.pad.position.y > 0.5f) && (m_tex_offset.y > 0))
 		{
 			m_tex_offset.y--;
 		}
+		else if (input.pad.position.y < -0.5f)
+		{
+			m_tex_offset.y = std::min(m_tex_offset.y + 1, ts.y - m_tex_view.y);
+		}
 	}
 
-	// return input.trigger.button.released && isec.hit;
 	return false;
 }

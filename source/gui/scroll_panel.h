@@ -14,6 +14,7 @@ class ScrollPanel : public Panel
 		glm::uvec2 m_tex_view;
 
 	protected:
+		const glm::uvec2& texture_offset(void) const;
 
 	public:
 		explicit ScrollPanel(const action_t action);
