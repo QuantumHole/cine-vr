@@ -47,6 +47,9 @@ class Menu
 	public:
 		Menu(void);
 		~Menu(void);
+
+		bool active(void) const;
+
 		void init(void);
 		void set_playable(const bool playable);
 		void checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hmd, const OpenVRInterface::input_state_t& input);

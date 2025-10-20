@@ -10,8 +10,9 @@ Cine-VR is a small project to check out some mechanisms in OpenGL and OpenVR.
 It renders a single image into HMD stereoscopically.
 It also shows the left eye view in a companion window on the desktop.
 It demonstrates handling of a menu structure.
+To achieve this, the most basic graphical elements for user interactions had to be implemented from scratch.
+These elements contain simple and toggle buttons, slideable gauges as well as scrollable text boxes.
 Users can configure some display options via the OpenVR controller.
-Some debug information is printed to the console.
 
 # Dependencies
 

@@ -279,7 +279,7 @@ int main(void)
 		const OpenVRInterface::input_state_t& input_state = g_vr.read_input();
 		float length = glm::length(input_state.pad.position);
 
-		if (length > 0.5f)
+		if (!g_menu.active() && (length > 0.5f))
 		{
 			const glm::vec2 step = input_state.pad.position * 0.01f / length;
 			const float cx = cosf(step.x);

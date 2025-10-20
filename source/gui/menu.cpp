@@ -38,6 +38,11 @@ Menu::~Menu(void)
 	}
 }
 
+bool Menu::active(void) const
+{
+	return m_submenu != MENU_NONE;
+}
+
 void Menu::init(void)
 {
 	create_points();
