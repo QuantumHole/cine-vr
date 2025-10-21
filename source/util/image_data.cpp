@@ -12,11 +12,10 @@
 #include <jpeglib.h>
 #include <math.h>
 
-ImageFile::ImageFile(const std::string& file_name, const bool flip_y) :
+ImageFile::ImageFile(const std::string& file_name) :
 	m_width(0),
 	m_height(0),
 	m_bits_per_pixel(0),
-	m_line_size(0),
 	m_pixels()
 {
 	if (file_name.empty())
@@ -46,25 +45,6 @@ ImageFile::ImageFile(const std::string& file_name, const bool flip_y) :
 	{
 		throw std::runtime_error("unknown image format");
 	}
-
-	if (flip_y)
-	{
-		flip();
-	}
-}
-
-ImageFile::ImageFile(const size_t width, const size_t height, const size_t line_size, const uint8_t* data) :
-	m_width(static_cast<uint32_t>(width)),
-	m_height(static_cast<uint32_t>(height)),
-	m_bits_per_pixel(static_cast<uint16_t>(width ? (8 * (line_size / width)) : 0)),
-	m_line_size(line_size),
-	m_pixels(height * line_size)
-{
-	if (data)
-	{
-		m_pixels.assign(data, data + m_pixels.size());
-		// memcpy((m_pixels.data()), data, m_pixels.size());
-	}
 }
 
 const std::vector<uint8_t>& ImageFile::pixels(void) const
@@ -82,76 +62,9 @@ uint32_t ImageFile::height(void) const
 	return m_height;
 }
 
-bool ImageFile::has_alpha_channel(void) const
+size_t ImageFile::bpp(void) const
 {
-	return m_bits_per_pixel == 32;
-}
-
-void ImageFile::flip(void)
-{
-	/* OpenGL addresses texture coordinates from bottom up.
-	 * Images are usually encoded from top down.
-	 * Thus, we need to flip the image vertically, so it is displayed upright.
-	 */
-	const size_t row_size = m_width * m_bits_per_pixel / 8;
-
-	for (size_t i = 0; i < m_height / 2; i++)
-	{
-		const size_t row = m_height - i - 1;
-		std::vector<uint8_t> buffer;
-		std::vector<uint8_t>::iterator iter_s1 = m_pixels.begin() + static_cast<std::ptrdiff_t>(i * row_size);
-		std::vector<uint8_t>::iterator iter_s2 = m_pixels.begin() + static_cast<std::ptrdiff_t>((i + 1) * row_size);
-		std::vector<uint8_t>::iterator iter_e  = m_pixels.begin() + static_cast<std::ptrdiff_t>(row * row_size);
-
-		buffer.assign(iter_s1, iter_s2);
-		memmove(&(*iter_s1), &(*iter_e), row_size);
-		memmove(&(*iter_e), &(*buffer.cbegin()), row_size);
-	}
-}
-
-void ImageFile::paste(const ImageFile& frame, const size_t x, const size_t y)
-{
-	for (size_t fy = 0; fy < frame.m_height; fy++)
-	{
-		for (size_t fx = 0; fx < frame.m_width; fx++)
-		{
-			const size_t findex = fy * frame.m_line_size + (fx * 3);
-			const size_t index = ((y + fy) * m_line_size) + (x * 3);
-
-			if (index >= m_height * m_line_size)
-			{
-				continue;
-			}
-			m_pixels[index] = frame.m_pixels[findex];
-			m_pixels[index + 1] = frame.m_pixels[findex + 1];
-			m_pixels[index + 2] = frame.m_pixels[findex + 2];
-		}
-	}
-}
-
-void ImageFile::mix(const uint8_t r, const uint8_t g, const uint8_t b, const float frac)
-{
-	for (size_t i = 0; i < m_pixels.size(); i +=  m_bits_per_pixel / 8)
-	{
-		m_pixels[i + 0] = static_cast<uint8_t>(static_cast<float>(m_pixels[i + 0]) * (1.0f - frac) + static_cast<float>(r) * frac);
-		m_pixels[i + 1] = static_cast<uint8_t>(static_cast<float>(m_pixels[i + 1]) * (1.0f - frac) + static_cast<float>(g) * frac);
-		m_pixels[i + 2] = static_cast<uint8_t>(static_cast<float>(m_pixels[i + 2]) * (1.0f - frac) + static_cast<float>(b) * frac);
-	}
-}
-
-void ImageFile::greyscale(void)
-{
-	for (size_t i = 0; i < m_pixels.size(); i +=  m_bits_per_pixel / 8)
-	{
-		const uint8_t c = static_cast<uint8_t>(sqrtf(static_cast<float>(
-														 m_pixels[i + 0] * m_pixels[i + 0] +
-														 m_pixels[i + 1] * m_pixels[i + 1] +
-														 m_pixels[i + 2] * m_pixels[i + 2]
-														 )) / 3.0f);
-		m_pixels[i + 0] = c;
-		m_pixels[i + 1] = c;
-		m_pixels[i + 2] = c;
-	}
+	return m_bits_per_pixel;
 }
 
 void ImageFile::load_bmp(const std::string& file_name)
@@ -392,6 +305,12 @@ void ImageFile::load_png(const std::string& file_name)
 	}
 
 	png_read_image(png, &row_pointers[0]);
+
+	/* read updated info */
+	bit_depth = png_get_bit_depth(png, info);
+	channels = png_get_channels(png, info);
+	m_bits_per_pixel = static_cast<uint16_t>(bit_depth * channels);
+
 	fclose(fp);
 }
 
