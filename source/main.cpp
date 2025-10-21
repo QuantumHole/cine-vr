@@ -45,6 +45,56 @@ static Shape g_canvas;
 static Texture g_image;
 static glm::vec3 g_hmd_reference_pos;
 static glm::quat g_hmd_reference_rot;
+static std::string g_current_file_name = "";
+
+static std::string make_absolute(const std::string& relative)
+{
+	FileSystem fs;
+	const std::string current = fs.current_directory();
+	std::vector<std::string> sc = fs.split_path(current);
+	std::vector<std::string> sr = fs.split_path(relative);
+
+	sc.insert(sc.end(), sr.begin(), sr.end());
+	return fs.join_path(sc.begin(), sc.end());
+}
+
+static std::string file_step(const int32_t step)
+{
+	FileSystem fs;
+	std::vector<std::string> path = fs.split_path(g_current_file_name);
+	const std::string current_dir = fs.join_path(path.begin(), path.end() - 1);
+	const std::string current_file = path[path.size() - 1];
+	std::set<std::string> files = fs.file_names(current_dir);
+	std::set<std::string>::const_iterator iter = files.find(current_file);
+
+	if (iter == files.end())
+	{
+		return g_current_file_name;
+	}
+
+	if ((step < 0) && (iter == files.begin()))
+	{
+		return g_current_file_name;
+	}
+
+	if (step > 0)
+	{
+		iter++;
+	}
+	else if (step < 0)
+	{
+		iter--;
+	}
+
+	if (iter == files.end())
+	{
+		return g_current_file_name;
+	}
+
+	path[path.size() - 1] = *iter;
+
+	return fs.join_path(path.begin(), path.end());
+}
 
 void quit(void)
 {
@@ -69,10 +119,16 @@ void player_play(void)
 
 void player_previous(void)
 {
+	const std::string file_name = file_step(-1);
+
+	player_open_file(file_name);
 }
 
 void player_next(void)
 {
+	const std::string file_name = file_step(1);
+
+	player_open_file(file_name);
 }
 
 void player_open_file(const std::string& file_name)
@@ -93,6 +149,7 @@ void player_open_file(const std::string& file_name)
 	{
 		// g_menu.set_playable(true);
 	}
+	g_current_file_name = file_name;
 }
 
 void player_show_desktop(void)
@@ -267,7 +324,7 @@ int main(void)
 	reset_reference();
 	g_projection.set_stretch(true);
 
-	player_open_file("images/logo-cinevr.png");
+	player_open_file(make_absolute("images/logo-cinevr.png"));
 
 	// main loop
 	while (g_Running)
@@ -314,7 +371,6 @@ int main(void)
 
 		if (input_state.trigger.button.released)
 		{
-			std::cout << "action: trigger" << std::endl;
 			g_vr.haptic(OpenVRInterface::HAPTIC_LEFT);
 			g_vr.haptic(OpenVRInterface::HAPTIC_RIGHT);
 		}

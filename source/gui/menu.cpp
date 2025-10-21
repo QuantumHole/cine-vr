@@ -287,6 +287,8 @@ void Menu::main_menu(void)
 	else
 	{
 		create_button_panel({
+			ACTION_PLAY_PREVIOUS,
+			ACTION_PLAY_NEXT,
 			ACTION_SETTINGS,
 			ACTION_FILE_OPEN,
 			ACTION_POWER
