@@ -213,9 +213,8 @@ void FontRenderer::render_text(const std::string& text,
 
 		if (glyph_index == 0)
 		{
-			std::stringstream s;
-			s << "character not found: " << codepoints[i];
-			throw std::runtime_error(s.str());
+			// replace with a default fallback character
+			codepoints[i] = 0xfffd;
 		}
 
 		/* set transformation */
@@ -246,9 +245,8 @@ void FontRenderer::render_text(const std::string& text,
 
 		if (glyph_index == 0)
 		{
-			std::stringstream s;
-			s << "character not found: " << codepoints[i];
-			throw std::runtime_error(s.str());
+			// replace with a default fallback character
+			codepoints[i] = 0xfffd;
 		}
 
 		/* set transformation */

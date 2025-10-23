@@ -49,6 +49,7 @@ ifeq ($(COMPILER), llvm)
 		-Wno-error=enum-enum-conversion \
 		-Wno-error=disabled-macro-expansion \
 		-Wno-c++98-compat \
+		-Wno-c++98-compat-pedantic \
 
 else ifeq ($(COMPILER), gnu)
 	WARNINGS = \
