@@ -24,6 +24,7 @@ Users can configure some display options via the OpenVR controller.
 * [libpng](https://www.libpng.org/pub/png/libpng.html)
 * [libjpeg](https://jpegclub.org/reference/reference-sources)
 * [FreeType2](https://freetype.org/index.html)
+* [libmpv](https://mpv.io)
 
 ## Build Dependencies
 

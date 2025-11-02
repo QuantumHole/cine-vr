@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 PROJECT_ROOT := .
-DEPENDENCIES = "glfw3 openvr glew libpng libjpeg freetype2"
+DEPENDENCIES = "glfw3 openvr glew libpng libjpeg freetype2 mpv"
 
 include common/cplusplus.mk
 include common/license.mk
@@ -37,6 +37,7 @@ OBJECTS = \
 	$(BUILD_DIR)/font_renderer.o \
 	$(BUILD_DIR)/file_system.o \
 	$(BUILD_DIR)/scroll_panel.o \
+	$(BUILD_DIR)/player.o \
 
 IMAGES = \
 	$(IMAGE_DIR)/angle.png \

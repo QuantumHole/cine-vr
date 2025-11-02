@@ -4,20 +4,10 @@
 
 #include <iostream>
 #include <vector>
-#include <string>
-#include <cassert>
-#include <cmath>
+#include <unistd.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-
-#include <openvr.h>
-
-// #define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include "main.h"
 #include "opengl/shader_set.h"
@@ -25,16 +15,24 @@
 #include "util/openvr_interface.h"
 #include "util/enum_iterator.h"
 #include "opengl/shape.h"
+#include "opengl/texture.h"
 #include "gui/controller.h"
 #include "gui/menu.h"
 #include "util/file_system.h"
+#include "player/player.h"
 
-// #define DEBUG_LINE std::cout << "########## " << __FILE__ << "(" << __LINE__ << "): " << __FUNCTION__ << "()" << std::endl
+typedef enum
+{
+	SOURCE_NONE,
+	SOURCE_IMAGE,
+	SOURCE_VIDEO
+}
+source_t;
 
 typedef EnumIterator<vr::Hmd_Eye, vr::Eye_Left, vr::Eye_Right> Eyes;
 
 static bool g_Running = true;
-static GLFWwindow* g_Window = nullptr;
+static GLFWwindow* g_window = nullptr;
 static OpenVRInterface g_vr;
 static ShaderSet g_shaders;
 static std::map<vr::TrackedDeviceIndex_t, Controller> g_controller;
@@ -46,6 +44,15 @@ static Texture g_image;
 static glm::vec3 g_hmd_reference_pos;
 static glm::quat g_hmd_reference_rot;
 static std::string g_current_file_name = "";
+static const float g_jump_step = 10.0f;      // seconds
+static source_t g_source = SOURCE_NONE;
+static Player g_player;
+static glm::uvec2 g_window_size(800, 600);
+
+static void framebuffer_size_callback(GLFWwindow* window __attribute__((unused)), int width, int height)
+{
+	g_window_size = glm::uvec2(width, height);
+}
 
 static std::string make_absolute(const std::string& relative)
 {
@@ -98,23 +105,28 @@ static std::string file_step(const int32_t step)
 
 void quit(void)
 {
+	g_player.close();
 	g_Running = false;
 }
 
 void player_backward(void)
 {
+	g_player.jump(g_jump_step);
 }
 
 void player_forward(void)
 {
+	g_player.jump(-g_jump_step);
 }
 
 void player_pause(void)
 {
+	g_player.pause();
 }
 
 void player_play(void)
 {
+	g_player.play();
 }
 
 void player_previous(void)
@@ -138,16 +150,21 @@ void player_open_file(const std::string& file_name)
 
 	if (fs.is_image(ext))
 	{
+		// g_player.stop();
+		// g_player.close();
 		const glm::uvec2 image_size = g_image.init_image_file(file_name, 0);
 		const float aspect = static_cast<float>(image_size.x) / static_cast<float>(image_size.y);
 		g_image.unbind();
 		set_aspect_ratio(aspect);
 		update_projection();
 		g_menu.set_playable(false);
+		g_source = SOURCE_IMAGE;
 	}
 	else if (fs.is_video(ext))
 	{
-		// g_menu.set_playable(true);
+		g_player.open_file(file_name);
+		g_menu.set_playable(true);
+		g_source = SOURCE_VIDEO;
 	}
 	g_current_file_name = file_name;
 }
@@ -276,6 +293,8 @@ static void setup_hmd(const glm::mat4& hmdPose)
 
 int main(void)
 {
+	const std::string initial_file_name = "images/logo-cinevr.png";
+
 	// GLFW init
 	if (!glfwInit())
 	{
@@ -284,15 +303,17 @@ int main(void)
 	}
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	g_Window = glfwCreateWindow(1280, 720, "Cine-VR", nullptr, nullptr);
+	g_window = glfwCreateWindow(static_cast<int>(g_window_size.x), static_cast<int>(g_window_size.y), "Cine-VR", NULL, NULL);
 
-	if (!g_Window)
+	if (!g_window)
 	{
 		std::cerr << "Failed to create window" << std::endl;
 		glfwTerminate();
 		return -1;
 	}
-	glfwMakeContextCurrent(g_Window);
+	glfwMakeContextCurrent(g_window);
+	glfwSetFramebufferSizeCallback(g_window, framebuffer_size_callback);
+
 	glewExperimental = GL_TRUE;
 
 	if (glewInit() != GLEW_OK)
@@ -300,21 +321,22 @@ int main(void)
 		std::cerr << "GLEW init failed" << std::endl;
 		return -1;
 	}
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Initialize OpenVR
 	g_vr.init();
 	glm::uvec2 render_size = g_vr.render_target_size();
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	for (std::vector<Framebuffer>::iterator iter = g_framebuffer.begin(); iter != g_framebuffer.end(); ++iter)
 	{
 		iter->init(render_size);
 	}
 
-	// create simple shader & geometry
+	// create shaders & geometry
 	g_shaders.load_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
 	g_shaders.set_uniform("background", false);
 	g_shaders.set_uniform("greyscale", false);
@@ -324,7 +346,7 @@ int main(void)
 	reset_reference();
 	g_projection.set_stretch(true);
 
-	player_open_file(make_absolute("images/logo-cinevr.png"));
+	player_open_file(make_absolute(initial_file_name));
 
 	// main loop
 	while (g_Running)
@@ -380,6 +402,12 @@ int main(void)
 			std::cout << "action: trigger: " << input_state.trigger.value << std::endl;
 		}
 
+		g_player.handle_events();
+
+		/* restore transparency */
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 		const glm::mat4 hmdPose = g_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
 		std::set<vr::TrackedDeviceIndex_t> devices = g_vr.devices();
 		for (std::set<vr::TrackedDeviceIndex_t>::const_iterator dev = devices.begin(); dev != devices.end(); ++dev)
@@ -424,17 +452,27 @@ int main(void)
 
 			setup_shader(g_shaders, eye);
 
-			g_image.bind();
-			g_canvas.draw();
-			g_image.unbind();
+			switch (g_source)
+			{
+				case SOURCE_IMAGE:
+					g_image.bind();
+					g_canvas.draw();
+					g_image.unbind();
+					break;
+				case SOURCE_VIDEO:
+					g_player.bind();
+					g_canvas.draw();
+					g_player.unbind();
+					break;
+				default:
+					break;
+			}
 
 			/* reset to monoscopic mode for menu */
 			g_shaders.set_uniform("texture_offset", glm::vec2(0.0f, 0.0f));
 			g_shaders.set_uniform("texture_scale",  glm::vec2(1.0f, 1.0f));
 
-			// glDisable(GL_DEPTH_TEST);                     // always draw transparent objects on top of previously drawn ones
 			g_menu.draw();
-			// glEnable(GL_DEPTH_TEST);
 
 			// For each controller: render simple ray and do intersection with rectangle
 			for (std::map<vr::TrackedDeviceIndex_t, Controller>::const_iterator iter = g_controller.begin(); iter != g_controller.end(); ++iter)
@@ -455,15 +493,15 @@ int main(void)
 		// blit left eye RT to GLFW window for debug
 		int w;
 		int h;
-		glfwGetFramebufferSize(g_Window, &w, &h);
+		glfwGetFramebufferSize(g_window, &w, &h);
 		glViewport(0, 0, w, h);
 		Framebuffer& fb = *g_framebuffer.begin();
 		fb.bind(GL_READ_FRAMEBUFFER);
 		fb.unbind(GL_DRAW_FRAMEBUFFER);
-		glBlitFramebuffer(0, 0, fb.size().x, fb.size().y, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		glBlitFramebuffer(0, 0, fb.size().x, fb.size().y, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		fb.unbind(GL_READ_FRAMEBUFFER);
 
-		glfwSwapBuffers(g_Window);
+		glfwSwapBuffers(g_window);
 
 		// Let compositor run
 		g_vr.handoff();

@@ -86,14 +86,17 @@ void Menu::list_directories(LinePanel& panel) const
 	for (std::vector<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); ++iter)
 	{
 		const std::string full = fs.join_path(entries.begin(), iter + 1);
+
 		panel.add_line(iter->empty() ? full : (*iter), full, i);
 		i++;
 	}
 
+	entries.push_back("");
 	std::set<std::string> dirs = fs.directory_names(m_current_directory);
 	for (std::set<std::string>::const_iterator iter = dirs.begin(); iter != dirs.end(); iter++)
 	{
-		const std::string full = m_current_directory + "/" + *iter;
+		entries[entries.size() - 1] = *iter;
+		const std::string full = fs.join_path(entries.begin(), entries.end());
 		panel.add_line(*iter, full, i);
 	}
 	panel.render_lines();
