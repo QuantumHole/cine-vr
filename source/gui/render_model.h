@@ -6,7 +6,7 @@
 #define RENDER_MODEL_H
 
 #include <string>
-#include <openvr.h>
+#include <openvr/openvr.h>
 #include <GL/glu.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>

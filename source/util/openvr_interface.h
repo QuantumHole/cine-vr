@@ -6,7 +6,7 @@
 #define OPENVR_INTERFACE_H
 
 #include <GL/gl.h>
-#include <openvr.h>
+#include <openvr/openvr.h>
 
 // #define GLM_FORCE_RADIANS
 // #define GLM_FORCE_DEPTH_ZERO_TO_ONE

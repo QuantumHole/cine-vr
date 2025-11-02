@@ -33,6 +33,7 @@ Users can configure some display options via the OpenVR controller.
 * [image magick](https://imagemagick.org)
 * [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config)
 * [bc](https://www.gnu.org/software/bc/manual/html_mono/bc.html)
+* [SDL3](https://wiki.libsdl.org/SDL3/FrontPage)
 
 ## Lint Dependencies
 

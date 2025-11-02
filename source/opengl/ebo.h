@@ -6,7 +6,7 @@
 #define EBO_H
 
 #include <GL/glew.h>
-#include <openvr.h>
+#include <openvr/openvr.h>
 #include <vector>
 
 class EBO

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "enum_iterator.h"
-#include <openvr.h>
+#include <openvr/openvr.h>
 
 template <typename C, C beginVal, C endVal>
 EnumIterator<C, beginVal, endVal>::EnumIterator(const C& f) :

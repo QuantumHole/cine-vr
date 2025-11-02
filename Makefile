@@ -94,5 +94,6 @@ clean-images:
 
 $(IMAGE_DIR)/%.png: $(IMAGE_DIR)/%.svg
 	@echo "[magick] $@"
-	magick -density $$(echo "0.115234375 * 64" | bc -l) -background none $< $@
+	@sed --in-place -e 's/points="[0-9., ]"//g' $<
+	@magick -density $$(echo "0.115234375 * 64" | bc -l) -background none $< $@
 	@# density of 0.115234375 leads to images of 1x1 pixels

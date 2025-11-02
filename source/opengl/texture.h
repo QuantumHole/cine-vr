@@ -6,7 +6,7 @@
 #define TEXTURE_H
 
 #include <GL/glew.h> // must be included before glcanvas.h
-#include <openvr.h>
+#include <openvr/openvr.h>
 #include <SDL3/SDL_surface.h>
 #include <string>
 #include <glm/glm.hpp>

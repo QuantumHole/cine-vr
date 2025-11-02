@@ -7,7 +7,7 @@
 
 #include <GL/glew.h>
 #include <vector>
-#include <openvr.h>
+#include <openvr/openvr.h>
 
 #include "vertex.h"
 

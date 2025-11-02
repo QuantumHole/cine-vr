@@ -68,23 +68,22 @@ void Player::handle_events(void)
 				break;
 			case MPV_EVENT_FILE_LOADED:
 				break;
-// case MPV_EVENT_END_FILE:
-// {
-// mpv_event_end_file* msg = static_cast<mpv_event_end_file*>(event->data);
-//
-// if (msg->reason == MPV_END_FILE_REASON_ERROR)
-// {
-// std::cout << "player thread stopped with error" << std::endl;
-// return;
-// }
-//
-// if (msg->reason == MPV_END_FILE_REASON_EOF)
-// {
-// std::cout << "player reached end of file" << std::endl;
-// m_quit = true;
-// }
-// }
-// break;
+			case MPV_EVENT_END_FILE:
+			{
+				mpv_event_end_file* msg = static_cast<mpv_event_end_file*>(event->data);
+
+				if (msg->reason == MPV_END_FILE_REASON_ERROR)
+				{
+					std::cout << "player thread stopped with error" << std::endl;
+				}
+				else if (msg->reason == MPV_END_FILE_REASON_EOF)
+				{
+					std::cout << "player reached end of file" << std::endl;
+				}
+				mpv_terminate_destroy(m_context);
+				return;
+			}
+			// break;
 			case MPV_EVENT_AUDIO_RECONFIG:
 				break;
 			case MPV_EVENT_VIDEO_RECONFIG:
@@ -99,20 +98,23 @@ void Player::handle_events(void)
 				m_size.y = static_cast<GLuint>(height);
 				std::cout << "player video reconfiguration: " << m_size.x << " x " << m_size.y << std::endl;
 
-				// Framebuffer for Video Target - Video Texture
-				glGenFramebuffers(1, &m_framebuffer);
-				glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
-				// create a color attachment texture
-				glGenTextures(1, &m_video_texture);
-				glBindTexture(GL_TEXTURE_2D, m_video_texture);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, static_cast<GLsizei>(m_size.x), static_cast<GLsizei>(m_size.y), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_video_texture, 0);
-
-				if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+				if (width && height)
 				{
-					std::cout << "failed creating framebuffer" << std::endl;
+					// Framebuffer for Video Target - Video Texture
+					glGenFramebuffers(1, &m_framebuffer);
+					glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+					// create a color attachment texture
+					glGenTextures(1, &m_video_texture);
+					glBindTexture(GL_TEXTURE_2D, m_video_texture);
+					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, static_cast<GLsizei>(m_size.x), static_cast<GLsizei>(m_size.y), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_video_texture, 0);
+
+					if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+					{
+						std::cout << "failed creating framebuffer" << std::endl;
+					}
 				}
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}

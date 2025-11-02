@@ -4,7 +4,7 @@
 
 #include "shape.h"
 #include <stdexcept>
-#include <openvr.h>
+#include <openvr/openvr.h>
 #include <chrono>
 #include <thread>
 #include <sstream>
