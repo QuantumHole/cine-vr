@@ -43,7 +43,9 @@ class Player
 		void pause(void);
 		void stop(void);
 		void jump(const float step);
+		void set_volume(const float vol);
 		float playtime(void) const;
+		float volume(void) const;
 
 		void handle_events(void);
 		void bind(void) const;

@@ -6,6 +6,7 @@
 #include "player.h"
 #include <iostream>
 #include <vector>
+#include <sstream>
 #include <mpv/render_gl.h>
 #include <GLFW/glfw3.h>
 
@@ -36,7 +37,10 @@ Player::Player(void) :
 
 Player::~Player(void)
 {
-	mpv_terminate_destroy(m_context);
+	if (m_context)
+	{
+		mpv_terminate_destroy(m_context);
+	}
 	m_context = nullptr;
 }
 
@@ -51,6 +55,11 @@ void Player::on_render_update(void* ctx __attribute__((unused)))
 
 void Player::handle_events(void)
 {
+	if (!m_context)
+	{
+		return;
+	}
+
 	/* handle all sorts of MPV events.
 	 * A list of all properties is available at https://mpv.io/manual/master/#properties
 	 * A list of all event types is available at https://mpv.io/manual/master/#list-of-events
@@ -81,6 +90,7 @@ void Player::handle_events(void)
 					std::cout << "player reached end of file" << std::endl;
 				}
 				mpv_terminate_destroy(m_context);
+				m_context = nullptr;
 				return;
 			}
 			// break;
@@ -203,6 +213,10 @@ void Player::handle_events(void)
 
 void Player::set_option(const std::string& key, const std::string& value) const
 {
+	if (!m_context)
+	{
+		return;
+	}
 	const int status = mpv_set_option_string(m_context, key.c_str(), value.c_str());
 
 	if (status < 0)
@@ -213,6 +227,16 @@ void Player::set_option(const std::string& key, const std::string& value) const
 
 void Player::open_file(const std::string& file_name)
 {
+	if (!m_context)
+	{
+		m_context = mpv_create();
+	}
+
+	if (!m_context)
+	{
+		throw std::runtime_error("failed creating context");
+	}
+
 	if (mpv_initialize(m_context) < MPV_ERROR_SUCCESS)
 	{
 		mpv_destroy(m_context);
@@ -286,6 +310,11 @@ void Player::play(void)
 
 void Player::pause(void)
 {
+	if (!m_context)
+	{
+		return;
+	}
+
 	int pause_value = 1;
 
 	mpv_set_property(m_context, "pause", MPV_FORMAT_FLAG, &pause_value);
@@ -294,13 +323,30 @@ void Player::pause(void)
 
 void Player::stop(void)
 {
+	if (!m_context)
+	{
+		return;
+	}
 	mpv_set_property(m_context, "stop", MPV_FORMAT_STRING, nullptr);
 	std::cout << "player stop" << std::endl;
 }
 
 void Player::jump(const float step)
 {
-	std::cout << "player jumps " << step << std::endl;
+	if (!m_context)
+	{
+		return;
+	}
+	std::stringstream s;
+	s << step;
+	const std::string t = s.str();
+
+	std::vector<const char*> cmd = { "seek", t.c_str(), nullptr };
+
+	if (mpv_command(m_context, cmd.data()) < 0)
+	{
+		throw std::runtime_error("failed loading file.");
+	}
 }
 
 float Player::playtime(void) const
@@ -318,4 +364,14 @@ void Player::unbind(void) const
 {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+float Player::volume(void) const
+{
+	return 0.0f;
+}
+
+void Player::set_volume(const float vol)
+{
+	std::cout << "setting volume: " << vol << std::endl;
 }

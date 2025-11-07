@@ -10,7 +10,7 @@ license-lint:
 	reuse lint
 
 license-annotate:
-	reuse annotate --year $(shell date "+%Y") --copyright $(COPYRIGHT) --license $(LICENSE_CODE) Makefile README.md .gitignore common/*.mk
+	reuse annotate --year $(shell date "+%Y") --copyright $(COPYRIGHT) --license $(LICENSE_CODE) Makefile README.md .gitignore common/*.mk .github/workflows/build.yml
 	reuse annotate --year $(shell date "+%Y") --copyright $(COPYRIGHT) --license $(LICENSE_CODE) --style cpp source/* source/*/* shaders/*.glsl actions/*.json
 	reuse annotate --year $(shell date "+%Y") --copyright $(COPYRIGHT) --license $(LICENSE_CODE) --style python common/*.cfg
 	reuse annotate --year $(shell date "+%Y") --copyright $(COPYRIGHT) --license $(LICENSE_IMAGE) images/*.svg

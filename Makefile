@@ -67,6 +67,7 @@ IMAGES = \
 	$(IMAGE_DIR)/switch-eyes.png \
 	$(IMAGE_DIR)/stretch.png \
 	$(IMAGE_DIR)/window.png \
+	$(IMAGE_DIR)/volume.png \
 	$(IMAGE_DIR)/zoom.png \
 
 all: $(TARGET) $(IMAGES)

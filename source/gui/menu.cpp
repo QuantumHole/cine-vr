@@ -257,6 +257,9 @@ void Menu::create_button_panel(const std::vector<action_t>& actions)
 				case ACTION_PARAM_ZOOM:
 					b = new SlideButton(act, "images/zoom.png", 0.0f, 10.0f, projection().zoom());
 					break;
+				case ACTION_VOLUME:
+					b = new SlideButton(act, "images/volume.png", 0.0f, 1.0f, player().volume());
+					break;
 				default:
 					throw std::runtime_error("invalid button ID");
 			}
@@ -282,6 +285,7 @@ void Menu::main_menu(void)
 			ACTION_PLAY_PLAY,
 			ACTION_PLAY_FORWARD,
 			ACTION_PLAY_NEXT,
+			ACTION_VOLUME,
 			ACTION_SETTINGS,
 			ACTION_FILE_OPEN,
 			ACTION_POWER
@@ -498,10 +502,10 @@ void Menu::handle_button_action(const action_t action)
 			player_next();
 			break;
 		case ACTION_PLAY_PAUSE:
-			player_pause();
+			player().pause();
 			break;
 		case ACTION_PLAY_PLAY:
-			player_play();
+			player().play();
 			break;
 		case ACTION_PLAY_PREVIOUS:
 			player_previous();
@@ -662,6 +666,9 @@ void Menu::handle_button_action(const action_t action)
 		case ACTION_PARAM_ZOOM:
 			projection().set_zoom(dynamic_cast<SlideButton*>(m_panel.find(action)->second)->slide_value());
 			update_projection();
+			break;
+		case ACTION_VOLUME:
+			player().set_volume(dynamic_cast<SlideButton*>(m_panel.find(action)->second)->slide_value());
 			break;
 		default:
 			break;

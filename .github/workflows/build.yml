@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 QuantumHole <QuantumHole@github.com>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 name: C/C++ CI
 
 on:
@@ -15,6 +19,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install dependencies
       run: |
-        sudo apt-get update && sudo apt-get install --quiet --assume-yes gcc clang imagemagick libglfw3-dev libopenvr-dev libmpv-dev libsdl3-dev
+        # libsdl3-dev is only available since Ubuntu plucky, so this will fail on Ubuntu noble and earlier
+        lsb_release -a && sudo apt-get update && sudo apt-get install --assume-yes gcc clang imagemagick libglfw3-dev libopenvr-dev libmpv-dev libsdl3-dev
     - name: make
       run: make compile

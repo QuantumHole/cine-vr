@@ -19,7 +19,6 @@
 #include "gui/controller.h"
 #include "gui/menu.h"
 #include "util/file_system.h"
-#include "player/player.h"
 
 typedef enum
 {
@@ -111,12 +110,12 @@ void quit(void)
 
 void player_backward(void)
 {
-	g_player.jump(g_jump_step);
+	g_player.jump(-g_jump_step);
 }
 
 void player_forward(void)
 {
-	g_player.jump(-g_jump_step);
+	g_player.jump(g_jump_step);
 }
 
 void player_pause(void)
@@ -171,6 +170,11 @@ void player_open_file(const std::string& file_name)
 
 void player_show_desktop(void)
 {
+}
+
+Player& player(void)
+{
+	return g_player;
 }
 
 Projection& projection(void)
@@ -360,15 +364,23 @@ int main(void)
 
 		if (!g_menu.active() && (length > 0.5f))
 		{
-			const glm::vec2 step = input_state.pad.position * 0.01f / length;
-			const float cx = cosf(step.x);
-			const float sx = sinf(step.x);
-			const float cy = cosf(step.y);
-			const float sy = sinf(step.y);
-			const glm::quat rotx(cx, 0.0f, sx, 0.0f);
-			const glm::quat roty(cy, -sy, 0.0f, 0.0f);
+			if ((g_source == SOURCE_VIDEO) && (fabsf(input_state.pad.position.x) > fabsf(input_state.pad.position.y)))
+			{
+				const int sign = static_cast<int>(input_state.pad.position.x / fabsf(input_state.pad.position.x));
+				g_player.jump(static_cast<float>(sign) * g_jump_step);
+			}
+			else
+			{
+				const glm::vec2 step = input_state.pad.position * 0.01f / length;
+				const float cx = cosf(step.x);
+				const float sx = sinf(step.x);
+				const float cy = cosf(step.y);
+				const float sy = sinf(step.y);
+				const glm::quat rotx(cx, 0.0f, sx, 0.0f);
+				const glm::quat roty(cy, -sy, 0.0f, 0.0f);
 
-			g_hmd_reference_rot = rotx * g_hmd_reference_rot * roty;
+				g_hmd_reference_rot = rotx * g_hmd_reference_rot * roty;
+			}
 		}
 
 		if ((length < 0.5f) && input_state.pad.button.released)
@@ -388,6 +400,7 @@ int main(void)
 
 		if (input_state.grip.released)
 		{
+			g_player.pause();
 			std::cout << "action: grip" << std::endl;
 		}
 
