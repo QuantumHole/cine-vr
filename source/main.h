@@ -22,7 +22,6 @@ float player_volume(void);
 void player_set_volume(const float vol);
 Player& player(void);
 Projection& projection(void);
-void set_aspect_ratio(const float aspect);
 void update_projection(void);
 ShaderSet& shader(void);
 

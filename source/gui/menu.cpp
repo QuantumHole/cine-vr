@@ -258,7 +258,7 @@ void Menu::create_button_panel(const std::vector<action_t>& actions)
 					b = new SlideButton(act, "images/zoom.png", 0.0f, 10.0f, projection().zoom());
 					break;
 				case ACTION_VOLUME:
-					b = new SlideButton(act, "images/volume.png", 0.0f, 1.0f, player().volume());
+					b = new SlideButton(act, "images/volume.png", 0.0f, 100.0f, player().volume());
 					break;
 				default:
 					throw std::runtime_error("invalid button ID");

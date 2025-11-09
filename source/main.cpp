@@ -154,7 +154,7 @@ void player_open_file(const std::string& file_name)
 		const glm::uvec2 image_size = g_image.init_image_file(file_name, 0);
 		const float aspect = static_cast<float>(image_size.x) / static_cast<float>(image_size.y);
 		g_image.unbind();
-		set_aspect_ratio(aspect);
+		g_projection.set_aspect(aspect);
 		update_projection();
 		g_menu.set_playable(false);
 		g_source = SOURCE_IMAGE;
@@ -180,11 +180,6 @@ Player& player(void)
 Projection& projection(void)
 {
 	return g_projection;
-}
-
-void set_aspect_ratio(const float aspect)
-{
-	g_projection.set_aspect(aspect);
 }
 
 void update_projection(void)

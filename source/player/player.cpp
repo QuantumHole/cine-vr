@@ -4,6 +4,7 @@
 
 #include <GL/glew.h>
 #include "player.h"
+#include "main.h"
 #include <iostream>
 #include <vector>
 #include <sstream>
@@ -125,6 +126,7 @@ void Player::handle_events(void)
 					{
 						std::cout << "failed creating framebuffer" << std::endl;
 					}
+					projection().set_aspect(static_cast<float>(width) / static_cast<float>(height));
 				}
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
@@ -357,7 +359,7 @@ float Player::playtime(void) const
 void Player::bind(void) const
 {
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_video_texture); // <-- VIDEO Colorbuffer IS THE TEXTURE
+	glBindTexture(GL_TEXTURE_2D, m_video_texture);
 }
 
 void Player::unbind(void) const
