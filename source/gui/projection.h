@@ -70,7 +70,6 @@ class Projection
 		bool m_stretch;
 		bool m_switch_eyes;
 		bool m_mono;
-		bool m_follow_hmd;   /* configured automatically with projection mode */
 
 		std::pair<std::vector<Vertex>, std::vector<GLuint> > setup_projection_flat(void) const;
 		std::pair<std::vector<Vertex>, std::vector<GLuint> > setup_projection_cylinder(void) const;

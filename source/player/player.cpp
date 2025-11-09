@@ -368,10 +368,16 @@ void Player::unbind(void) const
 
 float Player::volume(void) const
 {
-	return 0.0f;
+	double vol = 0.0;
+
+	mpv_get_property(m_context, "ao-volume", MPV_FORMAT_DOUBLE, &vol);
+
+	return static_cast<float>(vol);
 }
 
 void Player::set_volume(const float vol)
 {
 	std::cout << "setting volume: " << vol << std::endl;
+	double vold = static_cast<double>(vol);
+	mpv_set_property(m_context, "ao-volume", MPV_FORMAT_DOUBLE, reinterpret_cast<void*>(&vold));
 }

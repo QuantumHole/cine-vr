@@ -33,6 +33,7 @@
 static const glm::vec4 color_none(0.0f, 0.0f, 0.0f, 0.0f);
 static const float radius = 10.0f;      // minimum distance to screen
 
+/** constructor. */
 Projection::Projection(void) :
 	m_projection(PROJECTION_FLAT),
 	m_tiling(TILE_MONO),
@@ -42,102 +43,146 @@ Projection::Projection(void) :
 	m_details(32),
 	m_stretch(false),
 	m_switch_eyes(false),
-	m_mono(false),
-	m_follow_hmd(false)
+	m_mono(false)
 {
 }
 
+/** set the projection mode.
+ * @param p projection mode.
+ */
 void Projection::set_projection(const video_projection_t p)
 {
 	m_projection = p;
-
-	if ((p == PROJECTION_SPHERE) ||
-	    (p == PROJECTION_FISHEYE) ||
-	    (p == PROJECTION_CUBE_MAP))
-	{
-		m_follow_hmd = true;
-	}
-	else
-	{
-		m_follow_hmd = false;
-	}
 }
 
+/** set the tiling pattern of the source medium.
+ * @param t tiling pattern of the source medium.
+ */
 void Projection::set_tiling(const video_tiling_t t)
 {
 	m_tiling = t;
 }
 
+/** set the angle parameter of the projection.
+ * @param a projection angle given in radians.
+ */
 void Projection::set_angle(const float a)
 {
 	m_angle = a;
 }
 
+/** set the zoom parameter of the projection.
+ * @param z zoom parameter of the projection.
+ */
 void Projection::set_zoom(const float z)
 {
 	m_zoom = z;
 }
 
+/** set the aspect ratio of the source medium.
+ * @param a aspect ratio of the source medium.
+ */
 void Projection::set_aspect(const float a)
 {
 	m_aspect = a;
 }
 
+/** set the flag for stretching the source texture by a factor of 2.
+ * @param s flag for stretching the source texture by a factor of 2.
+ */
 void Projection::set_stretch(const bool s)
 {
 	m_stretch = s;
 }
 
+/** set the flag to switch eyes in stereoscopic projection.
+ * @param e flag to switch eyes in stereoscopic projection.
+ */
 void Projection::set_switch_eyes(const bool e)
 {
 	m_switch_eyes = e;
 }
 
+/** set the flag to force monoscopic projection.
+ * @param m flag to force monoscopic projection.
+ */
 void Projection::set_mono(const bool m)
 {
 	m_mono = m;
 }
 
+/** flag for the target projection mode.
+ * @return flag for the target projection mode.
+ */
 Projection::video_projection_t Projection::projection(void) const
 {
 	return m_projection;
 }
 
+/** flag for the tiling layout of the source medium.
+ * @return flag for the tiling layout of the source medium.
+ */
 Projection::video_tiling_t Projection::tiling(void) const
 {
 	return m_tiling;
 }
 
+/** flag for the viewing angle of the projection.
+ * @return flag for the viewing angle of the projection.
+ */
 float Projection::angle(void) const
 {
 	return m_angle;
 }
 
+/** flag for the offset of the viewer from the projection center.
+ * @return flag for the offset of the viewer from the projection center.
+ */
 float Projection::zoom(void) const
 {
 	return m_zoom;
 }
 
+/** flag for stretching the projection by a factor of 2.
+ * This is sometimes needed for compressed source media, where
+ * both stereoscopic perspectives are stored side by side in a regular monoscopic frame.
+ * @return flag for stretching the projection by a factor of 2.
+ */
 bool Projection::stretch(void) const
 {
 	return m_stretch;
 }
 
+/** flag for following the head-mounted-display (HMD).
+ * This is automatically determined from the configured projection.
+ * @return flag for following the head-mounted-display (HMD).
+ */
 bool Projection::follow_hmd(void) const
 {
-	return m_follow_hmd;
+	return (m_projection == PROJECTION_SPHERE) ||
+	       (m_projection == PROJECTION_FISHEYE) ||
+	       (m_projection == PROJECTION_CUBE_MAP);
 }
 
+/** flag for switched eyes in stereoscopic projection.
+ * @return flag for switched eyes in stereoscopic projection.
+ */
 bool Projection::switch_eyes(void) const
 {
 	return m_switch_eyes;
 }
 
+/** flag for forced monoscopic projection.
+ * @return flag for forced monoscopic projection.
+ */
 bool Projection::mono(void) const
 {
 	return m_mono;
 }
 
+/** map cursor coordinates into texture coordinates.
+ * For stereoscopic mappings, the cursor must be mapped into the primary texture coordinates.
+ */
 void Projection::map_cursor(glm::vec2& mouse) const
 {
 	switch (m_tiling)
@@ -165,7 +210,9 @@ void Projection::map_cursor(glm::vec2& mouse) const
 	}
 }
 
-/* scale factor for unit size with respect to size of projection */
+/** scale factor for unit size with respect to size of projection.
+ * @return scale factor in x- and y-direction to achieve unit length.
+ */
 glm::vec2 Projection::unit_scale(void) const
 {
 	switch (projection())
@@ -187,11 +234,17 @@ glm::vec2 Projection::unit_scale(void) const
 	}
 }
 
+/** configure a flat screen.
+ * The width is determined by the viewing angle.
+ * The height is calculated to keep the aspect ratio fixed.
+ * The zoom adds an additional shift from the screen.
+ * @return vertices and indices for a flat projection.
+ */
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_flat(void) const
 {
 	const float aspect = (m_stretch ? 1.0f : 0.5f) * m_aspect;
-	const float hheight = 0.5f;
-	const float hwidth = hheight * aspect;
+	const float width = tanf(0.25f * m_angle) * radius;
+	const float height = width / aspect;
 	const float screen_distance = radius + m_zoom;
 
 	// 0--1 1
@@ -200,10 +253,10 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 	// 2 2--3
 	std::vector<Vertex> vertdata =
 	{
-		Vertex(glm::vec3(-hwidth,  hheight, -screen_distance), glm::vec3(0.0f, 0.0f, 1.0f), color_none, glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3( hwidth,  hheight, -screen_distance), glm::vec3(0.0f, 0.0f, 1.0f), color_none, glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-hwidth, -hheight, -screen_distance), glm::vec3(0.0f, 0.0f, 1.0f), color_none, glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3( hwidth, -hheight, -screen_distance), glm::vec3(0.0f, 0.0f, 1.0f), color_none, glm::vec2(1.0f, 1.0f))
+		Vertex(glm::vec3(-width,  height, -screen_distance), glm::vec3(0.0f, 0.0f, 1.0f), color_none, glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3( width,  height, -screen_distance), glm::vec3(0.0f, 0.0f, 1.0f), color_none, glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-width, -height, -screen_distance), glm::vec3(0.0f, 0.0f, 1.0f), color_none, glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3( width, -height, -screen_distance), glm::vec3(0.0f, 0.0f, 1.0f), color_none, glm::vec2(1.0f, 1.0f))
 	};
 
 	std::vector<GLuint> indices = {
@@ -214,6 +267,13 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 	return std::pair<std::vector<Vertex>, std::vector<GLuint> >(vertdata, indices);
 }
 
+/** configure cylindrical projection.
+ * The viewer is positioned at the center of a cylinder with a fixed radius.
+ * The projection spans an arc of the configured angle.
+ * The height of the cylinder is calculated to keep the aspect ratio fixed.
+ * The zoom shifts the viewer position from the center of the cylinder.
+ * @return vertices and indices for a cylindrical projection.
+ */
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_cylinder(void) const
 {
 	const float angle_start = -m_angle / 2;
@@ -254,6 +314,14 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 	return std::pair<std::vector<Vertex>, std::vector<GLuint> >(vertdata, indices);
 }
 
+/** configure spherical projection.
+ * The viewer is positioned at the center of a sphere with a fixed radius.
+ * The projection spans from the north pole to the south pole of the sphere.
+ * In the longitudinal direction the projection covers an arc of the configured angle.
+ * For this projection, the aspect ratio always needs to be 1.
+ * The zoom shifts the viewer position from the center of the sphere.
+ * @return vertices and indices for a spherical projection.
+ */
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_sphere(void) const
 {
 	const float angle_start = -m_angle / 2;
@@ -319,6 +387,13 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 	return std::pair<std::vector<Vertex>, std::vector<GLuint> >(vertdata, indices);
 }
 
+/** configure fisheye projection.
+ * The viewer is positioned at the center of a sphere with a fixed radius.
+ * The projection spans an arc of the configured angle from the front viewing direction.
+ * For this projection, the aspect ratio always needs to be 1.
+ * The zoom shifts the viewer position from the center of the cylinder.
+ * @return vertices and indices for a fisheye projection.
+ */
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_fisheye(void) const
 {
 	const float angle_max = m_angle / 2.0f;
@@ -412,6 +487,13 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 	return std::pair<std::vector<Vertex>, std::vector<GLuint> >(vertdata, indices);
 }
 
+/** configure monoscopic cubemap projection.
+ * The viewer is positioned at the center of a cube with a fixed length of edges.
+ * The source texture is split into 6 tiles for the faces of the cube.
+ * For this projection, the aspect ratio always needs to be 1.
+ * The zoom parameter has no effect for this projection.
+ * @return vertices and indices for a monoscopic cubemap projection.
+ */
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_cubemap_mono(void) const
 {
 	std::vector<Vertex> vertdata =
@@ -463,6 +545,13 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 	return std::pair<std::vector<Vertex>, std::vector<GLuint> >(vertdata, indices);
 }
 
+/** configure stereoscopic cubemap projection.
+ * The viewer is positioned at the center of a cube with a fixed length of edges.
+ * The source texture is split into 12 tiles for the faces of the cubes for both eyes.
+ * For this projection, the aspect ratio always needs to be 1.
+ * The zoom parameter has no effect for this projection.
+ * @return vertices and indices for a monoscopic cubemap projection.
+ */
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_cubemap_stereo(void) const
 {
 	std::vector<Vertex> vertdata =
@@ -503,6 +592,10 @@ std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projectio
 	return std::pair<std::vector<Vertex>, std::vector<GLuint> >(vertdata, indices);
 }
 
+/** configure projection.
+ * generate the projection setup for the configured type of projection.
+ * @return vertices and indices for a monoscopic cubemap projection.
+ */
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection(void) const
 {
 	std::pair<std::vector<Vertex>, std::vector<GLuint> > vertdata;
