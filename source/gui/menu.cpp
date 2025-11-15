@@ -283,7 +283,7 @@ void Menu::main_menu(void)
 		create_button_panel({
 			ACTION_PLAY_PREVIOUS,
 			ACTION_PLAY_BACKWARD,
-			ACTION_PLAY_PLAY,
+			player().is_playing() ? ACTION_PLAY_PAUSE : ACTION_PLAY_PLAY,
 			ACTION_PLAY_FORWARD,
 			ACTION_PLAY_NEXT,
 			ACTION_VOLUME,

@@ -161,7 +161,7 @@ void player_open_file(const std::string& file_name)
 	}
 	else if (fs.is_video(ext))
 	{
-		g_player.open_file(file_name);
+		g_player.open_file(file_name, g_window);
 		g_menu.set_playable(true);
 		g_source = SOURCE_VIDEO;
 	}
@@ -359,12 +359,15 @@ int main(void)
 
 		if (!g_menu.active() && (length > 0.5f))
 		{
-			if ((g_source == SOURCE_VIDEO) && (fabsf(input_state.pad.position.x) > fabsf(input_state.pad.position.y)))
+			if ((g_source == SOURCE_VIDEO) &&
+			    (input_state.pad.button.released) &&
+			    (fabsf(input_state.pad.position.x) > fabsf(input_state.pad.position.y)))
 			{
 				const int sign = static_cast<int>(input_state.pad.position.x / fabsf(input_state.pad.position.x));
 				g_player.jump(static_cast<float>(sign) * g_jump_step);
 			}
-			else
+			else if ((g_source == SOURCE_IMAGE) ||
+			         (fabsf(input_state.pad.position.x) < fabsf(input_state.pad.position.y)))
 			{
 				const glm::vec2 step = input_state.pad.position * 0.01f / length;
 				const float cx = cosf(step.x);
@@ -395,8 +398,14 @@ int main(void)
 
 		if (input_state.grip.released)
 		{
-			g_player.pause();
-			std::cout << "action: grip" << std::endl;
+			if (g_player.is_playing())
+			{
+				g_player.pause();
+			}
+			else
+			{
+				g_player.play();
+			}
 		}
 
 		if (input_state.trigger.button.released)
@@ -476,16 +485,19 @@ int main(void)
 					break;
 			}
 
-			/* reset to monoscopic mode for menu */
-			g_shaders.set_uniform("texture_offset", glm::vec2(0.0f, 0.0f));
-			g_shaders.set_uniform("texture_scale",  glm::vec2(1.0f, 1.0f));
-
-			g_menu.draw();
-
-			// For each controller: render simple ray and do intersection with rectangle
-			for (std::map<vr::TrackedDeviceIndex_t, Controller>::const_iterator iter = g_controller.begin(); iter != g_controller.end(); ++iter)
+			if (g_menu.active())
 			{
-				iter->second.draw();
+				/* reset to monoscopic mode for menu */
+				g_shaders.set_uniform("texture_offset", glm::vec2(0.0f, 0.0f));
+				g_shaders.set_uniform("texture_scale",  glm::vec2(1.0f, 1.0f));
+
+				g_menu.draw();
+
+				// For each controller: render simple ray and do intersection with rectangle
+				for (std::map<vr::TrackedDeviceIndex_t, Controller>::const_iterator iter = g_controller.begin(); iter != g_controller.end(); ++iter)
+				{
+					iter->second.draw();
+				}
 			}
 			g_shaders.deactivate();
 

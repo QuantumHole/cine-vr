@@ -18,8 +18,6 @@ static void* get_proc_address(void* ctx __attribute__((unused)), const char* nam
 	return reinterpret_cast<void*>(glfwGetProcAddress(name));
 }
 
-bool Player::m_wakeup = false;
-
 Player::Player(void) :
 	m_framebuffer(0),
 	m_video_texture(0),
@@ -27,6 +25,13 @@ Player::Player(void) :
 	m_duration(0.0),
 	m_title(""),
 	m_size(0, 0),
+	m_playing(false),
+	m_render_thread(),
+	m_thread_running(false),
+	m_wakeup(false),
+	m_wakeup_mutex(),
+	m_wakeup_cv(),
+	m_window(nullptr),
 	m_context(mpv_create()),
 	m_render(nullptr)
 {
@@ -40,18 +45,129 @@ Player::~Player(void)
 {
 	if (m_context)
 	{
+		mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
 		mpv_terminate_destroy(m_context);
 	}
 	m_context = nullptr;
 }
 
-void Player::on_mpv_events(void* ctx __attribute__((unused)))
+void Player::thread_starter(Player* player)
 {
+	player->render_thread();
 }
 
-void Player::on_render_update(void* ctx __attribute__((unused)))
+void Player::render_thread(void)
 {
-	m_wakeup = true;
+	glfwMakeContextCurrent(glfwGetCurrentContext());
+
+	while (m_thread_running.load())
+	{
+		{
+			std::unique_lock<std::mutex> lk(m_wakeup_mutex);
+			m_wakeup_cv.wait(lk, [this]{
+				return m_wakeup.load() || !m_thread_running.load();
+			});
+			m_wakeup.store(false);
+		}
+
+		if (!m_thread_running.load())
+		{
+			break;
+		}
+
+		if (mpv_render_context_update(m_render) & MPV_RENDER_UPDATE_FRAME)
+		{
+			mpv_opengl_fbo mpv_fbo{
+				static_cast<int>(m_framebuffer),
+				static_cast<int>(m_size.x),
+				static_cast<int>(m_size.y),
+				0
+			};
+			mpv_render_param params_fbo[] = {
+				{MPV_RENDER_PARAM_OPENGL_FBO, &mpv_fbo},
+				{MPV_RENDER_PARAM_INVALID, nullptr}
+			};
+
+			glDisable(GL_CULL_FACE);
+			mpv_render_context_render(m_render, params_fbo);
+			glEnable(GL_CULL_FACE);
+		}
+	}
+}
+
+void Player::start_render_thread(void)
+{
+	if (m_thread_running.load())
+	{
+		return;
+	}
+
+	m_thread_running.store(true);
+	m_render_thread = std::thread(thread_starter, this);
+}
+
+void Player::stop_render_thread(void)
+{
+	if (!m_thread_running.load())
+	{
+		return;
+	}
+
+	m_thread_running.store(false);
+	m_wakeup_cv.notify_all();
+
+	if (m_render_thread.joinable())
+	{
+		m_render_thread.join();
+	}
+}
+
+void Player::on_mpv_events(void* ctx)
+{
+	Player* self = static_cast<Player*>(ctx);
+
+	if (self)
+	{
+		self->handle_events();
+	}
+}
+
+void Player::on_render_update(void* ctx)
+{
+	Player* self = static_cast<Player*>(ctx);
+
+	if (self)
+	{
+		self->m_wakeup.store(true);
+		self->m_wakeup_cv.notify_one();
+	}
+}
+
+void Player::render_frame(void)
+{
+	// glfwMakeContextCurrent(glfwGetCurrentContext());
+	glfwMakeContextCurrent(m_window);
+
+	if ((mpv_render_context_update(m_render) & MPV_RENDER_UPDATE_FRAME))
+	{
+		mpv_opengl_fbo mpv_fbo = {
+			static_cast<int>(m_framebuffer),
+			static_cast<int>(m_size.x),
+			static_cast<int>(m_size.y),
+			0
+		};
+
+		mpv_render_param params_fbo[] = {
+			{MPV_RENDER_PARAM_OPENGL_FBO, &mpv_fbo},
+			{MPV_RENDER_PARAM_INVALID, nullptr}
+		};
+
+		glDisable(GL_CULL_FACE);          // culling needs to be be disabled or only a black rectangle is rendered
+		mpv_render_context_render(m_render, params_fbo);
+		glEnable(GL_CULL_FACE);
+	}
+
+	m_wakeup.store(false);
 }
 
 void Player::handle_events(void)
@@ -90,11 +206,11 @@ void Player::handle_events(void)
 				{
 					std::cout << "player reached end of file" << std::endl;
 				}
+				mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
 				mpv_terminate_destroy(m_context);
 				m_context = nullptr;
 				return;
 			}
-			// break;
 			case MPV_EVENT_AUDIO_RECONFIG:
 				break;
 			case MPV_EVENT_VIDEO_RECONFIG:
@@ -111,6 +227,9 @@ void Player::handle_events(void)
 
 				if (width && height)
 				{
+					// glfwMakeContextCurrent(glfwGetCurrentContext());
+					glfwMakeContextCurrent(m_window);
+
 					// Framebuffer for Video Target - Video Texture
 					glGenFramebuffers(1, &m_framebuffer);
 					glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
@@ -188,28 +307,9 @@ void Player::handle_events(void)
 		}
 	}
 
-	if (m_wakeup)
+	if (m_wakeup.load())
 	{
-		if ((mpv_render_context_update(m_render) & MPV_RENDER_UPDATE_FRAME))
-		{
-			mpv_opengl_fbo mpv_fbo = {
-				static_cast<int>(m_framebuffer),
-				static_cast<int>(m_size.x),
-				static_cast<int>(m_size.y),
-				0
-			};
-
-			mpv_render_param params_fbo[] = {
-				{MPV_RENDER_PARAM_OPENGL_FBO, &mpv_fbo},
-				{MPV_RENDER_PARAM_INVALID, nullptr}
-			};
-
-			glDisable(GL_CULL_FACE);          // culling needs to be be disabled or only a black rectangle is rendered
-			mpv_render_context_render(m_render, params_fbo);
-			glEnable(GL_CULL_FACE);
-		}
-
-		m_wakeup = false;
+		render_frame();
 	}
 }
 
@@ -227,8 +327,10 @@ void Player::set_option(const std::string& key, const std::string& value) const
 	}
 }
 
-void Player::open_file(const std::string& file_name)
+void Player::open_file(const std::string& file_name, GLFWwindow* window)
 {
+	m_window = window;
+
 	if (!m_context)
 	{
 		m_context = mpv_create();
@@ -263,14 +365,15 @@ void Player::open_file(const std::string& file_name)
 
 	if (mpv_render_context_create(&m_render, m_context, params) < 0)
 	{
+		mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
 		mpv_destroy(m_context);
 		m_context = nullptr;
 		m_render = nullptr;
 		throw std::runtime_error("Error: mpv_render_context_create failed");
 	}
 
-	mpv_set_wakeup_callback(m_context, on_mpv_events, NULL);
-	mpv_render_context_set_update_callback(m_render, on_render_update, NULL);
+	// mpv_set_wakeup_callback(m_context, on_mpv_events, this);
+	mpv_render_context_set_update_callback(m_render, on_render_update, this);
 
 	set_option("vd-lavc-dr", "yes");
 	set_option("vo", "libmpv");
@@ -294,8 +397,7 @@ void Player::open_file(const std::string& file_name)
 		throw std::runtime_error("failed loading file: " + file_name);
 	}
 
-	int pause_value = 0;
-	mpv_set_property(m_context, "pause", MPV_FORMAT_FLAG, &pause_value);
+	play();
 }
 
 void Player::close(void)
@@ -307,7 +409,14 @@ void Player::close(void)
 
 void Player::play(void)
 {
-	std::cout << "player plays" << std::endl;
+	if (!m_context)
+	{
+		return;
+	}
+
+	int pause_value = 0;
+	mpv_set_property(m_context, "pause", MPV_FORMAT_FLAG, &pause_value);
+	m_playing = true;
 }
 
 void Player::pause(void)
@@ -318,9 +427,8 @@ void Player::pause(void)
 	}
 
 	int pause_value = 1;
-
 	mpv_set_property(m_context, "pause", MPV_FORMAT_FLAG, &pause_value);
-	std::cout << "player pause" << std::endl;
+	m_playing = false;
 }
 
 void Player::stop(void)
@@ -331,6 +439,7 @@ void Player::stop(void)
 	}
 	mpv_set_property(m_context, "stop", MPV_FORMAT_STRING, nullptr);
 	std::cout << "player stop" << std::endl;
+	m_playing = false;
 }
 
 void Player::jump(const float step)
@@ -349,6 +458,11 @@ void Player::jump(const float step)
 	{
 		throw std::runtime_error("failed loading file.");
 	}
+}
+
+bool Player::is_playing(void) const
+{
+	return m_playing;
 }
 
 float Player::duration(void) const
