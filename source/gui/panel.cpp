@@ -151,6 +151,10 @@ void Panel::draw(void) const
 	shader().set_uniform("background", false);
 }
 
+void Panel::update_state(void)
+{
+}
+
 Panel::intersection_t Panel::intersection(const glm::mat4& pose) const
 {
 	Panel::intersection_t isec = {m_action, false, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)};

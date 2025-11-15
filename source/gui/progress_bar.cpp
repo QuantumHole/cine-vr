@@ -84,8 +84,18 @@ void ProgressBar::draw(void) const
 	m_cursor_tex.unbind();
 }
 
-bool ProgressBar::update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input)
+void ProgressBar::update_state(void)
 {
 	set_cursor_position();
+}
+
+bool ProgressBar::update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input)
+{
+	if (input.trigger.button.released && isec.hit)
+	{
+		const float step = m_progress_max * isec.local.x - m_progress_pos;
+		player().jump(step);
+	}
+
 	return input.trigger.button.released && isec.hit;
 }

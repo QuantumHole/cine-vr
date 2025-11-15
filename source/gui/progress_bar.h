@@ -25,6 +25,7 @@ class ProgressBar : public Panel
 		void set_pos(const float pos);
 
 		float position(void) const;
+		void update_state(void) override;
 		bool update_on_interaction(const Panel::intersection_t isec, const OpenVRInterface::input_state_t& input) override;
 		void draw(void) const override;
 };

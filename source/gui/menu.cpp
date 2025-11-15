@@ -717,6 +717,8 @@ void Menu::checkMenuInteraction(const glm::mat4& controller, const glm::mat4& hm
 	for (std::map<action_t, Panel*>::const_iterator iter = m_panel.begin(); iter != m_panel.end(); ++iter)
 	{
 		Panel* b = iter->second;
+		b->update_state();
+
 		const Panel::intersection_t isec = b->intersection(controller);
 
 		// draw point on panel
