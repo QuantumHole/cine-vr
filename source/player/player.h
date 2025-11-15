@@ -44,6 +44,7 @@ class Player
 		void stop(void);
 		void jump(const float step);
 		void set_volume(const float vol);
+		float duration(void) const;
 		float playtime(void) const;
 		float volume(void) const;
 

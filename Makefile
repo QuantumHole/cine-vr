@@ -38,6 +38,7 @@ OBJECTS = \
 	$(BUILD_DIR)/file_system.o \
 	$(BUILD_DIR)/scroll_panel.o \
 	$(BUILD_DIR)/player.o \
+	$(BUILD_DIR)/progress_bar.o \
 
 IMAGES = \
 	$(IMAGE_DIR)/angle.png \
@@ -60,6 +61,8 @@ IMAGES = \
 	$(IMAGE_DIR)/play.png \
 	$(IMAGE_DIR)/power.png \
 	$(IMAGE_DIR)/previous.png \
+	$(IMAGE_DIR)/progress-bar.png \
+	$(IMAGE_DIR)/progress-cursor.png \
 	$(IMAGE_DIR)/settings.png \
 	$(IMAGE_DIR)/sphere.png \
 	$(IMAGE_DIR)/top-bottom.png \

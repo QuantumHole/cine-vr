@@ -26,6 +26,7 @@ class Texture
 
 		GLuint id(void) const;
 		GLuint slot(void) const;
+		const glm::uvec2& size(void) const;
 
 		glm::uvec2 init_image_file(const std::string& file_name, const GLuint slot);
 		void init_sdl(const SDL_Surface* surface, const GLuint slot);

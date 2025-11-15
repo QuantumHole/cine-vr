@@ -98,6 +98,20 @@ std::string FileSystem::join_path(const std::vector<std::string>::const_iterator
 	return path;
 }
 
+bool FileSystem::is_file(const std::string& name) const
+{
+	struct stat sb;
+
+	return !stat(name.c_str(), &sb) && S_ISREG(sb.st_mode);
+}
+
+bool FileSystem::is_directory(const std::string& name) const
+{
+	struct stat sb;
+
+	return !stat(name.c_str(), &sb) && S_ISDIR(sb.st_mode);
+}
+
 std::set<std::string> FileSystem::select_files(const std::string& dir, const bool use_files, const bool use_dirs, const bool show_hidden) const
 {
 	std::set<std::string> entries;
@@ -115,15 +129,12 @@ std::set<std::string> FileSystem::select_files(const std::string& dir, const boo
 		const std::string name = dir + directory_separator + en;
 		const std::string ext = extension(en);
 
-		struct stat sb;
-
-		if (!stat(name.c_str(), &sb) &&
-		    (en != ".") &&
+		if ((en != ".") &&
 		    (en != "..") &&
 		    (!en.empty()) &&
 		    (show_hidden || (!show_hidden && (en[0] != '.'))) &&
-		    ((use_files && S_ISREG(sb.st_mode) && (is_image(ext) || is_video(ext))) ||
-		     (use_dirs && S_ISDIR(sb.st_mode))))
+		    ((use_files && is_file(name) && (is_image(ext) || is_video(ext))) ||
+		     (use_dirs && is_directory(name))))
 		{
 			entries.insert(en);
 		}

@@ -14,7 +14,6 @@ Panel::Panel(const action_t action) :
 	m_texture(),
 	m_pose(1.0f),
 	m_shape_size(0.0f, 0.0f),
-	m_tex_size(0, 0),
 	m_action(action)
 {
 }
@@ -50,13 +49,12 @@ void Panel::init_shape(const glm::vec2& shape_size, const glm::vec4& color)
 
 void Panel::init_texture(const std::string& image_name)
 {
-	m_tex_size = m_texture.init_image_file(image_name, 0);
+	m_texture.init_image_file(image_name, 0);
 }
 
 void Panel::init_texture(const glm::uvec2& tex_size)
 {
-	m_tex_size = tex_size;
-	m_texture.init_dim(m_tex_size, 0);
+	m_texture.init_dim(tex_size, 0);
 }
 
 void Panel::init_area(const glm::vec2& shape_size, const glm::vec4& color, const glm::uvec2& tex_size)
@@ -88,19 +86,20 @@ const Texture& Panel::texture(void) const
 
 const glm::uvec2& Panel::tex_size(void) const
 {
-	return m_tex_size;
+	return m_texture.size();
 }
 
 void Panel::clear(void)
 {
-	std::vector<uint32_t> image(m_tex_size.x * m_tex_size.y, 0);
+	const glm::uvec2& size = m_texture.size();
+	std::vector<uint32_t> image(size.x * size.y, 0);
 
 	m_texture.bind();
 	glTexSubImage2D(GL_TEXTURE_2D, 0,
 	                0,
 	                0,
-	                static_cast<GLsizei>(m_tex_size.x),
-	                static_cast<GLsizei>(m_tex_size.y),
+	                static_cast<GLsizei>(size.x),
+	                static_cast<GLsizei>(size.y),
 	                GL_RGBA, GL_UNSIGNED_BYTE,
 	                image.data());
 	m_texture.unbind();
@@ -117,6 +116,7 @@ void Panel::text(const std::string& text, const int32_t x, const int32_t y) cons
 	renderer.render_text(text, height, image);
 
 	const size_t width = image.size() / height;
+	const glm::uvec2& tex_size = m_texture.size();
 
 	/* copy only the visible section of the surface */
 	m_texture.bind();
@@ -125,7 +125,7 @@ void Panel::text(const std::string& text, const int32_t x, const int32_t y) cons
 		glTexSubImage2D(GL_TEXTURE_2D, 0,
 		                x,
 		                y + static_cast<GLint>(i),
-		                std::min(static_cast<GLsizei>(width), static_cast<GLsizei>(std::max(0, static_cast<int32_t>(m_tex_size.x) - x))),
+		                std::min(static_cast<GLsizei>(width), static_cast<GLsizei>(std::max(0, static_cast<int32_t>(tex_size.x) - x))),
 		                1,
 		                GL_RGBA, GL_UNSIGNED_BYTE,
 		                image.data() + static_cast<ptrdiff_t>(i * width));
@@ -137,13 +137,13 @@ void Panel::draw(void) const
 {
 	shader().set_uniform("background", true);
 
-	if (m_tex_size.x && m_tex_size.y)
+	if (m_texture.id())
 	{
 		m_texture.bind();
 	}
 	m_shape.draw();
 
-	if (m_tex_size.x && m_tex_size.y)
+	if (m_texture.id())
 	{
 		m_texture.unbind();
 	}

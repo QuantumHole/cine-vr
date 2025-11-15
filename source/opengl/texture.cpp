@@ -7,6 +7,7 @@
 #include <chrono>
 #include <thread>
 #include <sstream>
+#include <iostream>
 
 static const GLenum tex_type(GL_TEXTURE_2D);
 static const GLint internal_format(GL_RGBA);
@@ -22,6 +23,11 @@ Texture::Texture(void) :
 GLuint Texture::id(void) const
 {
 	return m_id;
+}
+
+const glm::uvec2& Texture::size(void) const
+{
+	return m_size;
 }
 
 void Texture::init(const GLenum slot)
@@ -76,7 +82,8 @@ glm::uvec2 Texture::init_image_file(const std::string& file_name, const GLuint s
 	}
 	init(slot);
 	glTexImage2D(tex_type, 0, internal_format, static_cast<GLsizei>(m_image.width()), static_cast<GLsizei>(m_image.height()), 0, m_format, GL_UNSIGNED_BYTE, m_image.pixels().data());
-	return glm::uvec2(m_image.width(), m_image.height());
+	m_size = glm::uvec2(m_image.width(), m_image.height());
+	return m_size;
 }
 
 void Texture::init_dim(const glm::uvec2 size, const GLuint slot)

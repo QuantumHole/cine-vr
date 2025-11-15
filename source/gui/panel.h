@@ -18,7 +18,6 @@ class Panel
 		Texture m_texture;
 		glm::mat4 m_pose;                 // position and rotation
 		glm::vec2 m_shape_size;
-		glm::uvec2 m_tex_size;
 
 	protected:
 		const action_t m_action;          // function indicator

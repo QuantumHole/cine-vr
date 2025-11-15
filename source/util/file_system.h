@@ -22,6 +22,8 @@ class FileSystem
 		std::set<std::string> file_names(const std::string& dir, const bool show_hidden = false) const;
 		std::set<std::string> directory_names(const std::string& dir, const bool show_hidden = false) const;
 		std::string extension(const std::string& name) const;
+		bool is_file(const std::string& name) const;
+		bool is_directory(const std::string& name) const;
 		bool is_image(const std::string& ext) const;
 		bool is_video(const std::string& ext) const;
 };

@@ -6,7 +6,6 @@
 #include "file_system.h"
 #include <fstream>
 #include <string.h>
-#include <iostream>
 #include <algorithm>
 #include <png.h>
 #include <jpeglib.h>
@@ -23,6 +22,12 @@ ImageFile::ImageFile(const std::string& file_name) :
 		return;
 	}
 	FileSystem fs;
+
+	if (!fs.is_file(file_name))
+	{
+		throw std::runtime_error("file not found: " + file_name);
+	}
+
 	const std::string ext = fs.extension(file_name);
 
 	if (ext == "bmp")

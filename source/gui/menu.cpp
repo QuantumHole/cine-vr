@@ -8,6 +8,7 @@
 #include "simple_button.h"
 #include "toggle_button.h"
 #include "slide_button.h"
+#include "progress_bar.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
@@ -290,6 +291,15 @@ void Menu::main_menu(void)
 			ACTION_FILE_OPEN,
 			ACTION_POWER
 		});
+
+		const float duration = player().duration();
+		const float position = player().playtime();
+		Panel* p = new ProgressBar(ACTION_PLAY_POSITION, "images/progress-bar.png", duration, position);
+		glm::mat4 pose = glm::mat4(1.0f);
+		pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
+		pose = m_hmd_pose * pose;
+		p->set_transform(pose);
+		m_panel[ACTION_PLAY_POSITION] = p;
 	}
 	else
 	{
@@ -506,6 +516,8 @@ void Menu::handle_button_action(const action_t action)
 			break;
 		case ACTION_PLAY_PLAY:
 			player().play();
+			break;
+		case ACTION_PLAY_POSITION:
 			break;
 		case ACTION_PLAY_PREVIOUS:
 			player_previous();

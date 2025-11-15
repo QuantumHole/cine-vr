@@ -351,6 +351,11 @@ void Player::jump(const float step)
 	}
 }
 
+float Player::duration(void) const
+{
+	return static_cast<float>(m_duration);
+}
+
 float Player::playtime(void) const
 {
 	return static_cast<float>(m_playtime);
@@ -379,7 +384,7 @@ float Player::volume(void) const
 
 void Player::set_volume(const float vol)
 {
-	std::cout << "setting volume: " << vol << std::endl;
 	double vold = static_cast<double>(vol);
+
 	mpv_set_property(m_context, "ao-volume", MPV_FORMAT_DOUBLE, reinterpret_cast<void*>(&vold));
 }
