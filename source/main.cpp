@@ -2,11 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#define GL_GLEXT_PROTOTYPES
+
 #include <iostream>
 #include <vector>
 #include <unistd.h>
 
-#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
 #include "main.h"
@@ -312,14 +313,6 @@ int main(void)
 	}
 	glfwMakeContextCurrent(g_window);
 	glfwSetFramebufferSizeCallback(g_window, framebuffer_size_callback);
-
-	glewExperimental = GL_TRUE;
-
-	if (glewInit() != GLEW_OK)
-	{
-		std::cerr << "GLEW init failed" << std::endl;
-		return -1;
-	}
 
 	// Initialize OpenVR
 	g_vr.init();

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 PROJECT_ROOT := .
-DEPENDENCIES = "glfw3 openvr glew libpng libjpeg freetype2 mpv"
+DEPENDENCIES = "glfw3 openvr libpng libjpeg freetype2 mpv gl"
 
 include common/cplusplus.mk
 include common/license.mk
@@ -39,6 +39,9 @@ OBJECTS = \
 	$(BUILD_DIR)/scroll_panel.o \
 	$(BUILD_DIR)/player.o \
 	$(BUILD_DIR)/progress_bar.o \
+	$(BUILD_DIR)/node_xml.o \
+	$(BUILD_DIR)/node_css.o \
+	$(BUILD_DIR)/shape_set.o \
 
 IMAGES = \
 	$(IMAGE_DIR)/angle.png \

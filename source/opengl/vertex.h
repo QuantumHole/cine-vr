@@ -5,8 +5,8 @@
 #ifndef VERTEX_H
 #define VERTEX_H
 
+#include <GL/gl.h>
 #include <glm/glm.hpp>
-#include <GL/glew.h>
 
 class Vertex
 {

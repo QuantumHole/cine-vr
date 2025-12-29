@@ -5,7 +5,7 @@
 #ifndef EBO_H
 #define EBO_H
 
-#include <GL/glew.h>
+#include <GL/gl.h>
 #include <openvr/openvr.h>
 #include <vector>
 

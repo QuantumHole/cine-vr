@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#define GL_GLEXT_PROTOTYPES
+
 #include "ebo.h"
+#include <GL/gl.h>
 
 EBO::EBO(void) :
 	m_id(0),

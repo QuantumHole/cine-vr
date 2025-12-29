@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#define GL_GLEXT_PROTOTYPES
+
 #include "texture.h"
 #include "util/image_data.h"
 #include <chrono>

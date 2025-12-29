@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <GL/glew.h>
+#define GL_GLEXT_PROTOTYPES
+
 #include "player.h"
 #include "main.h"
 #include <iostream>

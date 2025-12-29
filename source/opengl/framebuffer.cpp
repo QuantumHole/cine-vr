@@ -2,11 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <GL/glew.h>
+#define GL_GLEXT_PROTOTYPES
+
 #include <iostream>
 #include "framebuffer.h"
-
-// #include <GL/glext.h>
 
 Framebuffer::Framebuffer(void) :
 	m_framebuffer_id(0),

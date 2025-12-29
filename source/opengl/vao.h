@@ -5,7 +5,6 @@
 #ifndef VAO_H
 #define VAO_H
 
-#include <GL/glew.h>
 #include <openvr/openvr.h>
 #include "vbo.h"
 

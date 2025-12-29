@@ -19,7 +19,6 @@ Users can configure some display options via the OpenVR controller.
 ## Runtime Dependencies
 * [OpenGL](https://www.opengl.org)
 * [GLFW](https://www.glfw.org)
-* [GLEW](https://www.opengl.org/sdk/libs/GLEW)
 * [OpenVR](https://github.com/ValveSoftware/openvr)
 * [libpng](https://www.libpng.org/pub/png/libpng.html)
 * [libjpeg](https://jpegclub.org/reference/reference-sources)

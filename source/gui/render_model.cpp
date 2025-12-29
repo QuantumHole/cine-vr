@@ -5,7 +5,6 @@
 #include <iostream>
 #include <unistd.h>
 #include <sstream>
-#include <GL/glew.h>
 #include <glm/gtc/type_ptr.hpp>
 #include "render_model.h"
 
