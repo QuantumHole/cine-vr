@@ -122,7 +122,7 @@ std::set<std::string> ShaderSet::get_uniforms(void) const
 		GLenum type;
 		GLsizei length;
 		GLint size;
-		glGetActiveUniform(static_cast<GLuint>(m_program_id), i, sizeof(buffer), &length, &size, &type, buffer);
+		glGetActiveUniform(static_cast<GLuint>(m_program_id), static_cast<GLuint>(i), sizeof(buffer), &length, &size, &type, buffer);
 
 		names.insert(buffer);
 	}
@@ -144,7 +144,7 @@ std::set<std::string> ShaderSet::get_attributes(void) const
 		GLenum type;
 		GLsizei length;
 		GLint size;
-		glGetActiveAttrib(static_cast<GLuint>(m_program_id), i, sizeof(buffer), &length, &size, &type, buffer);
+		glGetActiveAttrib(static_cast<GLuint>(m_program_id), static_cast<GLuint>(i), sizeof(buffer), &length, &size, &type, buffer);
 
 		names.insert(buffer);
 	}

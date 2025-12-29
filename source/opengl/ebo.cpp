@@ -33,7 +33,7 @@ void EBO::init(const std::vector<GLuint>& indices)
 {
 	glGenBuffers(1, &m_id);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_id);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(GLuint) * indices.size()), indices.data(), GL_STATIC_DRAW);
 
 	m_num_indices = static_cast<GLuint>(indices.size());
 	m_index_format = GL_UNSIGNED_INT;

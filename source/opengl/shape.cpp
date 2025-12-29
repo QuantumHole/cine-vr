@@ -70,7 +70,7 @@ size_t Shape::instances(void) const
 void Shape::set_transform(const glm::mat4& transform, const size_t instance) const
 {
 	m_vbo_instances.bind();
-	glBufferSubData(GL_ARRAY_BUFFER, instance * sizeof(glm::mat4), sizeof(glm::mat4), &transform);
+	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>(instance * sizeof(glm::mat4)), sizeof(glm::mat4), &transform);
 	m_vbo_instances.unbind();
 }
 

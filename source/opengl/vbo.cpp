@@ -30,7 +30,7 @@ void VBO::init(void)
 void VBO::load_data(const std::vector<Vertex>& vertices)
 {
 	bind();
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(vertices.size() * sizeof(Vertex)), vertices.data(), GL_STATIC_DRAW);
 	// glNamedBufferData(VBO, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
 	m_num_vertices = static_cast<GLuint>(vertices.size());
@@ -47,7 +47,7 @@ void VBO::load_data(const vr::RenderModel_t& model)
 void VBO::load_data(const std::vector<glm::mat4>& transforms) const
 {
 	bind();
-	glBufferData(GL_ARRAY_BUFFER, transforms.size() * sizeof(glm::mat4), transforms.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(transforms.size() * sizeof(glm::mat4)), transforms.data(), GL_STATIC_DRAW);
 }
 
 void VBO::bind(void) const

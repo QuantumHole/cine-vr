@@ -30,7 +30,7 @@ void Framebuffer::init(const glm::uvec2& size)
 
 	glGenRenderbuffers(1, &m_depthbuffer_id);
 	glBindRenderbuffer(GL_RENDERBUFFER, m_depthbuffer_id);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_size.x, m_size.y);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, static_cast<GLsizei>(m_size.x), static_cast<GLsizei>(m_size.y));
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depthbuffer_id);
 
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
