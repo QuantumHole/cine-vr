@@ -26,6 +26,7 @@ class FileSystem
 		bool is_directory(const std::string& name) const;
 		bool is_image(const std::string& ext) const;
 		bool is_video(const std::string& ext) const;
+		std::string read_file(const std::string& path) const;
 };
 
 #endif

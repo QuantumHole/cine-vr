@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <linux/limits.h>
 #include <algorithm>
+#include <fstream>
 
 static const std::string directory_separator = "/";
 
@@ -164,4 +165,20 @@ std::set<std::string> FileSystem::file_names(const std::string& dir, const bool 
 std::set<std::string> FileSystem::directory_names(const std::string& dir, const bool show_hidden) const
 {
 	return select_files(dir, false, true, show_hidden);
+}
+
+std::string FileSystem::read_file(const std::string& path) const
+{
+	std::ifstream sourceFile(path);
+
+	// Source file loaded
+	if (!sourceFile.is_open())
+	{
+		throw std::runtime_error("Unable to open file " + path);
+	}
+
+	std::string content;
+	content.assign((std::istreambuf_iterator< char >(sourceFile)), std::istreambuf_iterator< char >());
+
+	return content;
 }
