@@ -3,29 +3,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "node_css.h"
+#include "util/string_tools.h"
 #include <sstream>
 #include <regex>
-#include <algorithm>
 #include <cctype>
 #include <locale>
-
-// Trim from both ends
-static std::string trim(const std::string& t)
-{
-	std::string s(t);
-
-	// Trim from the end (in place)
-	s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
-		return !std::isspace(ch);
-	}).base(), s.end());
-
-	// Trim from the start (in place)
-	s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
-		return !std::isspace(ch);
-	}));
-
-	return s;
-}
 
 NodeCSS::NodeCSS(void) :
 	m_selector(""),
