@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 QuantumHole <QuantumHole@github.com>
+// SPDX-FileCopyrightText: 2025, 2026 QuantumHole <QuantumHole@github.com>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 

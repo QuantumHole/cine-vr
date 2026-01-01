@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 QuantumHole <QuantumHole@github.com>
+# SPDX-FileCopyrightText: 2025, 2026 QuantumHole <QuantumHole@github.com>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -42,6 +42,8 @@ OBJECTS = \
 	$(BUILD_DIR)/node_xml.o \
 	$(BUILD_DIR)/node_css.o \
 	$(BUILD_DIR)/shape_set.o \
+	$(BUILD_DIR)/graphics_svg.o \
+	$(BUILD_DIR)/string_tools.o \
 
 IMAGES = \
 	$(IMAGE_DIR)/angle.png \
