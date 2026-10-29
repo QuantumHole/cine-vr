@@ -9,6 +9,7 @@
 #include <openvr/openvr.h>
 #include <SDL3/SDL_surface.h>
 #include <string>
+#include <vector>
 #include <glm/glm.hpp>
 
 class Texture
@@ -27,6 +28,8 @@ class Texture
 		GLuint id(void) const;
 		GLuint slot(void) const;
 		const glm::uvec2& size(void) const;
+
+		void init_data(const std::vector<uint8_t>& data, const glm::uvec2& size, const GLenum format, const GLuint slot);
 
 		glm::uvec2 init_image_file(const std::string& file_name, const GLuint slot);
 		void init_sdl(const SDL_Surface* surface, const GLuint slot);

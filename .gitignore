@@ -40,9 +40,14 @@
 *.exe
 *.out
 *.app
+cine-vr
 
 # debug information files
 *.dwo
 
 # converted pixel images in ./images
 images/*.png
+
+# doxygen generated documentation
+html/*
+latex/*

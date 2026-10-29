@@ -50,6 +50,9 @@ ifeq ($(COMPILER), llvm)
 		-Wno-error=disabled-macro-expansion \
 		-Wno-c++98-compat \
 		-Wno-c++98-compat-pedantic \
+		-Wno-lifetime-safety-cross-tu-suggestions \
+		-Wno-lifetime-safety-intra-tu-suggestions \
+		-Wno-lifetime-safety-invalidation \
 
 else ifeq ($(COMPILER), gnu)
 	WARNINGS = \
@@ -243,3 +246,19 @@ $(BUILD_DIR)/%.o: source/*/%.cpp | $(BUILD_DIR)
 $(BUILD_DIR)/%.o: source/*/%.c | $(BUILD_DIR)
 	@echo [$(CC)] $<
 	@$(CC) $(CFLAGS) -o $@ $<
+
+$(BUILD_DIR)/%.o.json: source/%.cpp | $(BUILD_DIR)
+	@echo [CompileDB] $<
+	@clang++ -MJ $@ $(CXXFLAGS) -o $*.o $<
+
+$(BUILD_DIR)/%.o.json: source/%.c | $(BUILD_DIR)
+	@echo [CompileDB] $<
+	@clang -MJ $@ $(CFLAGS) -o $*.o $<
+
+$(BUILD_DIR)/%.o.json: source/*/%.cpp | $(BUILD_DIR)
+	@echo [CompileDB] $<
+	@clang++ -MJ $@ $(CXXFLAGS) -o $*.o $<
+
+$(BUILD_DIR)/%.o.json: source/*/%.c | $(BUILD_DIR)
+	@echo [CompileDB] $<
+	@clang -MJ $@ $(CFLAGS) -o $*.o $<

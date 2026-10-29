@@ -6,10 +6,8 @@
 
 #include "texture.h"
 #include "util/image_data.h"
-#include <chrono>
 #include <thread>
 #include <sstream>
-#include <iostream>
 
 static const GLenum tex_type(GL_TEXTURE_2D);
 static const GLint internal_format(GL_RGBA);
@@ -83,7 +81,15 @@ glm::uvec2 Texture::init_image_file(const std::string& file_name, const GLuint s
 			throw std::runtime_error("unsupported color depth");
 	}
 	init(slot);
-	glTexImage2D(tex_type, 0, internal_format, static_cast<GLsizei>(m_image.width()), static_cast<GLsizei>(m_image.height()), 0, m_format, GL_UNSIGNED_BYTE, m_image.pixels().data());
+	glTexImage2D(tex_type,
+	             0,
+	             internal_format,
+	             static_cast<GLsizei>(m_image.width()),
+	             static_cast<GLsizei>(m_image.height()),
+	             0,
+	             m_format,
+	             GL_UNSIGNED_BYTE,
+	             m_image.pixels().data());
 	m_size = glm::uvec2(m_image.width(), m_image.height());
 	return m_size;
 }
@@ -100,9 +106,33 @@ void Texture::init_dim(const glm::uvec2 size, const GLuint slot)
 
 	if ((m_size.x > 0) && (m_size.y > 0))
 	{
-		glTexStorage2D(tex_type, 1, GL_RGBA32F, static_cast<GLuint>(m_size.x), static_cast<GLuint>(m_size.y));
+		glTexStorage2D(tex_type, 1, GL_RGBA32F, static_cast<GLsizei>(m_size.x), static_cast<GLsizei>(m_size.y));
 		glBindImageTexture(m_slot, m_id, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	}
+}
+
+void Texture::init_data(const std::vector<uint8_t>& data, const glm::uvec2& size, const GLenum format, const GLuint slot)
+{
+	if (m_size.x || m_size.y)
+	{
+		remove();
+	}
+
+	m_size = size;
+	init(slot);
+
+	if ((m_size.x == 0) && (m_size.y == 0))
+	{
+		return;
+	}
+	glTexImage2D(tex_type,
+	             0,
+	             internal_format,
+	             static_cast<GLsizei>(m_size.x),
+	             static_cast<GLsizei>(m_size.y),
+	             0, format,
+	             GL_UNSIGNED_BYTE,
+	             data.data());
 }
 
 void Texture::init_sdl(const SDL_Surface* surface, const GLuint slot)

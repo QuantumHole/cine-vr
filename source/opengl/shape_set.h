@@ -20,9 +20,22 @@ class ShapeSet
 	public:
 		explicit ShapeSet(void);
 		virtual ~ShapeSet(void);
-		void add(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices, const GLenum type = GL_TRIANGLES);
+
+		/** add a Shape to this set.
+		 * @param vertices vertices for the VBO.
+		 * @param indices indices for the EBO.
+		 * @param type type of elements. Supported values are GL_TRIANGLES, GL_LINES, GL_POINTS.
+		 * @param instances number of instances of this shape. Defaults to 1.
+		 * @return index of the new shape in this shape set.
+		 */
+		size_t add(const std::vector<Vertex>& vertices,
+		           const std::vector<GLuint>& indices,
+		           const GLenum type = GL_TRIANGLES,
+		           const size_t instances = 1);
 		void set_transform(const glm::mat4& pose);
+		void set_transform(const size_t index, const glm::mat4& pose, const size_t instance = 0);
 		void draw(void) const;
 };
 
 #endif
+

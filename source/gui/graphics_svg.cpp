@@ -7,6 +7,7 @@
 #include "util/file_system.h"
 #include "util/node_xml.h"
 #include "util/node_css.h"
+#include <iostream>
 #include <string.h>
 #include <sstream>
 #include <glm/ext/matrix_transform.hpp>
@@ -367,6 +368,229 @@ static const std::map<std::string, glm::uvec3> named_colors = {
 	{"yellowgreen",          glm::uvec3(154, 205,  50) },
 };
 
+/******************************************************************** text output/debug functions */
+
+static std::string print_vec2(const glm::vec2& v)
+{
+	std::stringstream s;
+
+	s << "(" << v.x << ", " << v.y << ")";
+	return s.str();
+}
+
+static std::string print_vec3(const glm::vec3& v)
+{
+	std::stringstream s;
+
+	s << "(" << v.x << ", " << v.y << ", " << v.z << ")";
+	return s.str();
+}
+
+static std::string print_vec4(const glm::vec4& v)
+{
+	std::stringstream s;
+
+	s << "(" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ")";
+	return s.str();
+}
+
+static std::string print_mat4(const glm::mat4& m)
+{
+	std::stringstream s;
+
+	s << std::endl;
+	s << "(" << m[0][0] << ", " << m[1][0] << ", " << m[2][0] << ", " << m[3][0] << ")" << std::endl;
+	s << "(" << m[0][1] << ", " << m[1][1] << ", " << m[2][1] << ", " << m[3][1] << ")" << std::endl;
+	s << "(" << m[0][2] << ", " << m[1][2] << ", " << m[2][2] << ", " << m[3][2] << ")" << std::endl;
+	s << "(" << m[0][3] << ", " << m[1][3] << ", " << m[2][3] << ", " << m[3][3] << ")" << std::endl;
+	return s.str();
+}
+
+static std::string print_coordinate(const coordinate_t c) __attribute__((unused));
+static std::string print_coordinate(const coordinate_t c)
+{
+	std::stringstream s;
+
+	s << c.value;
+	switch (c.units)
+	{
+		case UNITS_USER:       s << "user";
+			break;
+		case UNITS_PX:         s << "px";
+			break;
+		case UNITS_PT:         s << "pt";
+			break;
+		case UNITS_PC:         s << "pc";
+			break;
+		case UNITS_MM:         s << "mm";
+			break;
+		case UNITS_CM:         s << "cm";
+			break;
+		case UNITS_IN:         s << "in";
+			break;
+		case UNITS_EM:         s << "em";
+			break;
+		case UNITS_EX:         s << "ex";
+			break;
+		case UNITS_PERCENT:    s << "%";
+			break;
+		default:
+			break;
+	}
+	return s.str();
+}
+
+static std::string print_vertex(const Vertex& v)
+{
+	std::stringstream s;
+
+	s << print_vec3(v.position()) << " " << print_vec3(v.normal()) << " " << print_vec4(v.color()) << " " << print_vec2(v.tex());
+	return s.str();
+}
+
+static std::string print_paint_order(const std::vector<paint_order_t>& order)
+{
+	std::stringstream s;
+
+	s << "paint order: ";
+	for (std::vector<paint_order_t>::const_iterator iter = order.begin(); iter != order.end(); ++iter)
+	{
+		switch (*iter)
+		{
+			case ORDER_FILL:
+				s << " fill";
+				break;
+			case ORDER_MARKERS:
+				s << " markers";
+				break;
+			case ORDER_STROKE:
+				s << " stroke";
+				break;
+			default:
+				throw std::runtime_error("invalid paint order");
+		}
+	}
+	return s.str();
+}
+
+static std::string print_paint_type(const paint_type_t type)
+{
+	std::stringstream s;
+
+	s << "type: ";
+	switch (type)
+	{
+		case PAINT_COLOR: s << "color";
+			break;
+		case PAINT_LINEAR_GRADIENT: s << "linear";
+			break;
+		case PAINT_RADIAL_GRADIENT: s << "radial";
+			break;
+		default: break;
+	}
+	return s.str();
+}
+
+static std::string print_gradient(const GradientSVG& grad)
+{
+	std::stringstream s;
+
+	s << "			gradient"<< std::endl;
+	s << "				id "<< grad.id << std::endl;
+	s << "				ref "<< grad.ref << std::endl;
+	s << "				"<< print_paint_type(grad.type) << std::endl;
+	s << print_mat4(grad.xform);
+	for (std::map<float, glm::vec4>::const_iterator iter = grad.stops.begin(); iter != grad.stops.end(); ++iter)
+	{
+		s << "				"<< iter->first << " -> " << print_vec4(iter->second) << std::endl;
+	}
+
+	return s.str();
+}
+
+static std::string print_paint(const Paint& paint)
+{
+	std::stringstream s;
+
+	s << "		paint ";
+
+	s << print_paint_type(paint.type) << std::endl;
+	s << print_mat4(paint.xform);
+	for (std::map<float, glm::vec4>::const_iterator iter = paint.stops.begin(); iter != paint.stops.end(); ++iter)
+	{
+		s << "				"<< iter->first << " -> " << print_vec4(iter->second) << std::endl;
+	}
+
+	return s.str();
+}
+
+static std::string print_stroke(const ElementSVG& shape)
+{
+	std::stringstream s;
+
+	s << "	contour"<< std::endl;
+	s << print_paint(shape.stroke) << std::endl;
+	return s.str();
+}
+
+static std::string print_fill(const Paint& fill, const bool fillAlternate, const std::string& fillGradient)
+{
+	std::stringstream s;
+
+	s << "	fill"<< std::endl;
+	s << print_paint(fill) << std::endl;
+
+	(void)fill;
+	(void)fillAlternate;
+	(void)fillGradient;
+	return s.str();
+}
+
+static std::string print_vertices(const std::vector<Vertex>& vertices)
+{
+	std::stringstream s;
+
+	s << "		shape"<< std::endl;
+	for (std::vector<Vertex>::const_iterator iter = vertices.begin(); iter != vertices.end(); ++iter)
+	{
+		s << "			"<< print_vertex(*iter) << std::endl;
+	}
+	return s.str();
+}
+
+static std::string print_bounds(const bounds_t& bounds) __attribute__((unused));
+static std::string print_bounds(const bounds_t& bounds)
+{
+	std::stringstream s;
+
+	s << "	bounds ("<< bounds.first.x
+	  << ", " << bounds.first.y
+	  << ", " << bounds.second.x
+	  << ", " << bounds.second.y
+	  << ")";
+	return s.str();
+}
+
+static std::string print_shape(const ElementSVG& shape)
+{
+	std::stringstream s;
+
+	s << "shape " << shape.id << std::endl;
+	s << "	opacity: "<< shape.opacity << std::endl;
+	s << "	"<< print_paint_order(shape.paintOrder) << std::endl;
+
+	if (shape.stroke.type != PAINT_NONE)
+	{
+		s << print_stroke(shape) << std::endl;
+	}
+
+	if (shape.fill.type != PAINT_NONE)
+	{
+		s << print_fill(shape.fill, shape.fillAlternate, shape.fillGradientName) << std::endl;
+	}
+	return s.str();
+}
+
 /******************************************************************************* bounds functions */
 
 static bounds_t pathBounds(const std::vector<glm::vec2>& path)
@@ -473,9 +697,9 @@ static path_t createPath(const glm::mat4& xform, const std::vector<glm::vec2>& p
 static glm::vec4 color_utof(const glm::uvec3& c)
 {
 	return glm::vec4(static_cast<float>(c.r) / 255.0f,
-					 static_cast<float>(c.g) / 255.0f,
-					 static_cast<float>(c.b) / 255.0f,
-					 1.0f);
+	                 static_cast<float>(c.g) / 255.0f,
+	                 static_cast<float>(c.b) / 255.0f,
+	                 1.0f);
 }
 
 static glm::vec4 parse_color_hex(const std::string& str)
@@ -606,6 +830,7 @@ static float convertToPixels(const float fontSize, const coordinate_t& c, const 
 	switch (c.units)
 	{
 		case UNITS_USER:
+
 			if (scaleUser)
 			{
 				// treat value as fraction of origin/length.
@@ -729,6 +954,7 @@ static glm::mat4 parseTransform(const std::string& str)
 	{
 		std::regex regex(R"((\w+)\s*\(([^)]*)\))");
 		std::smatch match;
+
 		if (!std::regex_match(str, match, regex))
 		{
 			throw std::runtime_error("Invalid transform: " + str);
@@ -739,6 +965,7 @@ static glm::mat4 parseTransform(const std::string& str)
 		std::vector<float> args = parseNumbers(match.str(2));
 
 		glm::mat4 t(1.0f);
+
 		if (name == "matrix")
 		{
 			if (args.size() != 6)
@@ -770,6 +997,7 @@ static glm::mat4 parseTransform(const std::string& str)
 		else if (name == "rotate")
 		{
 			const float angle = args[0] / 180.0f * static_cast<float>(M_PI);
+
 			if (args.size() == 1)
 			{
 				// rotate around origin
@@ -793,7 +1021,6 @@ static glm::mat4 parseTransform(const std::string& str)
 			{
 				throw std::runtime_error("rotate needs 1 or 3 arguments");
 			}
-
 		}
 		else if (name == "skewX")
 		{
@@ -992,7 +1219,6 @@ static std::map<std::string, std::string> parse_style(const std::string& str)
 	}
 	return result;
 }
-
 
 static bool parseAttr(ElementSVG& attr, const std::string& name, const std::string& value, const float viewLength)
 {
@@ -1194,7 +1420,7 @@ static glm::mat2 rotation2D(const float a)
 static void add_arc_points(std::vector<glm::vec2>& pts,
                            const glm::vec2& c,
                            const glm::vec2& r,
-						   const float phi,
+                           const float phi,
                            const float angle1,
                            const float angle2)
 {
@@ -1243,14 +1469,14 @@ static bool centreParams(const glm::vec2& p1,
 
 	// (2) centre offset in the rotated system
 	const float sq = std::max(0.0f, sr.x * sr.x * sr.y * sr.y
-								  - sr.x * sr.x * pt1.y * pt1.y
-			                      - sr.y * sr.y * pt1.x * pt1.x);
+	                          - sr.x * sr.x * pt1.y * pt1.y
+	                          - sr.y * sr.y * pt1.x * pt1.x);
 	const float denom = sr.x * sr.x * pt1.y * pt1.y + sr.y * sr.y * pt1.x * pt1.x;
 
 	const float sign = (fa == fs) ? -1.0f : 1.0f;
 	const float coeff = (denom > 0.0f) ? (sign * std::sqrt(sq / denom)) : 0.0f;
 
-	const glm::vec2 cPrime(coeff* sr.x * pt1.y / sr.y, -coeff * sr.y * pt1.x / sr.x);
+	const glm::vec2 cPrime(coeff * sr.x * pt1.y / sr.y, -coeff * sr.y * pt1.x / sr.x);
 
 	// (3) centre in original coordinates
 	c = (p1 + p2) * 0.5f + R * cPrime;
@@ -1297,6 +1523,7 @@ static void pathArcTo(std::vector<glm::vec2>& pts,
 	glm::vec2 center;
 	float a1;
 	float da;
+
 	if (!centreParams(p1, p2, r, phi, fa, fs, center, a1, da))
 	{
 		// should not happen, handle as straight line
@@ -1305,7 +1532,7 @@ static void pathArcTo(std::vector<glm::vec2>& pts,
 	}
 
 	// 4) create points for the ellipse or circle
-    add_arc_points(pts, center, r, phi, -a1, -a1 - da);
+	add_arc_points(pts, center, r, phi, -a1, -a1 - da);
 }
 
 /** split path definitionn into commands and numerical values.
@@ -1344,6 +1571,7 @@ static std::vector<std::string> parsePathDescription(const std::string& path)
 /** parse path description into a list of vertices.
  * @param text string of path description.
  * @param style current style attributes for the current path.
+ * @param closed true if the path is closed.
  * @return list of paths
  */
 static std::vector<path_t> parse_path(const std::string& text, const ElementSVG& style, bool& closed)
@@ -1578,16 +1806,19 @@ static path_t parseRect(const ParserSVG& p, const ElementSVG& style, const std::
 				pts.push_back(glm::vec2(x1.x, x1.y + r.y));
 			}
 			add_arc_points(pts, glm::vec2(x1.x + r.x, x1.y + r.y), r, 0.0f, static_cast<float>(M_PI), 0.5f * static_cast<float>(M_PI));
+
 			if (size.x > 2 * r.x)
 			{
 				pts.push_back(glm::vec2(x2.x - r.x, x1.y));
 			}
 			add_arc_points(pts, glm::vec2(x2.x - r.x, x1.y + r.y), r, 0.0f, 0.5f * static_cast<float>(M_PI), 0.0f);
+
 			if (size.y > 2 * r.y)
 			{
 				pts.push_back(glm::vec2(x2.x, x2.y - r.y));
 			}
 			add_arc_points(pts, glm::vec2(x2.x - r.x, x2.y - r.y), r, 0.0f, 0.0f, -0.5f * static_cast<float>(M_PI));
+
 			if (size.x > 2 * r.x)
 			{
 				pts.push_back(glm::vec2(x1.x + r.x, x2.y));
@@ -1698,12 +1929,13 @@ static path_t parsePoly(const std::map<std::string, std::string>& attr)
 	std::vector<glm::vec2> pts;
 
 	std::map<std::string, std::string>::const_iterator iter = attr.find("points");
+
 	if (iter != attr.end())
 	{
 		const std::vector<float> args = parseNumbers(iter->second);
 		for (size_t i = 0; i + 1 < args.size(); i += 2)
 		{
-			const glm::vec2 cp(args[i], args[i+1]);
+			const glm::vec2 cp(args[i], args[i + 1]);
 			pts.push_back(cp);
 		}
 	}
@@ -1722,6 +1954,7 @@ static void parseCSSStyle(ParserSVG& p, const std::string& content)
 	const std::vector<NodeCSS>& nodes = css.children();
 	for (std::vector<NodeCSS>::const_iterator n = nodes.begin(); n != nodes.end(); ++n)
 	{
+		std::cout << n->print() << std::endl;
 	}
 
 	(void)p;
@@ -1747,7 +1980,7 @@ static void parseSVG(ParserSVG& p, const std::map<std::string, std::string>& att
 			}
 			else
 			{
-				throw std::runtime_error("invalid SVG format");
+				std::cerr << "Invalid input format" << std::endl;
 			}
 		}
 		else if (iter->first == "preserveAspectRatio")
@@ -1806,6 +2039,7 @@ static void parseSVG(ParserSVG& p, const std::map<std::string, std::string>& att
 static GradientSVG parseGradient(const std::map<std::string, std::string>& attr, const paint_type_t type)
 {
 	GradientSVG grad;
+
 	grad.type = type;
 
 	if (grad.type == PAINT_LINEAR_GRADIENT)
@@ -1850,9 +2084,9 @@ static GradientSVG parseGradient(const std::map<std::string, std::string>& attr,
 		else if (iter->first == "cx")
 		{
 			grad.radial.cx = parseCoordinateRaw(iter->second);
+
 			if (grad.radial.cx.units == UNITS_USER)
 			{
-
 			}
 		}
 		else if (iter->first == "cy")
@@ -1942,6 +2176,7 @@ static glm::mat4 scaleGradient(const glm::mat4& xform, const glm::vec2& v, const
 {
 	glm::mat4 trans = glm::translate(glm::mat4(1.0f), glm::vec3(v.x, v.y, 0.0f));
 	glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(s.x, s.y, 1.0f));
+
 	return glm::inverse(scale * trans * xform);
 }
 
@@ -2093,10 +2328,10 @@ static Paint assignGradient(const std::map<std::string, GradientSVG>& gradients,
 }
 
 static void fillGradients(std::vector<ElementSVG>& shapes,
-						  const std::map<std::string, GradientSVG>& gradients,
-						  const glm::vec2& viewMin,
-						  const glm::vec2& viewSize,
-						  const float fontSize)
+                          const std::map<std::string, GradientSVG>& gradients,
+                          const glm::vec2& viewMin,
+                          const glm::vec2& viewSize,
+                          const float fontSize)
 {
 	for (std::vector<ElementSVG>::iterator shape = shapes.begin(); shape != shapes.end(); ++shape)
 	{
@@ -2274,6 +2509,7 @@ static glm::vec4 interpolate_gradient(const Paint& paint, const glm::vec2& point
 		{
 			return paint.stops.begin()->second;
 		}
+
 		if (t >= paint.stops.rbegin()->first)
 		{
 			return paint.stops.rbegin()->second;
@@ -2487,7 +2723,7 @@ static std::vector<GLuint> triangulate_polygon(const std::vector<glm::vec2>& poi
 
 		if (!ear_found)
 		{
-			// std::cerr << "Could not triangulate the polygon!" << std::endl;
+			std::cerr << "Could not triangulate the polygon!" << std::endl;
 			break;
 		}
 	}
@@ -2507,6 +2743,8 @@ static std::vector<GLuint> triangulate_polygon(const std::vector<glm::vec2>& poi
  * @param dir1 direction of incomming line.
  * @param dir2 direction of outgoing line.
  * @param halfW half line width.
+ * @param color color of the joint segments.
+ * @param z z-coordinate of the segments.
  * @param verts list of all vertices.
  * @param idx list of all vertex indices.
  */
@@ -2609,6 +2847,7 @@ static void join_segments_bevel(const glm::vec2& center,
  * @param dir1 direction of incomming line.
  * @param dir2 direction of outgoing line.
  * @param halfW half line width.
+ * @param limit maximum extend of the miter.
  * @param color line color
  * @param z layer
  * @param verts list of all vertices.
@@ -2811,6 +3050,8 @@ static void add_shape_contour(GraphicsSVG& svg, const ElementSVG& shape, const s
 	}
 
 	svg.add(vertices, indices, GL_TRIANGLES);
+
+	std::cout << print_vertices(vertices) << std::endl;
 }
 
 static void add_shape_surface(GraphicsSVG& svg, const ElementSVG& shape, const std::vector<glm::vec2>& points, const size_t z)
@@ -2834,6 +3075,8 @@ static void add_shape_surface(GraphicsSVG& svg, const ElementSVG& shape, const s
 	}
 
 	svg.add(vertices, indices, GL_TRIANGLES);
+
+	std::cout << print_vertices(vertices) << std::endl;
 }
 
 GraphicsSVG::GraphicsSVG(const std::string& file_name) :
@@ -2848,6 +3091,7 @@ GraphicsSVG::GraphicsSVG(const std::string& file_name) :
 
 	NodeXML xml;
 	xml.parse(content);
+	std::cout << xml.print() << std::endl;
 
 	// parse file content
 	ParserSVG p;
@@ -2861,9 +3105,19 @@ GraphicsSVG::GraphicsSVG(const std::string& file_name) :
 	// Scale to viewBox
 	scaleToViewbox(p, p.shapes);
 
+	std::cout << "########## parsing successful" << std::endl;
+	std::cout << "bounding box: (" << p.viewMin.x << ", " << p.viewMin.y << ", " << p.viewSize.x << ", " << p.viewSize.y << ")" << std::endl;
+	std::cout << "available gradients: " << std::endl;
+	for (std::map<std::string, GradientSVG>::const_iterator iter = p.gradients.begin(); iter != p.gradients.end(); ++iter)
+	{
+		std::cout << print_gradient(iter->second) << std::endl;
+	}
+
 	size_t z = 0;
 	for (std::vector<ElementSVG>::const_iterator shape = p.shapes.begin(); shape != p.shapes.end(); ++shape)
 	{
+		std::cout << print_shape(*shape) << std::endl;
+
 		for (std::vector<path_t>::const_iterator path = shape->paths.begin(); path != shape->paths.end(); ++path)
 		{
 			for (size_t i = 0; i < shape->paintOrder.size(); i++)

@@ -12,12 +12,18 @@
 #include <algorithm>
 #include <fstream>
 
+/** separator between path sections. */
 static const std::string directory_separator = "/";
 
+/** default constructor. */
 FileSystem::FileSystem(void)
 {
 }
 
+/** extracts the file extension from a file name.
+ * @param name file name.
+ * @return file extension.
+ */
 std::string FileSystem::extension(const std::string& name) const
 {
 	const size_t index = name.rfind(".");
@@ -37,9 +43,13 @@ std::string FileSystem::extension(const std::string& name) const
 	return ext;
 }
 
+/** checks if the file extesion represents an image.
+ * @param ext file extension.
+ * @return true if the extension represents an image.
+ */
 bool FileSystem::is_image(const std::string& ext) const
 {
-	static const std::set<std::string> image_extensions = {
+	static const std::set<std::string> extensions = {
 		"png",
 		"jpg",
 		"jpeg",
@@ -47,21 +57,42 @@ bool FileSystem::is_image(const std::string& ext) const
 		"bmp"
 	};
 
-	return image_extensions.find(ext) != image_extensions.end();
+	return extensions.find(ext) != extensions.end();
 }
 
+/** checks if the file extesion represents a video.
+ * @param ext file extension.
+ * @return true if the extension represents a video.
+ */
 bool FileSystem::is_video(const std::string& ext) const
 {
-	static const std::set<std::string> video_extensions = {
+	static const std::set<std::string> extensions = {
 		"avi",
 		"mkv",
 		"mpg",
 		"mp4"
 	};
 
-	return video_extensions.find(ext) != video_extensions.end();
+	return extensions.find(ext) != extensions.end();
 }
 
+/** checks if the file extesion represents a vector graphics.
+ * @param ext file extension.
+ * @return true if the extension represents a vector graphics.
+ */
+bool FileSystem::is_vector(const std::string& ext) const
+{
+	static const std::set<std::string> extensions = {
+		"svg"
+	};
+
+	return extensions.find(ext) != extensions.end();
+}
+
+/** split path into directory/file components.
+ * @param path input path.
+ * @return vector of path elements split at directory separator.
+ */
 std::vector<std::string> FileSystem::split_path(const std::string& path) const
 {
 	std::vector<std::string> parts;
@@ -82,6 +113,11 @@ std::vector<std::string> FileSystem::split_path(const std::string& path) const
 	return parts;
 }
 
+/** join path elements with directory separator into a string.
+ * @param start start iterator for elements of a vector.
+ * @param end end iterator for elements of a vector.
+ * @return vector elements joint with directory separators.
+ */
 std::string FileSystem::join_path(const std::vector<std::string>::const_iterator start, const std::vector<std::string>::const_iterator end) const
 {
 	std::string path;

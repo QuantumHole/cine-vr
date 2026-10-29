@@ -8,6 +8,7 @@
 #include "opengl/shape.h"
 #include "render_model.h"
 
+/** Draws an OpenVR Controller as an OpenGL model. */
 class Controller
 {
 	private:
