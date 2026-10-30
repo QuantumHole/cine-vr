@@ -100,6 +100,7 @@ class OpenVRInterface
 		vr::IVRSystem* m_system;
 		vr::IVRInput* m_input;
 		vr::IVRCompositor* m_compositor;
+		bool m_initialized;
 
 		OpenVRInterface(const OpenVRInterface&);
 		OpenVRInterface operator=(const OpenVRInterface&);

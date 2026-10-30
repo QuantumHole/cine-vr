@@ -44,13 +44,17 @@ OpenVRInterface::OpenVRInterface(void) :
 	m_input_handle(),
 	m_system(nullptr),
 	m_input(nullptr),
-	m_compositor(nullptr)
+	m_compositor(nullptr),
+	m_initialized(false)
 {
 }
 
 OpenVRInterface::~OpenVRInterface(void)
 {
-	vr::VR_Shutdown();
+	if (m_initialized)
+	{
+		vr::VR_Shutdown();
+	}
 }
 
 void OpenVRInterface::initActionHandle(const input_action_t input, const std::string& path)
@@ -73,6 +77,7 @@ void OpenVRInterface::init(void)
 	{
 		throw std::runtime_error(std::string("VR_Init failed: ") + vr::VR_GetVRInitErrorAsEnglishDescription(initstatus));
 	}
+	m_initialized = true;
 
 	m_input = vr::VRInput();
 

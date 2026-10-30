@@ -18,7 +18,7 @@ Users can configure some display options via the OpenVR controller.
 
 ## Runtime Dependencies
 * [OpenGL](https://www.opengl.org)
-* [GLFW](https://www.glfw.org)
+* [GLFW](https://www.glfw.org) 3.4 or newer, built with Wayland support for native sway sessions
 * [OpenVR](https://github.com/ValveSoftware/openvr)
 * [libpng](https://www.libpng.org/pub/png/libpng.html)
 * [libjpeg](https://jpegclub.org/reference/reference-sources)
@@ -42,6 +42,17 @@ Users can configure some display options via the OpenVR controller.
 # Building
 
 `make run`
+
+## Wayland
+
+In a Wayland session, Cine-VR requests GLFW's native Wayland backend by default. GLFW must be built with Wayland support. To choose a backend explicitly, set `CINE_VR_PLATFORM` to `wayland`, `x11`, or `auto`:
+
+```sh
+CINE_VR_PLATFORM=wayland ./cine-vr
+CINE_VR_PLATFORM=x11 ./cine-vr
+```
+
+`x11` uses XWayland when launched from sway. `auto` lets GLFW select an available platform. The selected GLFW platform is printed at startup. Native window support does not guarantee that the installed SteamVR/OpenVR runtime supports running its compositor in the same Wayland session; that must be verified separately.
 
 # Contribution
 

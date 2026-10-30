@@ -5,6 +5,8 @@
 #define GL_GLEXT_PROTOTYPES
 
 #include <iostream>
+#include <cstdlib>
+#include <cstring>
 #include <vector>
 #include <unistd.h>
 
@@ -20,12 +22,14 @@
 #include "gui/controller.h"
 #include "gui/menu.h"
 #include "util/file_system.h"
+#include "opengl/shape_set.h"
 
 typedef enum
 {
 	SOURCE_NONE,
 	SOURCE_IMAGE,
-	SOURCE_VIDEO
+	SOURCE_VIDEO,
+	SOURCE_VECTOR
 }
 source_t;
 
@@ -41,6 +45,7 @@ static Menu g_menu;
 static Projection g_projection;
 static Shape g_canvas;
 static Texture g_image;
+static ShapeSet g_vector;
 static glm::vec3 g_hmd_reference_pos;
 static glm::quat g_hmd_reference_rot;
 static std::string g_current_file_name = "";
@@ -159,6 +164,13 @@ void player_open_file(const std::string& file_name)
 		update_projection();
 		g_menu.set_playable(false);
 		g_source = SOURCE_IMAGE;
+	}
+	else if (fs.is_vector(ext))
+	{
+		//// g_player.stop();
+		//// g_player.close();
+		g_menu.set_playable(false);
+		g_source = SOURCE_VECTOR;
 	}
 	else if (fs.is_video(ext))
 	{
@@ -295,12 +307,41 @@ int main(void)
 {
 	const std::string initial_file_name = "images/logo-cinevr.png";
 
+	const char* platform_override = std::getenv("CINE_VR_PLATFORM");
+	if (platform_override != nullptr)
+	{
+		if (std::strcmp(platform_override, "wayland") == 0)
+		{
+			glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
+		}
+		else if (std::strcmp(platform_override, "x11") == 0)
+		{
+			glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+		}
+		else if (std::strcmp(platform_override, "auto") != 0)
+		{
+			std::cerr << "Invalid CINE_VR_PLATFORM value: " << platform_override
+			          << " (expected wayland, x11, or auto); using GLFW auto-selection" << std::endl;
+			glfwInitHint(GLFW_PLATFORM, GLFW_ANY_PLATFORM);
+		}
+	}
+	else if (std::getenv("WAYLAND_DISPLAY") != nullptr)
+	{
+		glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
+	}
+
 	// GLFW init
 	if (!glfwInit())
 	{
-		std::cerr << "GLFW init failed" << std::endl;
+		std::cerr << "GLFW initialization failed; check the selected platform and "
+		          << "ensure GLFW was built with Wayland support when using sway" << std::endl;
 		return -1;
 	}
+	const int glfw_platform = glfwGetPlatform();
+	std::cout << "GLFW platform: "
+	          << (glfw_platform == GLFW_PLATFORM_WAYLAND ? "Wayland" :
+	              glfw_platform == GLFW_PLATFORM_X11 ? "X11" : "other")
+	          << std::endl;
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	g_window = glfwCreateWindow(static_cast<int>(g_window_size.x), static_cast<int>(g_window_size.y), "Cine-VR", NULL, NULL);
@@ -315,7 +356,17 @@ int main(void)
 	glfwSetFramebufferSizeCallback(g_window, framebuffer_size_callback);
 
 	// Initialize OpenVR
-	g_vr.init();
+	try
+	{
+		g_vr.init();
+	}
+	catch (const std::exception& error)
+	{
+		std::cerr << "OpenVR initialization failed: " << error.what() << std::endl;
+		glfwDestroyWindow(g_window);
+		glfwTerminate();
+		return -1;
+	}
 	glm::uvec2 render_size = g_vr.render_target_size();
 
 	glEnable(GL_DEPTH_TEST);
@@ -343,6 +394,13 @@ int main(void)
 	// main loop
 	while (g_Running)
 	{
+		glfwPollEvents();
+		if (glfwWindowShouldClose(g_window))
+		{
+			g_Running = false;
+			break;
+		}
+
 		// read user inputs
 		g_vr.update();
 		g_vr.read_poses();
@@ -474,6 +532,9 @@ int main(void)
 					g_canvas.draw();
 					g_player.unbind();
 					break;
+				case SOURCE_VECTOR:
+					g_vector.draw();
+					break;
 				default:
 					break;
 			}
@@ -487,6 +548,8 @@ int main(void)
 				g_menu.draw();
 
 				// For each controller: render simple ray and do intersection with rectangle
+				// OpenVR object definitions are compatible with the Vertex structure
+				// Therefore, it can be rendered with the same shader
 				for (std::map<vr::TrackedDeviceIndex_t, Controller>::const_iterator iter = g_controller.begin(); iter != g_controller.end(); ++iter)
 				{
 					iter->second.draw();
@@ -511,7 +574,7 @@ int main(void)
 		Framebuffer& fb = *g_framebuffer.begin();
 		fb.bind(GL_READ_FRAMEBUFFER);
 		fb.unbind(GL_DRAW_FRAMEBUFFER);
-		glBlitFramebuffer(0, 0, fb.size().x, fb.size().y, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBlitFramebuffer(0, 0, static_cast<GLint>(fb.size().x), static_cast<GLint>(fb.size().y), 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		fb.unbind(GL_READ_FRAMEBUFFER);
 
 		glfwSwapBuffers(g_window);

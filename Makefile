@@ -3,11 +3,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 PROJECT_ROOT := .
-DEPENDENCIES = "glfw3 openvr libpng libjpeg freetype2 mpv gl"
+DEPENDENCIES = "glfw3 >= 3.4 openvr libpng libjpeg freetype2 mpv gl"
 
 include common/cplusplus.mk
 include common/license.mk
 include common/makefile.mk
+include common/doxygen.mk
 
 TARGET = cine-vr
 IMAGE_DIR = images
@@ -44,6 +45,7 @@ OBJECTS = \
 	$(BUILD_DIR)/shape_set.o \
 	$(BUILD_DIR)/graphics_svg.o \
 	$(BUILD_DIR)/string_tools.o \
+	$(BUILD_DIR)/render_manager.o \
 
 IMAGES = \
 	$(IMAGE_DIR)/angle.png \
@@ -88,6 +90,9 @@ lint:
 	$(MAKE) format
 	-$(MAKE) license-annotate
 	$(MAKE) license-lint
+
+doc: doxygen-doc
+	$(MAKE) doxygen-show
 
 compile:
 	clear && $(MAKE) clean && $(MAKE) -j gnu && $(MAKE) clean && $(MAKE) -j llvm

@@ -46,7 +46,10 @@ Player::~Player(void)
 {
 	if (m_context)
 	{
-		mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
+		if (m_render)
+		{
+			mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
+		}
 		mpv_terminate_destroy(m_context);
 	}
 	m_context = nullptr;
