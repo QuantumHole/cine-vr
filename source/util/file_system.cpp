@@ -89,6 +89,15 @@ bool FileSystem::is_vector(const std::string& ext) const
 	return extensions.find(ext) != extensions.end();
 }
 
+/** checks if the file extension is supported.
+ * @param ext file extension.
+ * @return true if the extension is supported.
+ */
+bool FileSystem::is_supported(const std::string& ext) const
+{
+	return is_image(ext) || is_video(ext) || is_vector(ext);
+}
+
 /** split path into directory/file components.
  * @param path input path.
  * @return vector of path elements split at directory separator.
@@ -170,7 +179,7 @@ std::set<std::string> FileSystem::select_files(const std::string& dir, const boo
 		    (en != "..") &&
 		    (!en.empty()) &&
 		    (show_hidden || (!show_hidden && (en[0] != '.'))) &&
-		    ((use_files && is_file(name) && (is_image(ext) || is_video(ext))) ||
+		    ((use_files && is_file(name) && is_supported(ext)) ||
 		     (use_dirs && is_directory(name))))
 		{
 			entries.insert(en);

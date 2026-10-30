@@ -27,6 +27,7 @@ class FileSystem
 		bool is_image(const std::string& ext) const;
 		bool is_video(const std::string& ext) const;
 		bool is_vector(const std::string& ext) const;
+		bool is_supported(const std::string& ext) const;
 		std::string read_file(const std::string& path) const;
 };
 

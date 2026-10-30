@@ -7,11 +7,20 @@
 #include "util/file_system.h"
 #include "util/node_xml.h"
 #include "util/node_css.h"
+#include <algorithm>
 #include <iostream>
 #include <string.h>
 #include <sstream>
 #include <glm/ext/matrix_transform.hpp>
 #include <regex>
+
+/* TODO
+ * - insert extra points at gradient stops for strokes and fills.
+ * - handle CSS style attributes, especially for gradients.
+ * - fix radial gradients
+ * - handle gradient spreads
+ * - handle fonts
+ */
 
 typedef enum
 {
@@ -2711,8 +2720,8 @@ static std::vector<GLuint> triangulate_polygon(const std::vector<glm::vec2>& poi
 			if (convex && isEar)
 			{
 				indices.push_back(static_cast<GLuint>(ia));
-				indices.push_back(static_cast<GLuint>(ib));
-				indices.push_back(static_cast<GLuint>(ic));
+				indices.push_back(static_cast<GLuint>((winding > 0) ? ic : ib));
+				indices.push_back(static_cast<GLuint>((winding > 0) ? ib : ic));
 
 				// remove ear point
 				poly.erase(poly.begin() + static_cast<ptrdiff_t>(i));
@@ -2732,8 +2741,8 @@ static std::vector<GLuint> triangulate_polygon(const std::vector<glm::vec2>& poi
 	if (poly.size() == 3)
 	{
 		indices.push_back(static_cast<GLuint>(poly[0]));
-		indices.push_back(static_cast<GLuint>(poly[1]));
-		indices.push_back(static_cast<GLuint>(poly[2]));
+		indices.push_back(static_cast<GLuint>((winding > 0) ? poly[2] : poly[1]));
+		indices.push_back(static_cast<GLuint>((winding > 0) ? poly[1] : poly[2]));
 	}
 	return indices;
 }
@@ -2786,10 +2795,23 @@ static void join_segments_round(const glm::vec2& center,
 
 		if (i > 0)
 		{
-			// triangle of the center, previous, and current vertices.
+			const glm::vec2 previous(verts[vIdx - 1].position());
+			const glm::vec2 current(verts[vIdx].position());
+			const glm::vec2 origin(verts[centerIdx].position());
+			const float area = triangle_area(origin, previous, current);
+
+			// Start and end caps sweep in opposite directions, even when cross is zero.
 			idx.push_back(static_cast<GLuint>(centerIdx));
-			idx.push_back(static_cast<GLuint>(vIdx - 1));
-			idx.push_back(static_cast<GLuint>(vIdx));
+			if (area > 0.0f)
+			{
+				idx.push_back(static_cast<GLuint>(vIdx - 1));
+				idx.push_back(static_cast<GLuint>(vIdx));
+			}
+			else
+			{
+				idx.push_back(static_cast<GLuint>(vIdx));
+				idx.push_back(static_cast<GLuint>(vIdx - 1));
+			}
 		}
 	}
 }
@@ -2836,10 +2858,10 @@ static void join_segments_bevel(const glm::vec2& center,
 	verts.push_back(v1);
 	verts.push_back(v2);
 
-	// triangle of the center, previous, and current vertices.
+	// Keep the triangle front-facing after the Y-axis reflection.
 	idx.push_back(static_cast<GLuint>(centerIdx + 0));
-	idx.push_back(static_cast<GLuint>(centerIdx + 1));
-	idx.push_back(static_cast<GLuint>(centerIdx + 2));
+	idx.push_back(static_cast<GLuint>(centerIdx + ((cross > 0.0f) ? 2 : 1)));
+	idx.push_back(static_cast<GLuint>(centerIdx + ((cross > 0.0f) ? 1 : 2)));
 }
 
 /** extend cap at the joint of lines.
@@ -2886,10 +2908,10 @@ static void join_segments_miter(const glm::vec2& center,
 	verts.push_back(v1);
 	verts.push_back(v2);
 
-	// triangle of the center, previous, and current vertices.
+	// Keep the hinge wedge front-facing after the Y-axis reflection.
 	idx.push_back(static_cast<GLuint>(centerIdx + 0));
-	idx.push_back(static_cast<GLuint>(centerIdx + 1));
-	idx.push_back(static_cast<GLuint>(centerIdx + 2));
+	idx.push_back(static_cast<GLuint>(centerIdx + ((cross > 0.0f) ? 2 : 1)));
+	idx.push_back(static_cast<GLuint>(centerIdx + ((cross > 0.0f) ? 1 : 2)));
 
 	// add top triangle
 	const glm::vec2 miterDir = glm::normalize(dir1 - dir2);
@@ -2900,10 +2922,10 @@ static void join_segments_miter(const glm::vec2& center,
 	const Vertex top(glm::vec3(pt.x, -pt.y, z), normal, color, tex);
 	verts.push_back(top);
 
-	// triangle of the center, previous, and current vertices.
+	// The outer miter triangle has the opposite winding from the hinge wedge.
 	idx.push_back(static_cast<GLuint>(centerIdx + 1));
-	idx.push_back(static_cast<GLuint>(centerIdx + 2));
-	idx.push_back(static_cast<GLuint>(centerIdx + 3));
+	idx.push_back(static_cast<GLuint>(centerIdx + ((cross > 0.0f) ? 2 : 3)));
+	idx.push_back(static_cast<GLuint>(centerIdx + ((cross > 0.0f) ? 3 : 2)));
 }
 
 static void join_segments(const ElementSVG& shape,
@@ -2949,21 +2971,39 @@ static void add_shape_contour(GraphicsSVG& svg, const ElementSVG& shape, const s
 
 	std::vector<Vertex> vertices;
 	std::vector<GLuint> indices;
+	std::vector<glm::vec2> contour;
+	contour.reserve(points.size());
+	for (std::vector<glm::vec2>::const_iterator point = points.begin(); point != points.end(); ++point)
+	{
+		if (contour.empty() || (glm::length(*point - contour.back()) > 1e-6f))
+		{
+			contour.push_back(*point);
+		}
+	}
+	if (shape.closed && (contour.size() > 1) && (glm::length(contour.front() - contour.back()) <= 1e-6f))
+	{
+		contour.pop_back();
+	}
 
 	const float halfW = shape.strokeWidth * 0.5f;
-	const size_t n = points.size();
+	const size_t n = contour.size();
 	glm::vec2 prevdir(0.0f, 0.0f);
 
-	if (shape.stroke.stops.size() == 0)
+	if ((shape.stroke.stops.size() == 0) || (n < 2))
 	{
 		return;
 	}
+	if (shape.closed)
+	{
+		prevdir = glm::normalize(contour[0] - contour[n - 1]);
+	}
 
 	// convert segements into rectangles
-	for (size_t i = 0; i + 1 < n; i++)
+	const size_t segment_count = shape.closed ? n : n - 1;
+	for (size_t i = 0; i < segment_count; i++)
 	{
-		const glm::vec2& curr = points[i];
-		const glm::vec2& next = points[i + 1];
+		const glm::vec2& curr = contour[i];
+		const glm::vec2& next = contour[(i + 1) % n];
 		const glm::vec2 diff = next - curr;
 
 		// ignore identical consecutive points
@@ -2974,14 +3014,14 @@ static void add_shape_contour(GraphicsSVG& svg, const ElementSVG& shape, const s
 
 		const glm::vec2 dir = glm::normalize(diff);
 
-		if ((i == 0) && !shape.closed)
+		if (shape.closed || (i > 0))
+		{
+			join_segments(shape, curr, prevdir, dir, shape.strokeLineJoin, pz, vertices, indices);
+		}
+		else
 		{
 			// add start cap
 			join_segments(shape, curr, -dir, dir, shape.strokeLineCap, pz, vertices, indices);
-		}
-		else if (glm::length(prevdir) > 0.0f)
-		{
-			join_segments(shape, curr, prevdir, dir, shape.strokeLineJoin, pz, vertices, indices);
 		}
 
 		// add two triangles for the segment rectangle
@@ -3009,44 +3049,26 @@ static void add_shape_contour(GraphicsSVG& svg, const ElementSVG& shape, const s
 		vertices.push_back(v3);
 		vertices.push_back(v4);
 
-		// first triangle
+		// Reverse both triangles to compensate for the Y-axis reflection.
 		indices.push_back(i1 + 0);
-		indices.push_back(i1 + 1);
 		indices.push_back(i1 + 2);
+		indices.push_back(i1 + 1);
 
 		// second triangle
 		indices.push_back(i1 + 1);
-		indices.push_back(i1 + 3);
 		indices.push_back(i1 + 2);
+		indices.push_back(i1 + 3);
 
 		if (glm::length(dir) > 0.0f)
 		{
 			prevdir = dir;
 		}
 
-		if ((i + 2 == n) && !shape.closed)
+		if ((i + 1 == segment_count) && !shape.closed)
 		{
 			// add end cap
 			join_segments(shape, next, dir, -dir, shape.strokeLineCap, pz, vertices, indices);
 		}
-	}
-
-	if (shape.closed)
-	{
-		const GLuint nv = static_cast<GLuint>(vertices.size());
-
-		// first triangle
-		indices.push_back(nv - 2);
-		indices.push_back(nv - 1);
-		indices.push_back(0);
-
-		// second triangle
-		indices.push_back(nv - 1);
-		indices.push_back(1);
-		indices.push_back(0);
-
-		const glm::vec2 dir = glm::normalize(points[1] - points[0]);
-		join_segments(shape, points[0], prevdir, dir, shape.strokeLineJoin, pz, vertices, indices);
 	}
 
 	svg.add(vertices, indices, GL_TRIANGLES);
@@ -3064,9 +3086,14 @@ static void add_shape_surface(GraphicsSVG& svg, const ElementSVG& shape, const s
 	}
 
 	std::vector<Vertex> vertices;
-	std::vector<GLuint> indices = triangulate_polygon(points);
+	std::vector<glm::vec2> contour = points;
+	if ((contour.size() > 1) && (glm::length(contour.front() - contour.back()) <= 1e-6f))
+	{
+		contour.pop_back();
+	}
+	std::vector<GLuint> indices = triangulate_polygon(contour);
 
-	for (std::vector<glm::vec2>::const_iterator point = points.begin(); point != points.end(); ++point)
+	for (std::vector<glm::vec2>::const_iterator point = contour.begin(); point != contour.end(); ++point)
 	{
 		const glm::vec4 color = interpolate_gradient(shape.fill, *point);
 		const glm::vec3 pos(point->x, -point->y, static_cast<float>(z) * zoffset);

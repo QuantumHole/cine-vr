@@ -7,6 +7,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <vector>
 #include <unistd.h>
 
@@ -21,8 +22,8 @@
 #include "opengl/texture.h"
 #include "gui/controller.h"
 #include "gui/menu.h"
+#include "gui/graphics_svg.h"
 #include "util/file_system.h"
-#include "opengl/shape_set.h"
 
 typedef enum
 {
@@ -45,7 +46,7 @@ static Menu g_menu;
 static Projection g_projection;
 static Shape g_canvas;
 static Texture g_image;
-static ShapeSet g_vector;
+static std::unique_ptr<GraphicsSVG> g_vector;
 static glm::vec3 g_hmd_reference_pos;
 static glm::quat g_hmd_reference_rot;
 static std::string g_current_file_name = "";
@@ -167,8 +168,21 @@ void player_open_file(const std::string& file_name)
 	}
 	else if (fs.is_vector(ext))
 	{
-		//// g_player.stop();
-		//// g_player.close();
+		std::unique_ptr<GraphicsSVG> svg;
+		try
+		{
+			svg.reset(new GraphicsSVG(file_name));
+		}
+		catch (const std::exception& error)
+		{
+			std::cerr << "Failed to load SVG '" << file_name << "': " << error.what() << std::endl;
+			return;
+		}
+		if (g_source == SOURCE_VIDEO)
+		{
+			g_player.close();
+		}
+		g_vector.swap(svg);
 		g_menu.set_playable(false);
 		g_source = SOURCE_VECTOR;
 	}
@@ -301,6 +315,13 @@ static void setup_hmd(const glm::mat4& hmdPose)
 	reference *= mat4_cast(g_hmd_reference_rot);
 
 	g_canvas.set_transform(reference);
+	if (g_vector)
+	{
+		const glm::mat4 svg_transform = reference *
+		                                glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -10.0f)) *
+		                                glm::scale(glm::mat4(1.0f), glm::vec3(5.0f));
+		g_vector->set_transform(svg_transform);
+	}
 }
 
 int main(void)
@@ -533,7 +554,10 @@ int main(void)
 					g_player.unbind();
 					break;
 				case SOURCE_VECTOR:
-					g_vector.draw();
+					if (g_vector)
+					{
+						g_vector->draw();
+					}
 					break;
 				default:
 					break;
@@ -584,6 +608,7 @@ int main(void)
 	}
 
 	// Cleanup
+	g_vector.reset();
 	glfwTerminate();
 	return 0;
 }
