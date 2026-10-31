@@ -21,6 +21,8 @@ class SimpleButton : public Panel
 		glm::mat4 m_graphic_transform;
 		bool m_graphic_uses_texture;
 
+		void set_graphic_pose(const glm::mat4& pose);
+
 	public:
 		explicit SimpleButton(const action_t action, const std::string& image_name);
 		~SimpleButton(void) override;

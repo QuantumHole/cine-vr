@@ -4,6 +4,8 @@
 
 #include "simple_button.h"
 #include "main.h"
+#include "util/file_system.h"
+#include <stdexcept>
 
 static const glm::vec4 button_color(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -18,13 +20,34 @@ SimpleButton::SimpleButton(const action_t action, const std::string& image_name)
 	m_graphic_uses_texture(true)
 {
 	init_shape(m_button_size, button_color);
-	init_texture(image_name);
-	m_shape_set_id = m_renderer.create_shape_set();
-	m_renderer.add_shape(m_shape_set_id, shape_vertices(), shape_indices());
-	m_renderable_id = m_renderer.create_shape_set_renderable(m_shape_set_id,
-	                                                         std::vector<size_t>(1, texture_id()),
-	                                                         shader().id(),
-	                                                         false);
+
+	const std::string ext = FileSystem().extension(image_name);
+	if (FileSystem().is_image(ext))
+	{
+		init_texture(image_name);
+		m_shape_set_id = m_renderer.create_shape_set();
+		m_renderer.add_shape(m_shape_set_id, shape_vertices(), shape_indices());
+		m_renderable_id = m_renderer.create_shape_set_renderable(m_shape_set_id,
+																std::vector<size_t>(1, texture_id()),
+																shader().id(),
+																false);
+	}
+	else if (FileSystem().is_vector(ext))
+	{
+		m_shape_set_id = m_renderer.load_svg(image_name);
+		m_graphic_uses_texture = false;
+		m_graphic_transform = glm::scale(glm::mat4(1.0f), glm::vec3(m_button_size.x * 0.5f,
+		                                                               m_button_size.y * 0.5f,
+		                                                               1.0f));
+		m_renderable_id = m_renderer.create_shape_set_renderable(m_shape_set_id,
+																std::vector<size_t>(),
+																shader().id(),
+																false);
+	}
+	else
+	{
+		throw std::runtime_error("unsupported image format: " + ext);
+	}
 }
 
 SimpleButton::~SimpleButton(void)
@@ -56,6 +79,11 @@ void SimpleButton::set_graphic(const size_t shape_set_id,
 void SimpleButton::set_transform(const glm::mat4& pose)
 {
 	Panel::set_transform(pose);
+	set_graphic_pose(pose);
+}
+
+void SimpleButton::set_graphic_pose(const glm::mat4& pose)
+{
 	m_renderer.set_shape_set_transform(m_shape_set_id, pose * m_graphic_transform);
 }
 

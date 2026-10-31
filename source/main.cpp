@@ -367,7 +367,7 @@ static void setup_hmd(const glm::mat4& hmdPose)
 
 int main(void)
 {
-	const std::string initial_file_name = "images/logo-cinevr.png";
+	const std::string initial_file_name = "images/logo-cinevr.svg";
 
 	const char* platform_override = std::getenv("CINE_VR_PLATFORM");
 	if (platform_override != nullptr)

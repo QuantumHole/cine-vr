@@ -17,12 +17,6 @@ void main(void)
 {
 	vec4 texColor = texture(diffuse0, texCoords);
 
-	if (greyscale)
-	{
-		float grey = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
-		texColor = vec4(grey, grey, grey, texColor.a);
-	}
-
 	if (background)
 	{
 		outColor = mix(vtxColor, texColor, texColor.a);
@@ -32,5 +26,11 @@ void main(void)
 		// show texture color, if it is different than pure black
 		// show vertex color, if texture color is not defined or pure black
 		outColor = mix(texColor, vtxColor, step(0.01, vtxColor.r+vtxColor.g+vtxColor.b));
+	}
+
+	if (greyscale)
+	{
+		float grey = dot(outColor.rgb, vec3(0.299, 0.587, 0.114));
+		outColor.rgb = vec3(grey);
 	}
 }

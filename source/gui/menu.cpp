@@ -175,91 +175,91 @@ void Menu::create_button_panel(const std::vector<action_t>& actions)
 			switch (act)
 			{
 				case ACTION_BACK:
-					b = new SimpleButton(ACTION_BACK, "images/back.png");
+					b = new SimpleButton(ACTION_BACK, "images/back.svg");
 					break;
 				case ACTION_DESKTOP:
-					b = new SimpleButton(ACTION_DESKTOP, "images/desktop.png");
+					b = new SimpleButton(ACTION_DESKTOP, "images/desktop.svg");
 					break;
 				case ACTION_DESKTOP_WINDOW:
-					b = new SimpleButton(ACTION_DESKTOP_WINDOW, "images/window.png");
+					b = new SimpleButton(ACTION_DESKTOP_WINDOW, "images/window.svg");
 					break;
 				case ACTION_FILE_DELETE:
-					b = new SimpleButton(ACTION_FILE_DELETE, "images/delete.png");
+					b = new SimpleButton(ACTION_FILE_DELETE, "images/delete.svg");
 					break;
 				case ACTION_FILE_OPEN:
-					b = new SimpleButton(ACTION_FILE_OPEN, "images/open.png");
+					b = new SimpleButton(ACTION_FILE_OPEN, "images/open.svg");
 					break;
 				case ACTION_PLAY_BACKWARD:
-					b = new SimpleButton(ACTION_PLAY_BACKWARD, "images/backward.png");
+					b = new SimpleButton(ACTION_PLAY_BACKWARD, "images/backward.svg");
 					break;
 				case ACTION_PLAY_FORWARD:
-					b = new SimpleButton(ACTION_PLAY_FORWARD, "images/forward.png");
+					b = new SimpleButton(ACTION_PLAY_FORWARD, "images/forward.svg");
 					break;
 				case ACTION_PLAY_NEXT:
-					b = new SimpleButton(ACTION_PLAY_NEXT, "images/next.png");
+					b = new SimpleButton(ACTION_PLAY_NEXT, "images/next.svg");
 					break;
 				case ACTION_PLAY_PAUSE:
-					b = new SimpleButton(ACTION_PLAY_PAUSE, "images/pause.png");
+					b = new SimpleButton(ACTION_PLAY_PAUSE, "images/pause.svg");
 					break;
 				case ACTION_PLAY_PLAY:
-					b = new SimpleButton(ACTION_PLAY_PLAY, "images/play.png");
+					b = new SimpleButton(ACTION_PLAY_PLAY, "images/play.svg");
 					break;
 				case ACTION_PLAY_PREVIOUS:
-					b = new SimpleButton(ACTION_PLAY_PREVIOUS, "images/previous.png");
+					b = new SimpleButton(ACTION_PLAY_PREVIOUS, "images/previous.svg");
 					break;
 				case ACTION_POWER:
-					b = new SimpleButton(ACTION_POWER, "images/power.png");
+					b = new SimpleButton(ACTION_POWER, "images/power.svg");
 					break;
 				case ACTION_PROJECT_CUBE:
-					b = new SimpleButton(ACTION_PROJECT_CUBE, "images/cube-mono.png");
+					b = new SimpleButton(ACTION_PROJECT_CUBE, "images/cube-mono.svg");
 					break;
 				case ACTION_PROJECT_CYLINDER:
-					b = new SimpleButton(ACTION_PROJECT_CYLINDER, "images/cylinder.png");
+					b = new SimpleButton(ACTION_PROJECT_CYLINDER, "images/cylinder.svg");
 					break;
 				case ACTION_PROJECT_FISHEYE:
-					b = new SimpleButton(ACTION_PROJECT_FISHEYE, "images/fisheye.png");
+					b = new SimpleButton(ACTION_PROJECT_FISHEYE, "images/fisheye.svg");
 					break;
 				case ACTION_PROJECT_FLAT:
-					b = new SimpleButton(ACTION_PROJECT_FLAT, "images/flat.png");
+					b = new SimpleButton(ACTION_PROJECT_FLAT, "images/flat.svg");
 					break;
 				case ACTION_PROJECT_SPHERE:
-					b = new SimpleButton(ACTION_PROJECT_SPHERE, "images/sphere.png");
+					b = new SimpleButton(ACTION_PROJECT_SPHERE, "images/sphere.svg");
 					break;
 				case ACTION_SETTINGS:
-					b = new SimpleButton(ACTION_SETTINGS, "images/settings.png");
+					b = new SimpleButton(ACTION_SETTINGS, "images/settings.svg");
 					break;
 				case ACTION_TILE_CUBE_MONO:
-					b = new SimpleButton(ACTION_TILE_CUBE_MONO, "images/cube-mono.png");
+					b = new SimpleButton(ACTION_TILE_CUBE_MONO, "images/cube-mono.svg");
 					break;
 				case ACTION_TILE_CUBE_STEREO:
-					b = new SimpleButton(ACTION_TILE_CUBE_STEREO, "images/cube-stereo.png");
+					b = new SimpleButton(ACTION_TILE_CUBE_STEREO, "images/cube-stereo.svg");
 					break;
 				case ACTION_TILE_LEFT_RIGHT:
-					b = new SimpleButton(ACTION_TILE_LEFT_RIGHT, "images/left-right.png");
+					b = new SimpleButton(ACTION_TILE_LEFT_RIGHT, "images/left-right.svg");
 					break;
 				case ACTION_TILE_MONO:
-					b = new SimpleButton(ACTION_TILE_MONO, "images/mono.png");
+					b = new SimpleButton(ACTION_TILE_MONO, "images/mono.svg");
 					break;
 				case ACTION_TILE_TOP_BOTTOM:
-					b = new SimpleButton(ACTION_TILE_TOP_BOTTOM, "images/top-bottom.png");
+					b = new SimpleButton(ACTION_TILE_TOP_BOTTOM, "images/top-bottom.svg");
 					break;
 				case ACTION_FLAG_MONO:
-					b = new ToggleButton(act, "images/force-mono.png", projection().mono());
+					b = new ToggleButton(act, "images/force-mono.svg", projection().mono());
 					break;
 				case ACTION_FLAG_STRETCH:
-					b = new ToggleButton(act, "images/stretch.png", projection().stretch());
+					b = new ToggleButton(act, "images/stretch.svg", projection().stretch());
 					break;
 				case ACTION_FLAG_SWITCH_EYES:
-					b = new ToggleButton(act, "images/switch-eyes.png", projection().switch_eyes());
+					b = new ToggleButton(act, "images/switch-eyes.svg", projection().switch_eyes());
 					break;
 				case ACTION_PARAM_ANGLE:
-					b = new SlideButton(act, "images/angle.png", 0.0f, 2.0f * glm::pi<float>(), projection().angle());
+					b = new SlideButton(act, "images/angle.svg", 0.0f, 2.0f * glm::pi<float>(), projection().angle());
 					break;
 				case ACTION_PARAM_ZOOM:
-					b = new SlideButton(act, "images/zoom.png", 0.0f, 10.0f, projection().zoom());
+					b = new SlideButton(act, "images/zoom.svg", 0.0f, 10.0f, projection().zoom());
 					break;
 				case ACTION_VOLUME:
-					b = new SlideButton(act, "images/volume.png", 0.0f, 100.0f, player().volume());
+					b = new SlideButton(act, "images/volume.svg", 0.0f, 100.0f, player().volume());
 					break;
 				default:
 					throw std::runtime_error("invalid button ID");
@@ -294,7 +294,7 @@ void Menu::main_menu(void)
 
 		const float duration = player().duration();
 		const float position = player().playtime();
-		Panel* p = new ProgressBar(ACTION_PLAY_POSITION, "images/progress-bar.png", duration, position);
+		Panel* p = new ProgressBar(ACTION_PLAY_POSITION, "images/progress-bar.svg", duration, position);
 		glm::mat4 pose = glm::mat4(1.0f);
 		pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 		pose = m_hmd_pose * pose;
@@ -357,7 +357,7 @@ void Menu::file_menu(void)
 	pose = m_hmd_pose * pose;
 
 	action_t act = ACTION_BACK;
-	Panel* b = new SimpleButton(act, "images/back.png");
+	Panel* b = new SimpleButton(act, "images/back.svg");
 	b->set_transform(pose);
 	m_panel[act] = b;
 
@@ -368,7 +368,7 @@ void Menu::file_menu(void)
 	pose = m_hmd_pose * pose;
 
 	act = ACTION_DESKTOP;
-	b = new SimpleButton(act, "images/desktop.png");
+	b = new SimpleButton(act, "images/desktop.svg");
 	b->set_transform(pose);
 	m_panel[act] = b;
 
@@ -379,7 +379,7 @@ void Menu::file_menu(void)
 	pose = m_hmd_pose * pose;
 
 	act = ACTION_DESKTOP_WINDOW;
-	b = new SimpleButton(act, "images/window.png");
+	b = new SimpleButton(act, "images/window.svg");
 	b->set_transform(pose);
 	m_panel[act] = b;
 

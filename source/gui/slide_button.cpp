@@ -67,7 +67,7 @@ bool SlideButton::update_on_interaction(const Panel::intersection_t isec, const 
 	}
 	else if (!input.trigger.button.pressed && m_active)
 	{
-		shape().set_transform(Panel::pose());
+		set_graphic_pose(Panel::pose());
 		m_active = false;
 	}
 	else if (input.trigger.button.pressed && m_active)
@@ -86,7 +86,7 @@ bool SlideButton::update_on_interaction(const Panel::intersection_t isec, const 
 
 		// move button icon to cursor position
 		glm::mat4 shifted_pose = glm::translate(Panel::pose(), glm::vec3(0.0f, global_y, 0.0f));
-		shape().set_transform(shifted_pose);
+		set_graphic_pose(shifted_pose);
 
 		return true;
 	}
