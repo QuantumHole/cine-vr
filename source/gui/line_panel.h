@@ -6,6 +6,7 @@
 #define LINE_PANEL_H
 
 #include "action.h"
+#include "opengl/shape.h"
 #include "scroll_panel.h"
 #include <vector>
 #include <string>

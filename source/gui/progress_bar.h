@@ -20,14 +20,22 @@ class ProgressBar : public Panel
 		size_t m_cursor_shape_set;
 		size_t m_cursor_texture;
 		glm::vec2 m_progress_size;
+		glm::vec2 m_cursor_size;
 		glm::mat4 m_background_transform;
+		glm::mat4 m_cursor_transform;
 		bool m_background_uses_texture;
+		bool m_cursor_uses_texture;
 
 		void init_cursor(const glm::vec2& cursor_size);
 		void set_cursor_position(void);
 
 	public:
-		explicit ProgressBar(const action_t action, const std::string& image, const float max, const float pos);
+		explicit ProgressBar(
+			const action_t action,
+			const std::string& imagebar,
+			const std::string& imagecursor,
+			const float max,
+			const float pos);
 		~ProgressBar(void) override;
 		void set_transform(const glm::mat4& pose) override;
 		void set_max(const float max);

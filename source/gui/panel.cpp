@@ -11,10 +11,8 @@
 #include <algorithm>
 
 Panel::Panel(const action_t action) :
-	m_shape(),
+	m_shape_set_id(RenderManager::instance().create_shape_set()),
 	m_texture_id(RenderManager::instance().create_texture()),
-	m_shape_vertices(),
-	m_shape_indices(),
 	m_pose(1.0f),
 	m_shape_size(0.0f, 0.0f),
 	m_action(action)
@@ -23,30 +21,26 @@ Panel::Panel(const action_t action) :
 
 Panel::~Panel(void)
 {
-	m_shape.remove();
 }
 
 void Panel::init_shape(const glm::vec2& shape_size, const glm::vec4& color)
 {
-	// reinitialize
-	m_shape.remove();
-
 	m_shape_size = shape_size;
 
 	// positions: rectangle in XY plane centered at 0, z=0
-	m_shape_vertices = {
+	const std::vector<Vertex> vertices = {
 		Vertex(glm::vec3(-0.5f * m_shape_size.x, -0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(0.0f, 1.0f)),
 		Vertex(glm::vec3(0.5f * m_shape_size.x, 0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(1.0f, 0.0f)),
 		Vertex(glm::vec3(-0.5f * m_shape_size.x, 0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(0.0f, 0.0f)),
 		Vertex(glm::vec3(0.5f * m_shape_size.x, -0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(1.0f, 1.0f)),
 	};
 
-	m_shape_indices = {
+	const std::vector<GLuint> indices = {
 		0, 1, 2,
 		0, 3, 1,
 	};
 
-	m_shape.init_vertices(m_shape_vertices, m_shape_indices, GL_TRIANGLES);
+	RenderManager::instance().add_shape(m_shape_set_id, vertices, indices, 1, GL_TRIANGLES);
 }
 
 void Panel::init_texture(const std::string& image_name)
@@ -68,7 +62,7 @@ void Panel::init_area(const glm::vec2& shape_size, const glm::vec4& color, const
 void Panel::set_transform(const glm::mat4& pose)
 {
 	m_pose = pose;
-	m_shape.set_transform(pose);
+	RenderManager::instance().set_shape_set_transform(m_shape_set_id, pose);
 }
 
 const glm::mat4& Panel::pose(void) const
@@ -76,24 +70,14 @@ const glm::mat4& Panel::pose(void) const
 	return m_pose;
 }
 
-const Shape& Panel::shape(void) const
+ShapeSet& Panel::shape_set(void) const
 {
-	return m_shape;
+	return RenderManager::instance().shape_set(m_shape_set_id);
 }
 
-Shape& Panel::shape(void)
+size_t Panel::shape_set_id(void) const
 {
-	return m_shape;
-}
-
-const std::vector<Vertex>& Panel::shape_vertices(void) const
-{
-	return m_shape_vertices;
-}
-
-const std::vector<GLuint>& Panel::shape_indices(void) const
-{
-	return m_shape_indices;
+	return m_shape_set_id;
 }
 
 size_t Panel::texture_id(void) const
@@ -163,7 +147,7 @@ void Panel::draw(void) const
 	{
 		texture().bind();
 	}
-	m_shape.draw();
+	shape_set().draw();
 
 	if (texture().id())
 	{

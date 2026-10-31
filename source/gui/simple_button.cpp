@@ -25,8 +25,7 @@ SimpleButton::SimpleButton(const action_t action, const std::string& image_name)
 	if (FileSystem().is_image(ext))
 	{
 		init_texture(image_name);
-		m_shape_set_id = m_renderer.create_shape_set();
-		m_renderer.add_shape(m_shape_set_id, shape_vertices(), shape_indices());
+		m_shape_set_id = Panel::shape_set_id();
 		m_renderable_id = m_renderer.create_shape_set_renderable(m_shape_set_id,
 																std::vector<size_t>(1, texture_id()),
 																shader().id(),

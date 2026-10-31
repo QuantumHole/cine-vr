@@ -6,18 +6,18 @@
 #define PANEL_H
 
 #include "action.h"
-#include "opengl/shape.h"
 #include "opengl/texture.h"
+#include "opengl/vertex.h"
 #include "util/openvr_interface.h"
 #include <vector>
+
+class ShapeSet;
 
 class Panel
 {
 	private:
-		Shape m_shape;
+		size_t m_shape_set_id;
 		size_t m_texture_id;
-		std::vector<Vertex> m_shape_vertices;
-		std::vector<GLuint> m_shape_indices;
 		glm::mat4 m_pose;                 // position and rotation
 		glm::vec2 m_shape_size;
 
@@ -25,10 +25,8 @@ class Panel
 		const action_t m_action;          // function indicator
 
 		const glm::mat4& pose(void) const;
-		const Shape& shape(void) const;
-		Shape& shape(void);
-		const std::vector<Vertex>& shape_vertices(void) const;
-		const std::vector<GLuint>& shape_indices(void) const;
+		ShapeSet& shape_set(void) const;
+		size_t shape_set_id(void) const;
 		size_t texture_id(void) const;
 		const Texture& texture(void) const;
 		const glm::uvec2& tex_size(void) const;

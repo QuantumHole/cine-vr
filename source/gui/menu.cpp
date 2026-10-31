@@ -302,7 +302,12 @@ void Menu::main_menu(void)
 
 		const float duration = player().duration();
 		const float position = player().playtime();
-		Panel* p = new ProgressBar(ACTION_PLAY_POSITION, "images/progress-bar" + menu_graphics_extension, duration, position);
+		Panel* p = new ProgressBar(
+			ACTION_PLAY_POSITION,
+			"images/progress-bar" + menu_graphics_extension,
+			"images/progress-cursor" + menu_graphics_extension,
+			duration,
+			position);
 		glm::mat4 pose = glm::mat4(1.0f);
 		pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 		pose = m_hmd_pose * pose;
