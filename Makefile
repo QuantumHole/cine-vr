@@ -11,7 +11,6 @@ include common/makefile.mk
 include common/doxygen.mk
 
 TARGET = cine-vr
-IMAGE_DIR = images
 
 OBJECTS = \
 	$(BUILD_DIR)/main.o \
@@ -47,40 +46,7 @@ OBJECTS = \
 	$(BUILD_DIR)/string_tools.o \
 	$(BUILD_DIR)/render_manager.o \
 
-IMAGES = \
-	$(IMAGE_DIR)/angle.png \
-	$(IMAGE_DIR)/back.png \
-	$(IMAGE_DIR)/backward.png \
-	$(IMAGE_DIR)/cube-mono.png \
-	$(IMAGE_DIR)/cube-stereo.png \
-	$(IMAGE_DIR)/cylinder.png \
-	$(IMAGE_DIR)/delete.png \
-	$(IMAGE_DIR)/desktop.png \
-	$(IMAGE_DIR)/fisheye.png \
-	$(IMAGE_DIR)/flat.png \
-	$(IMAGE_DIR)/forward.png \
-	$(IMAGE_DIR)/left-right.png \
-	$(IMAGE_DIR)/logo-cinevr.png \
-	$(IMAGE_DIR)/mono.png \
-	$(IMAGE_DIR)/next.png \
-	$(IMAGE_DIR)/open.png \
-	$(IMAGE_DIR)/pause.png \
-	$(IMAGE_DIR)/play.png \
-	$(IMAGE_DIR)/power.png \
-	$(IMAGE_DIR)/previous.png \
-	$(IMAGE_DIR)/progress-bar.png \
-	$(IMAGE_DIR)/progress-cursor.png \
-	$(IMAGE_DIR)/settings.png \
-	$(IMAGE_DIR)/sphere.png \
-	$(IMAGE_DIR)/top-bottom.png \
-	$(IMAGE_DIR)/force-mono.png \
-	$(IMAGE_DIR)/switch-eyes.png \
-	$(IMAGE_DIR)/stretch.png \
-	$(IMAGE_DIR)/window.png \
-	$(IMAGE_DIR)/volume.png \
-	$(IMAGE_DIR)/zoom.png \
-
-all: $(TARGET) $(IMAGES)
+all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	@echo "[$(LD)] $@"
@@ -102,12 +68,3 @@ run: compile
 
 kill:
 	killall -9 vrserver vrcompositor vrdashboard $(TARGET)
-
-clean-images:
-	rm -f $(IMAGE_DIR)/*.png
-
-$(IMAGE_DIR)/%.png: $(IMAGE_DIR)/%.svg
-	@echo "[magick] $@"
-	@sed --in-place -e 's/points="[0-9., ]"//g' $<
-	@magick -density $$(echo "0.115234375 * 64" | bc -l) -background none $< $@
-	@# density of 0.115234375 leads to images of 1x1 pixels

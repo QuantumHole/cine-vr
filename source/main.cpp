@@ -648,6 +648,7 @@ int main(void)
 	}
 
 	// Cleanup
+	g_menu.clear();
 	g_vector.reset();
 	renderer.clear();
 	glfwTerminate();
