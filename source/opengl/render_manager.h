@@ -6,6 +6,8 @@
 #include "opengl/shader_set.h"
 #include <cstddef>
 #include <map>
+#include <memory>
+#include <string>
 #include <vector>
 
 /** The RenderManager manages rendering all defined objects.
@@ -22,6 +24,7 @@ class RenderManager
 			bool is_group;
 			bool active;
 			bool deleted;
+			bool draw_all;
 			size_t shapeset;
 			std::vector<size_t> textures;
 			std::vector<size_t> children;
@@ -29,17 +32,9 @@ class RenderManager
 		}
 		renderable_t;
 
-		typedef struct
-		{
-			Texture* owned;
-			TextureSource* external;
-			GLuint slot;
-		}
-		texture_t;
-
-		std::vector<ShapeSet*> m_shapes;
-		std::map<size_t, texture_t> m_textures;
-		std::map<size_t, ShaderSet*> m_shaders;
+		std::vector<std::unique_ptr<ShapeSet>> m_shapes;
+		std::map<size_t, std::unique_ptr<Texture>> m_textures;
+		std::map<size_t, std::unique_ptr<ShaderSet>> m_shaders;
 		std::vector<renderable_t> m_renderables;
 		size_t m_next_texture_id;
 
@@ -50,7 +45,6 @@ class RenderManager
 		explicit RenderManager(void);
 		void draw_renderable(const size_t id) const;
 		bool is_referenced_by_group(const size_t id) const;
-		void release_unreferenced_resources(const renderable_t& renderable);
 
 	public:
 
@@ -63,6 +57,8 @@ class RenderManager
 		 * @return ID of the shape set. This is the index into the ShapeSet vector.
 		 */
 		size_t create_shape_set(void);
+		size_t load_svg(const std::string& file_name);
+		ShapeSet& shape_set(const size_t id);
 
 		/** create a new shape.
 		 * @param set target set index.
@@ -78,7 +74,7 @@ class RenderManager
 		                 const size_t instances = 1,
 		                 const GLenum type = GL_TRIANGLES);
 
-		/** create a new texture.
+		/** create a manager-owned texture from pixel data.
 		 * @param data image data for texture.
 		 * @param size size of the texture in pixels.
 		 * @param format texture data format.
@@ -89,12 +85,10 @@ class RenderManager
 		                   const glm::uvec2& size,
 		                   const GLenum format,
 		                   const GLuint slot);
-
-		/** register a texture owned by another object, such as the video Player.
-		 * The provider is queried when drawing, so the OpenGL texture may change.
-		 */
-		size_t add_external_texture(TextureSource& source,
-		                            const GLuint slot);
+		/** create an empty manager-owned texture. */
+		size_t create_texture(void);
+		Texture& texture(const size_t id);
+		const Texture& texture(const size_t id) const;
 
 		/** create a set of vertex, fragment, and (optional) geometry shaders.
 		 * @param file_vertex file name of vertex shader.
@@ -132,8 +126,9 @@ class RenderManager
 
 		/** create a renderable from one shape set. */
 		RenderableId create_shape_set_renderable(const size_t shape_set_id,
-		                                   const std::vector<size_t>& textures,
-		                                   const size_t shader_id);
+		                                         const std::vector<size_t>& textures,
+		                                         const size_t shader_id,
+		                                         const bool draw_all = true);
 
 		/** create a renderable containing one shape. */
 		RenderableId create_shape_renderable(const std::vector<Vertex>& vertices,
@@ -154,9 +149,8 @@ class RenderManager
 		            const bool active);
 		void set_textures(const RenderableId id, const std::vector<size_t>& textures);
 
-		/** remove compound. All referenced entities are destroyed,
-		 * if they are no longer used by other compounds.
-		 * @param id compound ID.
+		/** invalidate a renderable handle; manager-owned resources remain available.
+		 * @param id renderable ID.
 		 */
 		void delete_compound(const size_t id);
 		void delete_renderable(const size_t id);
@@ -171,12 +165,14 @@ class RenderManager
 		                   const size_t index,
 		                   const glm::mat4& matrix,
 		                   const size_t instance = 0);
+		void set_shape_set_transform(const size_t set, const glm::mat4& matrix);
 
 		/** release manager-owned OpenGL resources while the context is current. */
 		void clear(void);
 
 		/** draw all objects. */
 		void draw(void) const;
+		void draw(const RenderableId id) const;
 };
 
 #endif

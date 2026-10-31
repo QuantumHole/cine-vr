@@ -50,7 +50,6 @@ static std::map<vr::TrackedDeviceIndex_t, Controller> g_controller;
 static std::vector<Framebuffer> g_framebuffer(Eyes::size());
 static Menu g_menu;
 static Projection g_projection;
-static Texture g_image;
 static std::unique_ptr<GraphicsSVG> g_vector;
 static glm::vec3 g_hmd_reference_pos;
 static glm::quat g_hmd_reference_rot;
@@ -163,9 +162,10 @@ void player_open_file(const std::string& file_name)
 	{
 		// g_player.stop();
 		// g_player.close();
-		const glm::uvec2 image_size = g_image.init_image_file(file_name, 0);
+		Texture& image = RenderManager::instance().texture(g_image_texture);
+		const glm::uvec2 image_size = image.init_image_file(file_name, 0);
 		const float aspect = static_cast<float>(image_size.x) / static_cast<float>(image_size.y);
-		g_image.unbind();
+		image.unbind();
 		g_projection.set_aspect(aspect);
 		g_source = SOURCE_IMAGE;
 		update_projection();
@@ -202,7 +202,7 @@ void player_open_file(const std::string& file_name)
 	}
 	else if (fs.is_video(ext))
 	{
-		g_player.open_file(file_name, g_window);
+		g_player.open_file(file_name, g_window, g_video_texture);
 		g_menu.set_playable(true);
 		g_source = SOURCE_VIDEO;
 		if (g_scene_ready)
@@ -444,8 +444,8 @@ int main(void)
 	// create shaders & geometry
 	RenderManager& renderer = RenderManager::instance();
 	g_scene_shader = renderer.add_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
-	g_image_texture = renderer.add_external_texture(g_image, 0);
-	g_video_texture = renderer.add_external_texture(g_player, 0);
+	g_image_texture = renderer.create_texture();
+	g_video_texture = renderer.create_texture();
 	ShaderSet& scene_shader = renderer.shader(g_scene_shader);
 	scene_shader.set_uniform("background", false);
 	scene_shader.set_uniform("greyscale", false);

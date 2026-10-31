@@ -101,7 +101,5 @@ void SlideButton::draw(void) const
 		m_slidebar.draw();
 	}
 
-	texture().bind();
-	shape().draw();
-	texture().unbind();
+	SimpleButton::draw();
 }

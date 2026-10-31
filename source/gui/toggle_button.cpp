@@ -33,9 +33,7 @@ void ToggleButton::draw(void) const
 		shader().set_uniform("greyscale", true);
 	}
 
-	texture().bind();
-	shape().draw();
-	texture().unbind();
+	SimpleButton::draw();
 
 	if (!m_active)
 	{

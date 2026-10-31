@@ -11,26 +11,27 @@ ShapeSet::ShapeSet(void) :
 
 ShapeSet::~ShapeSet(void)
 {
-	for (std::vector<Shape*>::const_iterator iter = m_shapes.begin(); iter != m_shapes.end(); ++iter)
-	{
-		delete (*iter);
-	}
+	clear();
+}
+
+void ShapeSet::clear(void)
+{
 	m_shapes.clear();
 }
 
 size_t ShapeSet::add(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices, const GLenum type, const size_t instances)
 {
-	Shape* shape = new Shape();
+	std::unique_ptr<Shape> shape(new Shape());
 
 	shape->init_vertices(vertices, indices, type);
 	shape->set_instances(instances);
-	m_shapes.push_back(shape);
+	m_shapes.push_back(std::move(shape));
 	return m_shapes.size() - 1;
 }
 
 void ShapeSet::set_transform(const glm::mat4& pose)
 {
-	for (std::vector<Shape*>::const_iterator iter = m_shapes.begin(); iter != m_shapes.end(); ++iter)
+	for (std::vector<std::unique_ptr<Shape>>::const_iterator iter = m_shapes.begin(); iter != m_shapes.end(); ++iter)
 	{
 		for (size_t i = 0; i < (*iter)->instances(); i++)
 		{
@@ -46,7 +47,7 @@ void ShapeSet::set_transform(const size_t index, const glm::mat4& pose, const si
 
 void ShapeSet::draw(void) const
 {
-	for (std::vector<Shape*>::const_iterator iter = m_shapes.begin(); iter != m_shapes.end(); ++iter)
+	for (std::vector<std::unique_ptr<Shape>>::const_iterator iter = m_shapes.begin(); iter != m_shapes.end(); ++iter)
 	{
 		(*iter)->draw();
 	}

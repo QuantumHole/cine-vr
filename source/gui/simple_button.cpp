@@ -10,14 +10,53 @@ static const glm::vec4 button_color(0.0f, 0.0f, 0.0f, 0.0f);
 const glm::vec2 SimpleButton::m_button_size(0.5f, 0.5f);    // size in scene coordinate space
 
 SimpleButton::SimpleButton(const action_t action, const std::string& image_name) :
-	Panel(action)
+	Panel(action),
+	m_renderer(RenderManager::instance()),
+	m_renderable_id(0),
+	m_shape_set_id(0),
+	m_graphic_transform(1.0f),
+	m_graphic_uses_texture(true)
 {
 	init_shape(m_button_size, button_color);
 	init_texture(image_name);
+	m_shape_set_id = m_renderer.create_shape_set();
+	m_renderer.add_shape(m_shape_set_id, shape_vertices(), shape_indices());
+	m_renderable_id = m_renderer.create_shape_set_renderable(m_shape_set_id,
+	                                                         std::vector<size_t>(1, texture_id()),
+	                                                         shader().id(),
+	                                                         false);
 }
 
 SimpleButton::~SimpleButton(void)
 {
+	m_renderer.delete_renderable(m_renderable_id);
+}
+
+void SimpleButton::set_graphic(const size_t shape_set_id,
+                               const bool use_texture,
+                               const glm::mat4& local_transform)
+{
+	std::vector<size_t> textures;
+	if (use_texture)
+	{
+		textures.push_back(texture_id());
+	}
+	const RenderManager::RenderableId new_renderable = m_renderer.create_shape_set_renderable(shape_set_id,
+	                                                                                             textures,
+	                                                                                             shader().id(),
+	                                                                                             false);
+	m_renderer.delete_renderable(m_renderable_id);
+	m_renderable_id = new_renderable;
+	m_shape_set_id = shape_set_id;
+	m_graphic_transform = local_transform;
+	m_graphic_uses_texture = use_texture;
+	m_renderer.set_shape_set_transform(m_shape_set_id, pose() * m_graphic_transform);
+}
+
+void SimpleButton::set_transform(const glm::mat4& pose)
+{
+	Panel::set_transform(pose);
+	m_renderer.set_shape_set_transform(m_shape_set_id, pose * m_graphic_transform);
 }
 
 bool SimpleButton::update_on_interaction(const Panel::intersection_t isec, const OpenVRInterface::input_state_t& input)
@@ -27,7 +66,7 @@ bool SimpleButton::update_on_interaction(const Panel::intersection_t isec, const
 
 void SimpleButton::draw(void) const
 {
-	texture().bind();
-	shape().draw();
-	texture().unbind();
+	shader().set_uniform("background", m_graphic_uses_texture);
+	m_renderer.draw(m_renderable_id);
+	shader().set_uniform("background", false);
 }

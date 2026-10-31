@@ -6,6 +6,7 @@
 
 #include "player.h"
 #include "main.h"
+#include "opengl/render_manager.h"
 #include <iostream>
 #include <vector>
 #include <sstream>
@@ -21,7 +22,7 @@ static void* get_proc_address(void* ctx __attribute__((unused)), const char* nam
 
 Player::Player(void) :
 	m_framebuffer(0),
-	m_video_texture(0),
+	m_video_texture_id(0),
 	m_playtime(0.0),
 	m_duration(0.0),
 	m_title(""),
@@ -238,12 +239,11 @@ void Player::handle_events(void)
 					glGenFramebuffers(1, &m_framebuffer);
 					glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
 					// create a color attachment texture
-					glGenTextures(1, &m_video_texture);
-					glBindTexture(GL_TEXTURE_2D, m_video_texture);
-					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, static_cast<GLsizei>(m_size.x), static_cast<GLsizei>(m_size.y), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+					Texture& video_texture = RenderManager::instance().texture(m_video_texture_id);
+					video_texture.init_video_target(m_size, 0);
 					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_video_texture, 0);
+					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, video_texture.id(), 0);
 
 					if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 					{
@@ -332,9 +332,10 @@ void Player::set_option(const std::string& key, const std::string& value) const
 	}
 }
 
-void Player::open_file(const std::string& file_name, GLFWwindow* window)
+void Player::open_file(const std::string& file_name, GLFWwindow* window, const size_t video_texture_id)
 {
 	m_window = window;
+	m_video_texture_id = video_texture_id;
 
 	if (!m_context)
 	{
@@ -482,24 +483,12 @@ float Player::playtime(void) const
 
 void Player::bind(void) const
 {
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_video_texture);
+	RenderManager::instance().texture(m_video_texture_id).bind();
 }
 
 void Player::unbind(void) const
 {
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-GLuint Player::video_texture_id(void) const
-{
-	return m_video_texture;
-}
-
-GLuint Player::texture_id(void) const
-{
-	return m_video_texture;
+	RenderManager::instance().texture(m_video_texture_id).unbind();
 }
 
 float Player::volume(void) const

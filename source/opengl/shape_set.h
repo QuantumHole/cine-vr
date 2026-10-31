@@ -6,6 +6,7 @@
 #define SHAPE_SET_H
 
 #include <vector>
+#include <memory>
 #include <glm/glm.hpp>
 #include "opengl/shape.h"
 
@@ -13,9 +14,7 @@ class ShapeSet
 {
 	private:
 		// order of drawing matters, don't use std::set.
-		// Shapes remove themselves from OpenGL when destroyed.
-		// So, keep them in memory, handle them via pointers.
-		std::vector<Shape*> m_shapes;
+		std::vector<std::unique_ptr<Shape>> m_shapes;
 
 	public:
 		explicit ShapeSet(void);
@@ -32,6 +31,7 @@ class ShapeSet
 		           const std::vector<GLuint>& indices,
 		           const GLenum type = GL_TRIANGLES,
 		           const size_t instances = 1);
+		void clear(void);
 		void set_transform(const glm::mat4& pose);
 		void set_transform(const size_t index, const glm::mat4& pose, const size_t instance = 0);
 		void draw(void) const;

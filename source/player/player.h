@@ -14,13 +14,12 @@
 #include <atomic>
 #include <condition_variable>
 #include <GLFW/glfw3.h>
-#include "opengl/texture.h"
 
-class Player : public TextureSource
+class Player
 {
 	private:
 		GLuint m_framebuffer;
-		GLuint m_video_texture;
+		size_t m_video_texture_id;
 		double m_playtime;
 		double m_duration;
 		std::string m_title;
@@ -52,9 +51,9 @@ class Player : public TextureSource
 
 	public:
 		explicit Player(void);
-		~Player(void) override;
+		~Player(void);
 
-		void open_file(const std::string& file_name, GLFWwindow* window);
+		void open_file(const std::string& file_name, GLFWwindow* window, const size_t video_texture_id);
 		void close(void);
 		void play(void);
 		void pause(void);
@@ -69,8 +68,6 @@ class Player : public TextureSource
 
 		void bind(void) const;
 		void unbind(void) const;
-		GLuint video_texture_id(void) const;
-		GLuint texture_id(void) const override;
 };
 
 #endif

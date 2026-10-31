@@ -12,10 +12,6 @@
 static const GLenum tex_type(GL_TEXTURE_2D);
 static const GLint internal_format(GL_RGBA);
 
-TextureSource::~TextureSource(void)
-{
-}
-
 Texture::Texture(void) :
 	m_id(0),
 	m_slot(0),
@@ -25,11 +21,6 @@ Texture::Texture(void) :
 }
 
 GLuint Texture::id(void) const
-{
-	return m_id;
-}
-
-GLuint Texture::texture_id(void) const
 {
 	return m_id;
 }
@@ -118,6 +109,20 @@ void Texture::init_dim(const glm::uvec2 size, const GLuint slot)
 		glTexStorage2D(tex_type, 1, GL_RGBA32F, static_cast<GLsizei>(m_size.x), static_cast<GLsizei>(m_size.y));
 		glBindImageTexture(m_slot, m_id, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	}
+}
+
+void Texture::init_video_target(const glm::uvec2& size, const GLuint slot)
+{
+	if (m_id)
+	{
+		remove();
+	}
+	m_size = size;
+	m_format = GL_RGBA;
+	init(slot);
+	glTexImage2D(tex_type, 0, GL_RGBA8,
+	             static_cast<GLsizei>(size.x), static_cast<GLsizei>(size.y),
+	             0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 }
 
 void Texture::init_data(const std::vector<uint8_t>& data, const glm::uvec2& size, const GLenum format, const GLuint slot)

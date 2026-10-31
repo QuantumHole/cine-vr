@@ -15,7 +15,9 @@ class Panel
 {
 	private:
 		Shape m_shape;
-		Texture m_texture;
+		size_t m_texture_id;
+		std::vector<Vertex> m_shape_vertices;
+		std::vector<GLuint> m_shape_indices;
 		glm::mat4 m_pose;                 // position and rotation
 		glm::vec2 m_shape_size;
 
@@ -24,6 +26,10 @@ class Panel
 
 		const glm::mat4& pose(void) const;
 		const Shape& shape(void) const;
+		Shape& shape(void);
+		const std::vector<Vertex>& shape_vertices(void) const;
+		const std::vector<GLuint>& shape_indices(void) const;
+		size_t texture_id(void) const;
 		const Texture& texture(void) const;
 		const glm::uvec2& tex_size(void) const;
 

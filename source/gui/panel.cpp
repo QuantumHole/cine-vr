@@ -5,13 +5,16 @@
 #include "panel.h"
 #include "font_renderer.h"
 #include "main.h"
+#include "opengl/render_manager.h"
 
 #include <stdexcept>
 #include <algorithm>
 
 Panel::Panel(const action_t action) :
 	m_shape(),
-	m_texture(),
+	m_texture_id(RenderManager::instance().create_texture()),
+	m_shape_vertices(),
+	m_shape_indices(),
 	m_pose(1.0f),
 	m_shape_size(0.0f, 0.0f),
 	m_action(action)
@@ -21,7 +24,6 @@ Panel::Panel(const action_t action) :
 Panel::~Panel(void)
 {
 	m_shape.remove();
-	m_texture.remove();
 }
 
 void Panel::init_shape(const glm::vec2& shape_size, const glm::vec4& color)
@@ -32,29 +34,29 @@ void Panel::init_shape(const glm::vec2& shape_size, const glm::vec4& color)
 	m_shape_size = shape_size;
 
 	// positions: rectangle in XY plane centered at 0, z=0
-	const std::vector<Vertex> vertices = {
+	m_shape_vertices = {
 		Vertex(glm::vec3(-0.5f * m_shape_size.x, -0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(0.0f, 1.0f)),
 		Vertex(glm::vec3(0.5f * m_shape_size.x, 0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(1.0f, 0.0f)),
 		Vertex(glm::vec3(-0.5f * m_shape_size.x, 0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(0.0f, 0.0f)),
 		Vertex(glm::vec3(0.5f * m_shape_size.x, -0.5f * m_shape_size.y, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(1.0f, 1.0f)),
 	};
 
-	const std::vector<GLuint> indices = {
+	m_shape_indices = {
 		0, 1, 2,
 		0, 3, 1,
 	};
 
-	m_shape.init_vertices(vertices, indices, GL_TRIANGLES);
+	m_shape.init_vertices(m_shape_vertices, m_shape_indices, GL_TRIANGLES);
 }
 
 void Panel::init_texture(const std::string& image_name)
 {
-	m_texture.init_image_file(image_name, 0);
+	RenderManager::instance().texture(m_texture_id).init_image_file(image_name, 0);
 }
 
 void Panel::init_texture(const glm::uvec2& tex_size)
 {
-	m_texture.init_dim(tex_size, 0);
+	RenderManager::instance().texture(m_texture_id).init_dim(tex_size, 0);
 }
 
 void Panel::init_area(const glm::vec2& shape_size, const glm::vec4& color, const glm::uvec2& tex_size)
@@ -79,22 +81,42 @@ const Shape& Panel::shape(void) const
 	return m_shape;
 }
 
+Shape& Panel::shape(void)
+{
+	return m_shape;
+}
+
+const std::vector<Vertex>& Panel::shape_vertices(void) const
+{
+	return m_shape_vertices;
+}
+
+const std::vector<GLuint>& Panel::shape_indices(void) const
+{
+	return m_shape_indices;
+}
+
+size_t Panel::texture_id(void) const
+{
+	return m_texture_id;
+}
+
 const Texture& Panel::texture(void) const
 {
-	return m_texture;
+	return RenderManager::instance().texture(m_texture_id);
 }
 
 const glm::uvec2& Panel::tex_size(void) const
 {
-	return m_texture.size();
+	return texture().size();
 }
 
 void Panel::clear(void)
 {
-	const glm::uvec2& size = m_texture.size();
+	const glm::uvec2& size = texture().size();
 	std::vector<uint32_t> image(size.x * size.y, 0);
 
-	m_texture.bind();
+	texture().bind();
 	glTexSubImage2D(GL_TEXTURE_2D, 0,
 	                0,
 	                0,
@@ -102,7 +124,7 @@ void Panel::clear(void)
 	                static_cast<GLsizei>(size.y),
 	                GL_RGBA, GL_UNSIGNED_BYTE,
 	                image.data());
-	m_texture.unbind();
+	texture().unbind();
 }
 
 void Panel::text(const std::string& text, const int32_t x, const int32_t y) const
@@ -116,10 +138,10 @@ void Panel::text(const std::string& text, const int32_t x, const int32_t y) cons
 	renderer.render_text(text, height, image);
 
 	const size_t width = image.size() / height;
-	const glm::uvec2& tex_size = m_texture.size();
+	const glm::uvec2& tex_size = texture().size();
 
 	/* copy only the visible section of the surface */
-	m_texture.bind();
+	texture().bind();
 	for (size_t i = 0; i < height; i++)
 	{
 		glTexSubImage2D(GL_TEXTURE_2D, 0,
@@ -130,22 +152,22 @@ void Panel::text(const std::string& text, const int32_t x, const int32_t y) cons
 		                GL_RGBA, GL_UNSIGNED_BYTE,
 		                image.data() + static_cast<ptrdiff_t>(i * width));
 	}
-	m_texture.unbind();
+	texture().unbind();
 }
 
 void Panel::draw(void) const
 {
 	shader().set_uniform("background", true);
 
-	if (m_texture.id())
+	if (texture().id())
 	{
-		m_texture.bind();
+		texture().bind();
 	}
 	m_shape.draw();
 
-	if (m_texture.id())
+	if (texture().id())
 	{
-		m_texture.unbind();
+		texture().unbind();
 	}
 
 	shader().set_uniform("background", false);
