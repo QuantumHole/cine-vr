@@ -85,29 +85,109 @@ void ImageFile::load_bmp(const std::string& file_name)
 	size_t Length = static_cast<size_t>(hFile.tellg());
 	hFile.seekg(0, std::ios::beg);
 	std::vector<uint8_t> FileInfo(Length);
-	hFile.read(reinterpret_cast<char*>(FileInfo.data()), 54);
+	hFile.read(reinterpret_cast<char*>(FileInfo.data()), static_cast<std::streamsize>(Length));
 
-	if ((FileInfo[0] != 'B') && (FileInfo[1] != 'M'))
+	if ((Length < 54) || (FileInfo[0] != 'B') || (FileInfo[1] != 'M'))
 	{
 		hFile.close();
 		throw std::invalid_argument("Error: Invalid File Format. Bitmap Required.");
 	}
 
-	if ((FileInfo[28] != 24) && (FileInfo[28] != 32))
+	const auto read_u16 = [&FileInfo](const size_t offset) -> uint16_t
+	{
+		return static_cast<uint16_t>(FileInfo[offset]) |
+		       static_cast<uint16_t>(static_cast<uint16_t>(FileInfo[offset + 1]) << 8);
+	};
+	const auto read_u32 = [&FileInfo](const size_t offset) -> uint32_t
+	{
+		return static_cast<uint32_t>(FileInfo[offset]) |
+		       (static_cast<uint32_t>(FileInfo[offset + 1]) << 8) |
+		       (static_cast<uint32_t>(FileInfo[offset + 2]) << 16) |
+		       (static_cast<uint32_t>(FileInfo[offset + 3]) << 24);
+	};
+	const uint32_t dib_size = read_u32(14);
+	if ((dib_size < 40) || (Length < 14 + dib_size))
 	{
 		hFile.close();
-		throw std::invalid_argument("Error: Invalid File Format. 24 or 32 bit Image Required.");
+		throw std::invalid_argument("Error: Unsupported bitmap header.");
 	}
-
-	m_bits_per_pixel = FileInfo[28];
-	m_width = static_cast<uint32_t>(FileInfo[18] + (FileInfo[19] << 8));
-	m_height = static_cast<uint32_t>(FileInfo[22] + (FileInfo[23] << 8));
-	uint32_t PixelsOffset = static_cast<uint32_t>(FileInfo[10] + (FileInfo[11] << 8));
-	uint32_t size = ((m_width * m_bits_per_pixel + 31) / 32) * 4 * m_height;
-	m_pixels.resize(size);
-
-	hFile.seekg(PixelsOffset, std::ios::beg);
-	hFile.read(reinterpret_cast<char*>(m_pixels.data()), size);
+	const int32_t signed_width = static_cast<int32_t>(read_u32(18));
+	const int32_t signed_height = static_cast<int32_t>(read_u32(22));
+	const uint16_t planes = read_u16(26);
+	const uint16_t bits_per_pixel = read_u16(28);
+	const uint32_t compression = read_u32(30);
+	const uint32_t pixel_offset = read_u32(10);
+	if ((signed_width <= 0) || (signed_height == 0) || (planes != 1) || (compression != 0) ||
+	    !((bits_per_pixel == 1) || (bits_per_pixel == 4) || (bits_per_pixel == 8) ||
+	      (bits_per_pixel == 24) || (bits_per_pixel == 32)))
+	{
+		hFile.close();
+		throw std::invalid_argument("Unsupported bitmap encoding.");
+	}
+	m_width = static_cast<uint32_t>(signed_width);
+	m_height = static_cast<uint32_t>(signed_height < 0 ? -static_cast<int64_t>(signed_height) : signed_height);
+	const bool top_down = signed_height < 0;
+	const uint32_t palette_count = read_u32(46) == 0 ? (1u << bits_per_pixel) : read_u32(46);
+	const size_t palette_offset = 14 + dib_size;
+	const bool indexed = bits_per_pixel <= 8;
+	if (indexed && ((palette_offset + static_cast<size_t>(palette_count) * 4 > pixel_offset) ||
+	                (pixel_offset > Length)))
+	{
+		hFile.close();
+		throw std::invalid_argument("Invalid bitmap color table.");
+	}
+	const size_t row_stride = ((static_cast<size_t>(m_width) * bits_per_pixel + 31) / 32) * 4;
+	if ((static_cast<size_t>(pixel_offset) + row_stride * m_height) > Length)
+	{
+		hFile.close();
+		throw std::invalid_argument("Truncated bitmap pixel data.");
+	}
+	m_bits_per_pixel = 32;
+	m_pixels.resize(static_cast<size_t>(m_width) * m_height * 4);
+	for (uint32_t y = 0; y < m_height; ++y)
+	{
+		const uint32_t source_y = top_down ? y : (m_height - 1 - y);
+		const size_t source_row = static_cast<size_t>(pixel_offset) + source_y * row_stride;
+		for (uint32_t x = 0; x < m_width; ++x)
+		{
+			uint8_t red = 0;
+			uint8_t green = 0;
+			uint8_t blue = 0;
+			uint8_t alpha = 255;
+			if (indexed)
+			{
+				const size_t bit_index = static_cast<size_t>(x) * bits_per_pixel;
+				const uint8_t packed = FileInfo[source_row + bit_index / 8];
+				const uint32_t shift = 8 - bits_per_pixel - static_cast<uint32_t>(bit_index % 8);
+				const uint32_t color_index = (packed >> shift) & ((1u << bits_per_pixel) - 1u);
+				if (color_index >= palette_count)
+				{
+					hFile.close();
+					throw std::invalid_argument("Invalid bitmap palette index.");
+				}
+				const size_t palette_entry = palette_offset + static_cast<size_t>(color_index) * 4;
+				blue = FileInfo[palette_entry];
+				green = FileInfo[palette_entry + 1];
+				red = FileInfo[palette_entry + 2];
+			}
+			else
+			{
+				const size_t source_pixel = source_row + static_cast<size_t>(x) * (bits_per_pixel / 8);
+				blue = FileInfo[source_pixel];
+				green = FileInfo[source_pixel + 1];
+				red = FileInfo[source_pixel + 2];
+				if (bits_per_pixel == 32)
+				{
+					alpha = FileInfo[source_pixel + 3];
+				}
+			}
+			const size_t destination = (static_cast<size_t>(y) * m_width + x) * 4;
+			m_pixels[destination] = red;
+			m_pixels[destination + 1] = green;
+			m_pixels[destination + 2] = blue;
+			m_pixels[destination + 3] = alpha;
+		}
+	}
 	hFile.close();
 }
 
@@ -145,6 +225,43 @@ void ImageFile::load_tga(const std::string& file_name)
 	m_width  = Header[13] * 256 + Header[12];
 	m_height = Header[15] * 256 + Header[14];
 	const uint32_t m_size  = ((m_width * m_bits_per_pixel + 31) / 32) * 4 * m_height;
+	if ((m_bits_per_pixel == 8) && ((Header[2] == 3) || (Header[2] == 11)) && (Header[1] == 0))
+	{
+		m_pixels.resize(static_cast<size_t>(m_width) * m_height);
+		hFile.seekg(18 + Header[0], std::ios::beg);
+		if (Header[2] == 3)
+		{
+			hFile.read(reinterpret_cast<char*>(m_pixels.data()), static_cast<std::streamsize>(m_pixels.size()));
+		}
+		else
+		{
+			size_t written = 0;
+			while (written < m_pixels.size())
+			{
+				uint8_t packet = 0;
+				hFile.read(reinterpret_cast<char*>(&packet), 1);
+				const size_t count = (packet & 0x7f) + 1;
+				if (count > m_pixels.size() - written)
+				{
+					throw std::invalid_argument("Invalid grayscale TGA packet.");
+				}
+				if (packet & 0x80)
+				{
+					uint8_t gray = 0;
+					hFile.read(reinterpret_cast<char*>(&gray), 1);
+					std::fill(m_pixels.begin() + static_cast<ptrdiff_t>(written),
+					          m_pixels.begin() + static_cast<ptrdiff_t>(written + count), gray);
+				}
+				else
+				{
+					hFile.read(reinterpret_cast<char*>(m_pixels.data() + written), static_cast<std::streamsize>(count));
+				}
+				written += count;
+			}
+		}
+		hFile.close();
+		return;
+	}
 
 	if ((m_bits_per_pixel != 24) && (m_bits_per_pixel != 32))
 	{

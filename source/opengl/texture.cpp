@@ -56,6 +56,10 @@ void Texture::init(const GLenum slot)
 	glTexParameteri(tex_type, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(tex_type, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(tex_type, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_R, GL_RED);
+	glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_G, GL_GREEN);
+	glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_B, GL_BLUE);
+	glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_A, GL_ALPHA);
 
 	// std::vector<float> flatColor = {1.0f, 1.0f, 1.0f, 1.0f};
 	// glTexParameterfv(tex_type, GL_TEXTURE_BORDER_COLOR, flatColor.data());
@@ -71,6 +75,12 @@ glm::uvec2 Texture::init_image_file(const std::string& file_name, const GLuint s
 
 	switch (m_image.bpp())
 	{
+		case 8:
+			m_format = GL_RED;
+			break;
+		case 16:
+			m_format = GL_RG;
+			break;
 		case 32:
 			m_format = GL_RGBA;
 			break;
@@ -81,6 +91,30 @@ glm::uvec2 Texture::init_image_file(const std::string& file_name, const GLuint s
 			throw std::runtime_error("unsupported color depth");
 	}
 	init(slot);
+	if (m_format == GL_RED)
+	{
+		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_R, GL_RED);
+		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_G, GL_RED);
+		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_B, GL_RED);
+		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_A, GL_ONE);
+	}
+	else if (m_format == GL_RG)
+	{
+		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_R, GL_RED);
+		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_G, GL_RED);
+		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_B, GL_RED);
+		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_A, GL_GREEN);
+	}
+	else
+	{
+		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_R, GL_RED);
+		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_G, GL_GREEN);
+		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_B, GL_BLUE);
+		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_A, GL_ALPHA);
+	}
+	GLint unpack_alignment = 4;
+	glGetIntegerv(GL_UNPACK_ALIGNMENT, &unpack_alignment);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexImage2D(tex_type,
 	             0,
 	             internal_format,
@@ -90,6 +124,7 @@ glm::uvec2 Texture::init_image_file(const std::string& file_name, const GLuint s
 	             m_format,
 	             GL_UNSIGNED_BYTE,
 	             m_image.pixels().data());
+	glPixelStorei(GL_UNPACK_ALIGNMENT, unpack_alignment);
 	m_size = glm::uvec2(m_image.width(), m_image.height());
 	return m_size;
 }
