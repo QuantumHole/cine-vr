@@ -91,6 +91,7 @@ glm::uvec2 Texture::init_image_file(const std::string& file_name, const GLuint s
 			throw std::runtime_error("unsupported color depth");
 	}
 	init(slot);
+
 	if (m_format == GL_RED)
 	{
 		glTexParameteri(tex_type, GL_TEXTURE_SWIZZLE_R, GL_RED);

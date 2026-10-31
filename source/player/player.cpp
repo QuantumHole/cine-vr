@@ -35,8 +35,8 @@ Player::Player(void) :
 	m_wakeup_cv(),
 	m_window(nullptr),
 	m_context(mpv_create()),
-		m_render(nullptr),
-		m_initialized(false)
+	m_render(nullptr),
+	m_initialized(false)
 {
 	if (!m_context)
 	{
@@ -47,12 +47,14 @@ Player::Player(void) :
 Player::~Player(void)
 {
 	stop_render_thread();
+
 	if (m_render)
 	{
 		mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
 		mpv_render_context_free(m_render);
 		m_render = nullptr;
 	}
+
 	if (m_context)
 	{
 		mpv_terminate_destroy(m_context);
@@ -215,8 +217,9 @@ void Player::handle_events(void)
 				{
 					std::cout << "player reached end of file" << std::endl;
 				}
-				if (msg->reason == MPV_END_FILE_REASON_EOF ||
-				    msg->reason == MPV_END_FILE_REASON_ERROR)
+
+				if ((msg->reason == MPV_END_FILE_REASON_EOF) ||
+				    (msg->reason == MPV_END_FILE_REASON_ERROR))
 				{
 					m_playing = false;
 				}

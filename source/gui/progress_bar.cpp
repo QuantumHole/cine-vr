@@ -33,6 +33,7 @@ ProgressBar::ProgressBar(
 	m_cursor_uses_texture(false)
 {
 	const std::string extbar = FileSystem().extension(imagebar);
+
 	if (FileSystem().is_image(extbar))
 	{
 		init_texture(imagebar);
@@ -57,21 +58,24 @@ ProgressBar::ProgressBar(
 	}
 	const glm::vec4 color(0.0f);
 	init_shape(m_progress_size, color);
+
 	if (m_background_uses_texture)
 	{
 		m_background_shape_set = Panel::shape_set_id();
 	}
 	std::vector<size_t> background_textures;
+
 	if (m_background_uses_texture)
 	{
 		background_textures.push_back(texture_id());
 	}
 	m_background_renderable = m_renderer.create_shape_set_renderable(m_background_shape_set,
-	                                                                    background_textures,
-	                                                                    shader().id(),
-	                                                                    false);
+	                                                                 background_textures,
+	                                                                 shader().id(),
+	                                                                 false);
 
 	const std::string extcursor = FileSystem().extension(imagecursor);
+
 	if (FileSystem().is_image(extcursor))
 	{
 		m_cursor_texture = m_renderer.create_texture();
@@ -90,9 +94,9 @@ ProgressBar::ProgressBar(
 		const float svg_scale = m_cursor_size.y * 0.5f;
 		m_cursor_transform = glm::scale(glm::mat4(1.0f), glm::vec3(svg_scale, svg_scale, 1.0f));
 		m_cursor_renderable = m_renderer.create_shape_set_renderable(m_cursor_shape_set,
-															std::vector<size_t>(),
-															shader().id(),
-															false);
+		                                                             std::vector<size_t>(),
+		                                                             shader().id(),
+		                                                             false);
 	}
 	else
 	{
@@ -159,14 +163,15 @@ void ProgressBar::init_cursor(const glm::vec2& cursor_size)
 	m_cursor_shape_set = m_renderer.create_shape_set();
 	m_renderer.add_shape(m_cursor_shape_set, svertices, sindices);
 	std::vector<size_t> cursor_textures;
+
 	if (m_cursor_uses_texture)
 	{
 		cursor_textures.push_back(m_cursor_texture);
 	}
 	m_cursor_renderable = m_renderer.create_shape_set_renderable(m_cursor_shape_set,
-	                                                              cursor_textures,
-	                                                              shader().id(),
-	                                                              false);
+	                                                             cursor_textures,
+	                                                             shader().id(),
+	                                                             false);
 }
 
 void ProgressBar::draw(void) const

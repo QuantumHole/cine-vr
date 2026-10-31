@@ -11,6 +11,20 @@
 #include <jpeglib.h>
 #include <math.h>
 
+static uint16_t read_u16(const std::vector<uint8_t>& data, const size_t offset)
+{
+	return static_cast<uint16_t>(data[offset]) |
+	       static_cast<uint16_t>(data[offset + 1] << 8);
+}
+
+static uint32_t read_u32(const std::vector<uint8_t>& data, const size_t offset)
+{
+	return static_cast<uint32_t>(data[offset]) |
+	       (static_cast<uint32_t>(data[offset + 1]) << 8) |
+	       (static_cast<uint32_t>(data[offset + 2]) << 16) |
+	       (static_cast<uint32_t>(data[offset + 3]) << 24);
+}
+
 ImageFile::ImageFile(const std::string& file_name) :
 	m_width(0),
 	m_height(0),
@@ -93,30 +107,20 @@ void ImageFile::load_bmp(const std::string& file_name)
 		throw std::invalid_argument("Error: Invalid File Format. Bitmap Required.");
 	}
 
-	const auto read_u16 = [&FileInfo](const size_t offset) -> uint16_t
-	{
-		return static_cast<uint16_t>(FileInfo[offset]) |
-		       static_cast<uint16_t>(static_cast<uint16_t>(FileInfo[offset + 1]) << 8);
-	};
-	const auto read_u32 = [&FileInfo](const size_t offset) -> uint32_t
-	{
-		return static_cast<uint32_t>(FileInfo[offset]) |
-		       (static_cast<uint32_t>(FileInfo[offset + 1]) << 8) |
-		       (static_cast<uint32_t>(FileInfo[offset + 2]) << 16) |
-		       (static_cast<uint32_t>(FileInfo[offset + 3]) << 24);
-	};
-	const uint32_t dib_size = read_u32(14);
+	const uint32_t dib_size = read_u32(FileInfo, 14);
+
 	if ((dib_size < 40) || (Length < 14 + dib_size))
 	{
 		hFile.close();
 		throw std::invalid_argument("Error: Unsupported bitmap header.");
 	}
-	const int32_t signed_width = static_cast<int32_t>(read_u32(18));
-	const int32_t signed_height = static_cast<int32_t>(read_u32(22));
-	const uint16_t planes = read_u16(26);
-	const uint16_t bits_per_pixel = read_u16(28);
-	const uint32_t compression = read_u32(30);
-	const uint32_t pixel_offset = read_u32(10);
+	const int32_t signed_width = static_cast<int32_t>(read_u32(FileInfo, 18));
+	const int32_t signed_height = static_cast<int32_t>(read_u32(FileInfo, 22));
+	const uint16_t planes = read_u16(FileInfo, 26);
+	const uint16_t bits_per_pixel = read_u16(FileInfo, 28);
+	const uint32_t compression = read_u32(FileInfo, 30);
+	const uint32_t pixel_offset = read_u32(FileInfo, 10);
+
 	if ((signed_width <= 0) || (signed_height == 0) || (planes != 1) || (compression != 0) ||
 	    !((bits_per_pixel == 1) || (bits_per_pixel == 4) || (bits_per_pixel == 8) ||
 	      (bits_per_pixel == 24) || (bits_per_pixel == 32)))
@@ -127,9 +131,10 @@ void ImageFile::load_bmp(const std::string& file_name)
 	m_width = static_cast<uint32_t>(signed_width);
 	m_height = static_cast<uint32_t>(signed_height < 0 ? -static_cast<int64_t>(signed_height) : signed_height);
 	const bool top_down = signed_height < 0;
-	const uint32_t palette_count = read_u32(46) == 0 ? (1u << bits_per_pixel) : read_u32(46);
+	const uint32_t palette_count = read_u32(FileInfo, 46) == 0 ? (1u << bits_per_pixel) : read_u32(FileInfo, 46);
 	const size_t palette_offset = 14 + dib_size;
 	const bool indexed = bits_per_pixel <= 8;
+
 	if (indexed && ((palette_offset + static_cast<size_t>(palette_count) * 4 > pixel_offset) ||
 	                (pixel_offset > Length)))
 	{
@@ -137,6 +142,7 @@ void ImageFile::load_bmp(const std::string& file_name)
 		throw std::invalid_argument("Invalid bitmap color table.");
 	}
 	const size_t row_stride = ((static_cast<size_t>(m_width) * bits_per_pixel + 31) / 32) * 4;
+
 	if ((static_cast<size_t>(pixel_offset) + row_stride * m_height) > Length)
 	{
 		hFile.close();
@@ -154,12 +160,14 @@ void ImageFile::load_bmp(const std::string& file_name)
 			uint8_t green = 0;
 			uint8_t blue = 0;
 			uint8_t alpha = 255;
+
 			if (indexed)
 			{
 				const size_t bit_index = static_cast<size_t>(x) * bits_per_pixel;
 				const uint8_t packed = FileInfo[source_row + bit_index / 8];
 				const uint32_t shift = 8 - bits_per_pixel - static_cast<uint32_t>(bit_index % 8);
 				const uint32_t color_index = (packed >> shift) & ((1u << bits_per_pixel) - 1u);
+
 				if (color_index >= palette_count)
 				{
 					hFile.close();
@@ -176,6 +184,7 @@ void ImageFile::load_bmp(const std::string& file_name)
 				blue = FileInfo[source_pixel];
 				green = FileInfo[source_pixel + 1];
 				red = FileInfo[source_pixel + 2];
+
 				if (bits_per_pixel == 32)
 				{
 					alpha = FileInfo[source_pixel + 3];
@@ -225,10 +234,12 @@ void ImageFile::load_tga(const std::string& file_name)
 	m_width  = Header[13] * 256 + Header[12];
 	m_height = Header[15] * 256 + Header[14];
 	const uint32_t m_size  = ((m_width * m_bits_per_pixel + 31) / 32) * 4 * m_height;
+
 	if ((m_bits_per_pixel == 8) && ((Header[2] == 3) || (Header[2] == 11)) && (Header[1] == 0))
 	{
 		m_pixels.resize(static_cast<size_t>(m_width) * m_height);
 		hFile.seekg(18 + Header[0], std::ios::beg);
+
 		if (Header[2] == 3)
 		{
 			hFile.read(reinterpret_cast<char*>(m_pixels.data()), static_cast<std::streamsize>(m_pixels.size()));
@@ -241,10 +252,12 @@ void ImageFile::load_tga(const std::string& file_name)
 				uint8_t packet = 0;
 				hFile.read(reinterpret_cast<char*>(&packet), 1);
 				const size_t count = (packet & 0x7f) + 1;
+
 				if (count > m_pixels.size() - written)
 				{
 					throw std::invalid_argument("Invalid grayscale TGA packet.");
 				}
+
 				if (packet & 0x80)
 				{
 					uint8_t gray = 0;

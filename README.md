@@ -29,9 +29,7 @@ Users can configure some display options via the OpenVR controller.
 
 * [gcc](https://gcc.gnu.org) or [clang](https://clang.llvm.org)
 * [GNU make](https://www.gnu.org/software/make)
-* [image magick](https://imagemagick.org)
 * [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config)
-* [bc](https://www.gnu.org/software/bc/manual/html_mono/bc.html)
 * [SDL3](https://wiki.libsdl.org/SDL3/FrontPage)
 
 ## Lint Dependencies

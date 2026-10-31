@@ -76,13 +76,15 @@ size_t RenderManager::add_texture(const std::vector<uint8_t>& data,
 size_t RenderManager::create_texture(void)
 {
 	const size_t id = m_next_texture_id++;
+
 	m_textures.insert(std::make_pair(id, std::unique_ptr<Texture>(new Texture())));
 	return id;
 }
 
 Texture& RenderManager::texture(const size_t id)
 {
-	auto iter = m_textures.find(id);
+	std::map<size_t, std::unique_ptr<Texture> >::iterator iter = m_textures.find(id);
+
 	if (iter == m_textures.end())
 	{
 		throw std::runtime_error("invalid texture ID");
@@ -92,7 +94,8 @@ Texture& RenderManager::texture(const size_t id)
 
 const Texture& RenderManager::texture(const size_t id) const
 {
-	auto iter = m_textures.find(id);
+	std::map<size_t, std::unique_ptr<Texture> >::const_iterator iter = m_textures.find(id);
+
 	if (iter == m_textures.end())
 	{
 		throw std::runtime_error("invalid texture ID");
@@ -124,7 +127,7 @@ size_t RenderManager::add_shader_compute(const std::string& file_compute)
 
 const ShaderSet& RenderManager::shader(const size_t id) const
 {
-	std::map<size_t, std::unique_ptr<ShaderSet>>::const_iterator iter = m_shaders.find(id);
+	std::map<size_t, std::unique_ptr<ShaderSet> >::const_iterator iter = m_shaders.find(id);
 
 	if (iter == m_shaders.end())
 	{
@@ -135,7 +138,8 @@ const ShaderSet& RenderManager::shader(const size_t id) const
 
 ShaderSet& RenderManager::shader(const size_t id)
 {
-	std::map<size_t, std::unique_ptr<ShaderSet>>::iterator iter = m_shaders.find(id);
+	std::map<size_t, std::unique_ptr<ShaderSet> >::iterator iter = m_shaders.find(id);
+
 	if (iter == m_shaders.end())
 	{
 		throw std::runtime_error("invalid shader ID");
@@ -151,14 +155,15 @@ size_t RenderManager::create_compound(const size_t shape_id,
 }
 
 size_t RenderManager::create_shape_set_renderable(const size_t shape_set_id,
-												  const std::vector<size_t>& textures,
-												  const size_t shader_id,
-												  const bool draw_all)
+                                                  const std::vector<size_t>& textures,
+                                                  const size_t shader_id,
+                                                  const bool draw_all)
 {
 	if ((shape_set_id >= m_shapes.size()) || (m_shapes[shape_set_id] == nullptr))
 	{
 		throw std::runtime_error("invalid shape set");
 	}
+
 	if (m_shaders.find(shader_id) == m_shaders.end())
 	{
 		throw std::runtime_error("invalid shader ID");
@@ -201,13 +206,15 @@ size_t RenderManager::create_shape_renderable(const std::vector<Vertex>& vertice
 
 size_t RenderManager::create_group(const std::vector<size_t>& children)
 {
-	for (auto child_iter = children.begin(); child_iter != children.end(); ++child_iter)
+	for (std::vector<size_t>::const_iterator child_iter = children.begin(); child_iter != children.end(); ++child_iter)
 	{
 		const size_t child = *child_iter;
+
 		if ((child >= m_renderables.size()) || m_renderables[child].deleted)
 		{
 			throw std::runtime_error("invalid child renderable ID");
 		}
+
 		if (is_referenced_by_group(child) ||
 		    (std::find(children.begin(), child_iter, child) != child_iter))
 		{
@@ -244,6 +251,7 @@ void RenderManager::delete_renderable(const size_t id)
 	{
 		throw std::runtime_error("invalid renderable ID");
 	}
+
 	if (is_referenced_by_group(id))
 	{
 		throw std::runtime_error("renderable is still used by a group");
@@ -335,10 +343,12 @@ void RenderManager::draw(const RenderableId id) const
 void RenderManager::draw_renderable(const size_t id) const
 {
 	const renderable_t& renderable = m_renderables[id];
+
 	if (renderable.deleted || !renderable.active)
 	{
 		return;
 	}
+
 	if (renderable.is_group)
 	{
 		for (size_t child : renderable.children)
@@ -347,11 +357,13 @@ void RenderManager::draw_renderable(const size_t id) const
 		}
 		return;
 	}
+
 	if ((renderable.shapeset >= m_shapes.size()) || (m_shapes[renderable.shapeset] == nullptr))
 	{
 		return;
 	}
-	auto shader_iter = m_shaders.find(renderable.shader);
+	std::map<size_t, std::unique_ptr<ShaderSet> >::const_iterator shader_iter = m_shaders.find(renderable.shader);
+
 	if (shader_iter == m_shaders.end())
 	{
 		return;
@@ -359,7 +371,8 @@ void RenderManager::draw_renderable(const size_t id) const
 	shader_iter->second->activate();
 	for (size_t texture_id : renderable.textures)
 	{
-		auto texture_iter = m_textures.find(texture_id);
+		std::map<size_t, std::unique_ptr<Texture> >::const_iterator texture_iter = m_textures.find(texture_id);
+
 		if (texture_iter == m_textures.end())
 		{
 			continue;
@@ -369,7 +382,8 @@ void RenderManager::draw_renderable(const size_t id) const
 	m_shapes[renderable.shapeset]->draw();
 	for (size_t texture_id : renderable.textures)
 	{
-		auto texture_iter = m_textures.find(texture_id);
+		std::map<size_t, std::unique_ptr<Texture> >::const_iterator texture_iter = m_textures.find(texture_id);
+
 		if (texture_iter != m_textures.end())
 		{
 			texture_iter->second->unbind();

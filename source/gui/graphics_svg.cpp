@@ -1966,7 +1966,7 @@ static void parseCSSStyle(ParserSVG&, const std::string& content)
 	// const std::vector<NodeCSS>& nodes = css.children();
 	// for (std::vector<NodeCSS>::const_iterator n = nodes.begin(); n != nodes.end(); ++n)
 	// {
-	// 	std::cout << n->print() << std::endl;
+	// std::cout << n->print() << std::endl;
 	// }
 }
 
@@ -2803,6 +2803,7 @@ static void join_segments_round(const glm::vec2& center,
 
 			// Start and end caps sweep in opposite directions, even when cross is zero.
 			idx.push_back(static_cast<GLuint>(centerIdx));
+
 			if (area > 0.0f)
 			{
 				idx.push_back(static_cast<GLuint>(vIdx - 1));
@@ -2973,6 +2974,7 @@ static void add_shape_contour(GraphicsSVG& svg, const ElementSVG& shape, const s
 	std::vector<Vertex> vertices;
 	std::vector<GLuint> indices;
 	std::vector<glm::vec2> contour;
+
 	contour.reserve(points.size());
 	for (std::vector<glm::vec2>::const_iterator point = points.begin(); point != points.end(); ++point)
 	{
@@ -2981,6 +2983,7 @@ static void add_shape_contour(GraphicsSVG& svg, const ElementSVG& shape, const s
 			contour.push_back(*point);
 		}
 	}
+
 	if (shape.closed && (contour.size() > 1) && (glm::length(contour.front() - contour.back()) <= 1e-6f))
 	{
 		contour.pop_back();
@@ -2994,6 +2997,7 @@ static void add_shape_contour(GraphicsSVG& svg, const ElementSVG& shape, const s
 	{
 		return;
 	}
+
 	if (shape.closed)
 	{
 		prevdir = glm::normalize(contour[0] - contour[n - 1]);
@@ -3088,6 +3092,7 @@ static void add_shape_surface(GraphicsSVG& svg, const ElementSVG& shape, const s
 
 	std::vector<Vertex> vertices;
 	std::vector<glm::vec2> contour = points;
+
 	if ((contour.size() > 1) && (glm::length(contour.front() - contour.back()) <= 1e-6f))
 	{
 		contour.pop_back();
@@ -3138,7 +3143,7 @@ GraphicsSVG::GraphicsSVG(const std::string& file_name) :
 	// std::cout << "available gradients: " << std::endl;
 	// for (std::map<std::string, GradientSVG>::const_iterator iter = p.gradients.begin(); iter != p.gradients.end(); ++iter)
 	// {
-	// 	std::cout << print_gradient(iter->second) << std::endl;
+	// std::cout << print_gradient(iter->second) << std::endl;
 	// }
 
 	size_t z = 0;

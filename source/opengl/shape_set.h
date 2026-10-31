@@ -14,7 +14,7 @@ class ShapeSet
 {
 	private:
 		// order of drawing matters, don't use std::set.
-		std::vector<std::unique_ptr<Shape>> m_shapes;
+		std::vector<std::unique_ptr<Shape> > m_shapes;
 
 	public:
 		explicit ShapeSet(void);
@@ -38,4 +38,3 @@ class ShapeSet
 };
 
 #endif
-

@@ -22,26 +22,27 @@ SimpleButton::SimpleButton(const action_t action, const std::string& image_name)
 	init_shape(m_button_size, button_color);
 
 	const std::string ext = FileSystem().extension(image_name);
+
 	if (FileSystem().is_image(ext))
 	{
 		init_texture(image_name);
 		m_shape_set_id = Panel::shape_set_id();
 		m_renderable_id = m_renderer.create_shape_set_renderable(m_shape_set_id,
-																std::vector<size_t>(1, texture_id()),
-																shader().id(),
-																false);
+		                                                         std::vector<size_t>(1, texture_id()),
+		                                                         shader().id(),
+		                                                         false);
 	}
 	else if (FileSystem().is_vector(ext))
 	{
 		m_shape_set_id = m_renderer.load_svg(image_name);
 		m_graphic_uses_texture = false;
 		m_graphic_transform = glm::scale(glm::mat4(1.0f), glm::vec3(m_button_size.x * 0.5f,
-		                                                               m_button_size.y * 0.5f,
-		                                                               1.0f));
+		                                                            m_button_size.y * 0.5f,
+		                                                            1.0f));
 		m_renderable_id = m_renderer.create_shape_set_renderable(m_shape_set_id,
-																std::vector<size_t>(),
-																shader().id(),
-																false);
+		                                                         std::vector<size_t>(),
+		                                                         shader().id(),
+		                                                         false);
 	}
 	else
 	{
@@ -59,14 +60,15 @@ void SimpleButton::set_graphic(const size_t shape_set_id,
                                const glm::mat4& local_transform)
 {
 	std::vector<size_t> textures;
+
 	if (use_texture)
 	{
 		textures.push_back(texture_id());
 	}
 	const RenderManager::RenderableId new_renderable = m_renderer.create_shape_set_renderable(shape_set_id,
-	                                                                                             textures,
-	                                                                                             shader().id(),
-	                                                                                             false);
+	                                                                                          textures,
+	                                                                                          shader().id(),
+	                                                                                          false);
 	m_renderer.delete_renderable(m_renderable_id);
 	m_renderable_id = new_renderable;
 	m_shape_set_id = shape_set_id;

@@ -32,9 +32,9 @@ class RenderManager
 		}
 		renderable_t;
 
-		std::vector<std::unique_ptr<ShapeSet>> m_shapes;
-		std::map<size_t, std::unique_ptr<Texture>> m_textures;
-		std::map<size_t, std::unique_ptr<ShaderSet>> m_shaders;
+		std::vector<std::unique_ptr<ShapeSet> > m_shapes;
+		std::map<size_t, std::unique_ptr<Texture> > m_textures;
+		std::map<size_t, std::unique_ptr<ShaderSet> > m_shaders;
 		std::vector<renderable_t> m_renderables;
 		size_t m_next_texture_id;
 
@@ -47,7 +47,6 @@ class RenderManager
 		bool is_referenced_by_group(const size_t id) const;
 
 	public:
-
 		/** request the instance of this class.
 		 * @return reference to the single instance.
 		 */
@@ -132,11 +131,11 @@ class RenderManager
 
 		/** create a renderable containing one shape. */
 		RenderableId create_shape_renderable(const std::vector<Vertex>& vertices,
-		                               const std::vector<GLuint>& indices,
-		                               const std::vector<size_t>& textures,
-		                               const size_t shader_id,
-		                               const size_t instances = 1,
-		                               const GLenum type = GL_TRIANGLES);
+		                                     const std::vector<GLuint>& indices,
+		                                     const std::vector<size_t>& textures,
+		                                     const size_t shader_id,
+		                                     const size_t instances = 1,
+		                                     const GLenum type = GL_TRIANGLES);
 
 		/** create a renderable group. Children remain independently addressable. */
 		RenderableId create_group(const std::vector<RenderableId>& children);

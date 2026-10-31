@@ -170,6 +170,7 @@ void player_open_file(const std::string& file_name)
 		g_source = SOURCE_IMAGE;
 		update_projection();
 		g_menu.set_playable(false);
+
 		if (g_scene_ready)
 		{
 			RenderManager::instance().set_textures(g_scene_renderable, std::vector<size_t>(1, g_image_texture));
@@ -188,6 +189,7 @@ void player_open_file(const std::string& file_name)
 			std::cerr << "Failed to load SVG '" << file_name << "': " << error.what() << std::endl;
 			return;
 		}
+
 		if (g_source == SOURCE_VIDEO)
 		{
 			g_player.close();
@@ -195,6 +197,7 @@ void player_open_file(const std::string& file_name)
 		g_vector.swap(svg);
 		g_menu.set_playable(false);
 		g_source = SOURCE_VECTOR;
+
 		if (g_scene_ready)
 		{
 			RenderManager::instance().enable(g_scene_renderable, false);
@@ -205,6 +208,7 @@ void player_open_file(const std::string& file_name)
 		g_player.open_file(file_name, g_window, g_video_texture);
 		g_menu.set_playable(true);
 		g_source = SOURCE_VIDEO;
+
 		if (g_scene_ready)
 		{
 			RenderManager::instance().set_textures(g_scene_renderable, std::vector<size_t>(1, g_video_texture));
@@ -238,8 +242,10 @@ void update_projection(void)
 	std::pair<std::vector<Vertex>, std::vector<GLuint> > proj = g_projection.setup_projection();
 	RenderManager& renderer = RenderManager::instance();
 	const size_t new_shape_set = renderer.create_shape_set();
+
 	renderer.add_shape(new_shape_set, proj.first, proj.second);
 	std::vector<size_t> textures;
+
 	if (g_source == SOURCE_IMAGE)
 	{
 		textures.push_back(g_image_texture);
@@ -250,6 +256,7 @@ void update_projection(void)
 	}
 	const RenderManager::RenderableId new_renderable =
 		renderer.create_shape_set_renderable(new_shape_set, textures, g_scene_shader);
+
 	if (g_scene_ready)
 	{
 		renderer.delete_renderable(g_scene_renderable);
@@ -356,6 +363,7 @@ static void setup_hmd(const glm::mat4& hmdPose)
 	{
 		RenderManager::instance().set_transform(g_scene_shape_set, 0, reference);
 	}
+
 	if (g_vector)
 	{
 		const glm::mat4 svg_transform = reference *
@@ -370,6 +378,7 @@ int main(void)
 	const std::string initial_file_name = "images/logo-cinevr.svg";
 
 	const char* platform_override = std::getenv("CINE_VR_PLATFORM");
+
 	if (platform_override != nullptr)
 	{
 		if (std::strcmp(platform_override, "wayland") == 0)
@@ -402,7 +411,7 @@ int main(void)
 	const int glfw_platform = glfwGetPlatform();
 	std::cout << "GLFW platform: "
 	          << (glfw_platform == GLFW_PLATFORM_WAYLAND ? "Wayland" :
-	              glfw_platform == GLFW_PLATFORM_X11 ? "X11" : "other")
+	    glfw_platform == GLFW_PLATFORM_X11 ? "X11" : "other")
 	          << std::endl;
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -461,6 +470,7 @@ int main(void)
 	while (g_Running)
 	{
 		glfwPollEvents();
+
 		if (glfwWindowShouldClose(g_window))
 		{
 			g_Running = false;
@@ -594,6 +604,7 @@ int main(void)
 					renderer.draw();
 					break;
 				case SOURCE_VECTOR:
+
 					if (g_vector)
 					{
 						g_vector->draw();
