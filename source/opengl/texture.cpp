@@ -12,6 +12,10 @@
 static const GLenum tex_type(GL_TEXTURE_2D);
 static const GLint internal_format(GL_RGBA);
 
+TextureSource::~TextureSource(void)
+{
+}
+
 Texture::Texture(void) :
 	m_id(0),
 	m_slot(0),
@@ -21,6 +25,11 @@ Texture::Texture(void) :
 }
 
 GLuint Texture::id(void) const
+{
+	return m_id;
+}
+
+GLuint Texture::texture_id(void) const
 {
 	return m_id;
 }
@@ -199,16 +208,8 @@ GLuint Texture::slot(void) const
 
 void Texture::bind(void) const
 {
-	if ((m_size.x > 0) && (m_size.y > 0))
-	{
-		glActiveTexture(GL_TEXTURE0 + m_slot);
-		glBindTextureUnit(0, m_id);
-	}
-	else
-	{
-		glActiveTexture(GL_TEXTURE0 + m_slot);
-		glBindTexture(tex_type, m_id);
-	}
+	glActiveTexture(GL_TEXTURE0 + m_slot);
+	glBindTexture(tex_type, m_id);
 }
 
 void Texture::unbind(void) const

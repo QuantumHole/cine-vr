@@ -250,6 +250,7 @@ void Player::handle_events(void)
 						std::cout << "failed creating framebuffer" << std::endl;
 					}
 					projection().set_aspect(static_cast<float>(width) / static_cast<float>(height));
+					update_projection();
 				}
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
@@ -489,6 +490,16 @@ void Player::unbind(void) const
 {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+GLuint Player::video_texture_id(void) const
+{
+	return m_video_texture;
+}
+
+GLuint Player::texture_id(void) const
+{
+	return m_video_texture;
 }
 
 float Player::volume(void) const

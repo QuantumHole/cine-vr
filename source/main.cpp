@@ -20,6 +20,7 @@
 #include "util/enum_iterator.h"
 #include "opengl/shape.h"
 #include "opengl/texture.h"
+#include "opengl/render_manager.h"
 #include "gui/controller.h"
 #include "gui/menu.h"
 #include "gui/graphics_svg.h"
@@ -39,12 +40,16 @@ typedef EnumIterator<vr::Hmd_Eye, vr::Eye_Left, vr::Eye_Right> Eyes;
 static bool g_Running = true;
 static GLFWwindow* g_window = nullptr;
 static OpenVRInterface g_vr;
-static ShaderSet g_shaders;
+static size_t g_scene_shader = 0;
+static size_t g_image_texture = 0;
+static size_t g_video_texture = 0;
+static size_t g_scene_shape_set = 0;
+static RenderManager::RenderableId g_scene_renderable = 0;
+static bool g_scene_ready = false;
 static std::map<vr::TrackedDeviceIndex_t, Controller> g_controller;
 static std::vector<Framebuffer> g_framebuffer(Eyes::size());
 static Menu g_menu;
 static Projection g_projection;
-static Shape g_canvas;
 static Texture g_image;
 static std::unique_ptr<GraphicsSVG> g_vector;
 static glm::vec3 g_hmd_reference_pos;
@@ -162,9 +167,14 @@ void player_open_file(const std::string& file_name)
 		const float aspect = static_cast<float>(image_size.x) / static_cast<float>(image_size.y);
 		g_image.unbind();
 		g_projection.set_aspect(aspect);
+		g_source = SOURCE_IMAGE;
 		update_projection();
 		g_menu.set_playable(false);
-		g_source = SOURCE_IMAGE;
+		if (g_scene_ready)
+		{
+			RenderManager::instance().set_textures(g_scene_renderable, std::vector<size_t>(1, g_image_texture));
+			RenderManager::instance().enable(g_scene_renderable, true);
+		}
 	}
 	else if (fs.is_vector(ext))
 	{
@@ -185,12 +195,21 @@ void player_open_file(const std::string& file_name)
 		g_vector.swap(svg);
 		g_menu.set_playable(false);
 		g_source = SOURCE_VECTOR;
+		if (g_scene_ready)
+		{
+			RenderManager::instance().enable(g_scene_renderable, false);
+		}
 	}
 	else if (fs.is_video(ext))
 	{
 		g_player.open_file(file_name, g_window);
 		g_menu.set_playable(true);
 		g_source = SOURCE_VIDEO;
+		if (g_scene_ready)
+		{
+			RenderManager::instance().set_textures(g_scene_renderable, std::vector<size_t>(1, g_video_texture));
+			RenderManager::instance().enable(g_scene_renderable, true);
+		}
 	}
 	g_current_file_name = file_name;
 }
@@ -209,16 +228,35 @@ Projection& projection(void)
 	return g_projection;
 }
 
+ShaderSet& shader(void)
+{
+	return RenderManager::instance().shader(g_scene_shader);
+}
+
 void update_projection(void)
 {
 	std::pair<std::vector<Vertex>, std::vector<GLuint> > proj = g_projection.setup_projection();
-
-	g_canvas.init_vertices(proj.first, proj.second);
-}
-
-ShaderSet& shader(void)
-{
-	return g_shaders;
+	RenderManager& renderer = RenderManager::instance();
+	const size_t new_shape_set = renderer.create_shape_set();
+	renderer.add_shape(new_shape_set, proj.first, proj.second);
+	std::vector<size_t> textures;
+	if (g_source == SOURCE_IMAGE)
+	{
+		textures.push_back(g_image_texture);
+	}
+	else if (g_source == SOURCE_VIDEO)
+	{
+		textures.push_back(g_video_texture);
+	}
+	const RenderManager::RenderableId new_renderable =
+		renderer.create_shape_set_renderable(new_shape_set, textures, g_scene_shader);
+	if (g_scene_ready)
+	{
+		renderer.delete_renderable(g_scene_renderable);
+	}
+	g_scene_shape_set = new_shape_set;
+	g_scene_renderable = new_renderable;
+	g_scene_ready = true;
 }
 
 static void reset_reference(void)
@@ -229,7 +267,7 @@ static void reset_reference(void)
 	g_hmd_reference_rot = glm::quat_cast(hmd_pose);
 }
 
-static void setup_shader(ShaderSet& shader, const vr::Hmd_Eye eye)
+static void setup_shader(const ShaderSet& shader, const vr::Hmd_Eye eye)
 {
 	glm::vec2 offset;
 	glm::vec2 scale;
@@ -314,7 +352,10 @@ static void setup_hmd(const glm::mat4& hmdPose)
 	}
 	reference *= mat4_cast(g_hmd_reference_rot);
 
-	g_canvas.set_transform(reference);
+	if (g_scene_ready)
+	{
+		RenderManager::instance().set_transform(g_scene_shape_set, 0, reference);
+	}
 	if (g_vector)
 	{
 		const glm::mat4 svg_transform = reference *
@@ -401,9 +442,13 @@ int main(void)
 	}
 
 	// create shaders & geometry
-	g_shaders.load_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
-	g_shaders.set_uniform("background", false);
-	g_shaders.set_uniform("greyscale", false);
+	RenderManager& renderer = RenderManager::instance();
+	g_scene_shader = renderer.add_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
+	g_image_texture = renderer.add_external_texture(g_image, 0);
+	g_video_texture = renderer.add_external_texture(g_player, 0);
+	ShaderSet& scene_shader = renderer.shader(g_scene_shader);
+	scene_shader.set_uniform("background", false);
+	scene_shader.set_uniform("greyscale", false);
 
 	g_menu.init();
 
@@ -539,19 +584,14 @@ int main(void)
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glPointSize(8.0f);
 
-			setup_shader(g_shaders, eye);
-
+			setup_shader(scene_shader, eye);
 			switch (g_source)
 			{
 				case SOURCE_IMAGE:
-					g_image.bind();
-					g_canvas.draw();
-					g_image.unbind();
+					renderer.draw();
 					break;
 				case SOURCE_VIDEO:
-					g_player.bind();
-					g_canvas.draw();
-					g_player.unbind();
+					renderer.draw();
 					break;
 				case SOURCE_VECTOR:
 					if (g_vector)
@@ -566,8 +606,8 @@ int main(void)
 			if (g_menu.active())
 			{
 				/* reset to monoscopic mode for menu */
-				g_shaders.set_uniform("texture_offset", glm::vec2(0.0f, 0.0f));
-				g_shaders.set_uniform("texture_scale",  glm::vec2(1.0f, 1.0f));
+				scene_shader.set_uniform("texture_offset", glm::vec2(0.0f, 0.0f));
+				scene_shader.set_uniform("texture_scale",  glm::vec2(1.0f, 1.0f));
 
 				g_menu.draw();
 
@@ -579,7 +619,7 @@ int main(void)
 					iter->second.draw();
 				}
 			}
-			g_shaders.deactivate();
+			scene_shader.deactivate();
 
 			fb.unbind(GL_FRAMEBUFFER);
 		} // eyes
@@ -609,6 +649,7 @@ int main(void)
 
 	// Cleanup
 	g_vector.reset();
+	renderer.clear();
 	glfwTerminate();
 	return 0;
 }

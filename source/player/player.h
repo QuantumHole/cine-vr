@@ -14,8 +14,9 @@
 #include <atomic>
 #include <condition_variable>
 #include <GLFW/glfw3.h>
+#include "opengl/texture.h"
 
-class Player
+class Player : public TextureSource
 {
 	private:
 		GLuint m_framebuffer;
@@ -51,7 +52,7 @@ class Player
 
 	public:
 		explicit Player(void);
-		~Player(void);
+		~Player(void) override;
 
 		void open_file(const std::string& file_name, GLFWwindow* window);
 		void close(void);
@@ -68,6 +69,8 @@ class Player
 
 		void bind(void) const;
 		void unbind(void) const;
+		GLuint video_texture_id(void) const;
+		GLuint texture_id(void) const override;
 };
 
 #endif

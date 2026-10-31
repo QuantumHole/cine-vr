@@ -500,6 +500,7 @@ static std::string print_paint_type(const paint_type_t type)
 	return s.str();
 }
 
+static std::string print_gradient(const GradientSVG& grad) __attribute__((unused));
 static std::string print_gradient(const GradientSVG& grad)
 {
 	std::stringstream s;
@@ -555,6 +556,7 @@ static std::string print_fill(const Paint& fill, const bool fillAlternate, const
 	return s.str();
 }
 
+static std::string print_vertices(const std::vector<Vertex>& vertices) __attribute__((unused));
 static std::string print_vertices(const std::vector<Vertex>& vertices)
 {
 	std::stringstream s;
@@ -580,6 +582,7 @@ static std::string print_bounds(const bounds_t& bounds)
 	return s.str();
 }
 
+static std::string print_shape(const ElementSVG& shape) __attribute__((unused));
 static std::string print_shape(const ElementSVG& shape)
 {
 	std::stringstream s;
@@ -1954,19 +1957,17 @@ static path_t parsePoly(const std::map<std::string, std::string>& attr)
 
 /************************************************************* general SVG text parsing functions */
 
-static void parseCSSStyle(ParserSVG& p, const std::string& content)
+static void parseCSSStyle(ParserSVG&, const std::string& content)
 {
 	NodeCSS css;
 
 	css.parse(content);
 
-	const std::vector<NodeCSS>& nodes = css.children();
-	for (std::vector<NodeCSS>::const_iterator n = nodes.begin(); n != nodes.end(); ++n)
-	{
-		std::cout << n->print() << std::endl;
-	}
-
-	(void)p;
+	// const std::vector<NodeCSS>& nodes = css.children();
+	// for (std::vector<NodeCSS>::const_iterator n = nodes.begin(); n != nodes.end(); ++n)
+	// {
+	// 	std::cout << n->print() << std::endl;
+	// }
 }
 
 static void parseSVG(ParserSVG& p, const std::map<std::string, std::string>& attr)
@@ -3073,7 +3074,7 @@ static void add_shape_contour(GraphicsSVG& svg, const ElementSVG& shape, const s
 
 	svg.add(vertices, indices, GL_TRIANGLES);
 
-	std::cout << print_vertices(vertices) << std::endl;
+	// std::cout << print_vertices(vertices) << std::endl;
 }
 
 static void add_shape_surface(GraphicsSVG& svg, const ElementSVG& shape, const std::vector<glm::vec2>& points, const size_t z)
@@ -3103,7 +3104,7 @@ static void add_shape_surface(GraphicsSVG& svg, const ElementSVG& shape, const s
 
 	svg.add(vertices, indices, GL_TRIANGLES);
 
-	std::cout << print_vertices(vertices) << std::endl;
+	// std::cout << print_vertices(vertices) << std::endl;
 }
 
 GraphicsSVG::GraphicsSVG(const std::string& file_name) :
@@ -3118,7 +3119,7 @@ GraphicsSVG::GraphicsSVG(const std::string& file_name) :
 
 	NodeXML xml;
 	xml.parse(content);
-	std::cout << xml.print() << std::endl;
+	// std::cout << xml.print() << std::endl;
 
 	// parse file content
 	ParserSVG p;
@@ -3132,18 +3133,18 @@ GraphicsSVG::GraphicsSVG(const std::string& file_name) :
 	// Scale to viewBox
 	scaleToViewbox(p, p.shapes);
 
-	std::cout << "########## parsing successful" << std::endl;
-	std::cout << "bounding box: (" << p.viewMin.x << ", " << p.viewMin.y << ", " << p.viewSize.x << ", " << p.viewSize.y << ")" << std::endl;
-	std::cout << "available gradients: " << std::endl;
-	for (std::map<std::string, GradientSVG>::const_iterator iter = p.gradients.begin(); iter != p.gradients.end(); ++iter)
-	{
-		std::cout << print_gradient(iter->second) << std::endl;
-	}
+	// std::cout << "########## parsing successful" << std::endl;
+	// std::cout << "bounding box: (" << p.viewMin.x << ", " << p.viewMin.y << ", " << p.viewSize.x << ", " << p.viewSize.y << ")" << std::endl;
+	// std::cout << "available gradients: " << std::endl;
+	// for (std::map<std::string, GradientSVG>::const_iterator iter = p.gradients.begin(); iter != p.gradients.end(); ++iter)
+	// {
+	// 	std::cout << print_gradient(iter->second) << std::endl;
+	// }
 
 	size_t z = 0;
 	for (std::vector<ElementSVG>::const_iterator shape = p.shapes.begin(); shape != p.shapes.end(); ++shape)
 	{
-		std::cout << print_shape(*shape) << std::endl;
+		// std::cout << print_shape(*shape) << std::endl;
 
 		for (std::vector<path_t>::const_iterator path = shape->paths.begin(); path != shape->paths.end(); ++path)
 		{

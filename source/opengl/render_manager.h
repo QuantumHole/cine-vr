@@ -5,6 +5,7 @@
 #include "opengl/texture.h"
 #include "opengl/shader_set.h"
 #include <cstddef>
+#include <map>
 #include <vector>
 
 /** The RenderManager manages rendering all defined objects.
@@ -12,28 +13,47 @@
  */
 class RenderManager
 {
+	public:
+		typedef size_t RenderableId;
+
 	private:
 		typedef struct
 		{
+			bool is_group;
 			bool active;
+			bool deleted;
 			size_t shapeset;
 			std::vector<size_t> textures;
+			std::vector<size_t> children;
 			size_t shader;
 		}
-		compound_t;
+		renderable_t;
+
+		typedef struct
+		{
+			Texture* owned;
+			TextureSource* external;
+			GLuint slot;
+		}
+		texture_t;
 
 		std::vector<ShapeSet*> m_shapes;
-		std::map<size_t, Texture*> m_textures;
+		std::map<size_t, texture_t> m_textures;
 		std::map<size_t, ShaderSet*> m_shaders;
-		std::vector<compound_t> m_compounds;
+		std::vector<renderable_t> m_renderables;
+		size_t m_next_texture_id;
 
 		/** instance pointer */
 		static RenderManager* m_instance;
 
 		/** contructor. */
 		explicit RenderManager(void);
+		void draw_renderable(const size_t id) const;
+		bool is_referenced_by_group(const size_t id) const;
+		void release_unreferenced_resources(const renderable_t& renderable);
 
 	public:
+
 		/** request the instance of this class.
 		 * @return reference to the single instance.
 		 */
@@ -70,6 +90,12 @@ class RenderManager
 		                   const GLenum format,
 		                   const GLuint slot);
 
+		/** register a texture owned by another object, such as the video Player.
+		 * The provider is queried when drawing, so the OpenGL texture may change.
+		 */
+		size_t add_external_texture(TextureSource& source,
+		                            const GLuint slot);
+
 		/** create a set of vertex, fragment, and (optional) geometry shaders.
 		 * @param file_vertex file name of vertex shader.
 		 * @param file_fragment file name of fragment shader.
@@ -91,6 +117,7 @@ class RenderManager
 		 * @return reference to the shader.
 		 */
 		const ShaderSet& shader(const size_t id) const;
+		ShaderSet& shader(const size_t id);
 
 		/** create compound.
 		 * Initially all created compounds are active for rendering.
@@ -103,18 +130,36 @@ class RenderManager
 		                       const std::vector<size_t>& textures,
 		                       const size_t shader_id);
 
+		/** create a renderable from one shape set. */
+		RenderableId create_shape_set_renderable(const size_t shape_set_id,
+		                                   const std::vector<size_t>& textures,
+		                                   const size_t shader_id);
+
+		/** create a renderable containing one shape. */
+		RenderableId create_shape_renderable(const std::vector<Vertex>& vertices,
+		                               const std::vector<GLuint>& indices,
+		                               const std::vector<size_t>& textures,
+		                               const size_t shader_id,
+		                               const size_t instances = 1,
+		                               const GLenum type = GL_TRIANGLES);
+
+		/** create a renderable group. Children remain independently addressable. */
+		RenderableId create_group(const std::vector<RenderableId>& children);
+
 		/** set activation state of compound.
 		 * @param compound_id compound ID.
 		 * @param active activation flag.
 		 */
 		void enable(const size_t compound_id,
 		            const bool active);
+		void set_textures(const RenderableId id, const std::vector<size_t>& textures);
 
 		/** remove compound. All referenced entities are destroyed,
 		 * if they are no longer used by other compounds.
 		 * @param id compound ID.
 		 */
 		void delete_compound(const size_t id);
+		void delete_renderable(const size_t id);
 
 		/** set the transformation matrix for an instance of an object.
 		 * @param set shape set index.
@@ -126,6 +171,9 @@ class RenderManager
 		                   const size_t index,
 		                   const glm::mat4& matrix,
 		                   const size_t instance = 0);
+
+		/** release manager-owned OpenGL resources while the context is current. */
+		void clear(void);
 
 		/** draw all objects. */
 		void draw(void) const;

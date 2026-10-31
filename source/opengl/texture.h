@@ -12,7 +12,17 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-class Texture
+class TextureSource
+{
+	public:
+		explicit TextureSource(void) = default;
+		TextureSource(const TextureSource&) = default;
+		virtual ~TextureSource(void);
+		TextureSource& operator=(const TextureSource&) = default;
+		virtual GLuint texture_id(void) const = 0;
+};
+
+class Texture : public TextureSource
 {
 	private:
 		GLuint m_id;
@@ -26,6 +36,7 @@ class Texture
 		Texture(void);
 
 		GLuint id(void) const;
+		GLuint texture_id(void) const override;
 		GLuint slot(void) const;
 		const glm::uvec2& size(void) const;
 
