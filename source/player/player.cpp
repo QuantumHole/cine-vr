@@ -35,7 +35,8 @@ Player::Player(void) :
 	m_wakeup_cv(),
 	m_window(nullptr),
 	m_context(mpv_create()),
-	m_render(nullptr)
+		m_render(nullptr),
+		m_initialized(false)
 {
 	if (!m_context)
 	{
@@ -45,15 +46,18 @@ Player::Player(void) :
 
 Player::~Player(void)
 {
+	stop_render_thread();
+	if (m_render)
+	{
+		mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
+		mpv_render_context_free(m_render);
+		m_render = nullptr;
+	}
 	if (m_context)
 	{
-		if (m_render)
-		{
-			mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
-		}
 		mpv_terminate_destroy(m_context);
+		m_context = nullptr;
 	}
-	m_context = nullptr;
 }
 
 void Player::thread_starter(Player* player)
@@ -211,11 +215,13 @@ void Player::handle_events(void)
 				{
 					std::cout << "player reached end of file" << std::endl;
 				}
-				mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
-				mpv_terminate_destroy(m_context);
-				m_context = nullptr;
-				return;
+				if (msg->reason == MPV_END_FILE_REASON_EOF ||
+				    msg->reason == MPV_END_FILE_REASON_ERROR)
+				{
+					m_playing = false;
+				}
 			}
+			break;
 			case MPV_EVENT_AUDIO_RECONFIG:
 				break;
 			case MPV_EVENT_VIDEO_RECONFIG:
@@ -236,7 +242,10 @@ void Player::handle_events(void)
 					glfwMakeContextCurrent(m_window);
 
 					// Framebuffer for Video Target - Video Texture
-					glGenFramebuffers(1, &m_framebuffer);
+					if (m_framebuffer == 0)
+					{
+						glGenFramebuffers(1, &m_framebuffer);
+					}
 					glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
 					// create a color attachment texture
 					Texture& video_texture = RenderManager::instance().texture(m_video_texture_id);
@@ -347,56 +356,53 @@ void Player::open_file(const std::string& file_name, GLFWwindow* window, const s
 		throw std::runtime_error("failed creating context");
 	}
 
-	if (mpv_initialize(m_context) < MPV_ERROR_SUCCESS)
+	if (!m_initialized)
 	{
-		mpv_destroy(m_context);
-		m_context = nullptr;
-		throw std::runtime_error("Error: mpv_initialize failed");
+		set_option("vd-lavc-dr", "yes");
+		set_option("vo", "libmpv");
+		set_option("hwdec", "auto");
+		set_option("profile", "gpu-hq");
+		set_option("gpu-api", "opengl");
+		set_option("vd-lavc-threads", "0");
+
+		if (mpv_initialize(m_context) < MPV_ERROR_SUCCESS)
+		{
+			mpv_terminate_destroy(m_context);
+			m_context = nullptr;
+			throw std::runtime_error("Error: mpv_initialize failed");
+		}
+
+		mpv_opengl_init_params opengl_init_params = {
+			get_proc_address,
+			nullptr
+		};
+		int advanced_control = 1;
+		mpv_render_param params[] = {
+			{MPV_RENDER_PARAM_API_TYPE, const_cast<char*>(MPV_RENDER_API_TYPE_OPENGL)},
+			{MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &opengl_init_params},
+			{MPV_RENDER_PARAM_ADVANCED_CONTROL, &advanced_control},
+			{MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, nullptr},
+			{MPV_RENDER_PARAM_INVALID, nullptr}
+		};
+
+		if (mpv_render_context_create(&m_render, m_context, params) < 0)
+		{
+			mpv_terminate_destroy(m_context);
+			m_context = nullptr;
+			m_render = nullptr;
+			throw std::runtime_error("Error: mpv_render_context_create failed");
+		}
+
+		mpv_render_context_set_update_callback(m_render, on_render_update, this);
+
+		mpv_observe_property(m_context, 0, "duration", MPV_FORMAT_DOUBLE);
+		mpv_observe_property(m_context, 0, "time-pos", MPV_FORMAT_DOUBLE);
+		mpv_observe_property(m_context, 0, "estimated-vf-fps", MPV_FORMAT_DOUBLE);
+		mpv_observe_property(m_context, 0, "media-title", MPV_FORMAT_NONE);
+		m_initialized = true;
 	}
 
-	mpv_opengl_init_params opengl_init_params = {
-		get_proc_address,
-		nullptr
-	};
-
-	int advanced_control = 1;
-
-	mpv_render_param params[] = {
-		{MPV_RENDER_PARAM_API_TYPE, const_cast<char*>(MPV_RENDER_API_TYPE_OPENGL)},
-		{MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &opengl_init_params},
-		{MPV_RENDER_PARAM_ADVANCED_CONTROL, &advanced_control},
-		{MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, nullptr},
-		{ MPV_RENDER_PARAM_INVALID, nullptr }
-	};
-
-	if (mpv_render_context_create(&m_render, m_context, params) < 0)
-	{
-		mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
-		mpv_destroy(m_context);
-		m_context = nullptr;
-		m_render = nullptr;
-		throw std::runtime_error("Error: mpv_render_context_create failed");
-	}
-
-	// mpv_set_wakeup_callback(m_context, on_mpv_events, this);
-	mpv_render_context_set_update_callback(m_render, on_render_update, this);
-
-	set_option("vd-lavc-dr", "yes");
-	set_option("vo", "libmpv");
-	set_option("hwdec", "auto");
-	set_option("profile", "gpu-hq");
-	set_option("gpu-api", "opengl");
-	set_option("vd-lavc-threads", "0");
-	// set_option("force-window", "immediate");
-	// set_option("cache", "yes");
-	// set_option("cache-pause", "no");
-
-	mpv_observe_property(m_context, 0, "duration", MPV_FORMAT_DOUBLE);
-	mpv_observe_property(m_context, 0, "time-pos", MPV_FORMAT_DOUBLE);
-	mpv_observe_property(m_context, 0, "estimated-vf-fps", MPV_FORMAT_DOUBLE);
-	mpv_observe_property(m_context, 0, "media-title", MPV_FORMAT_NONE);
-
-	std::vector<const char*> cmd = {"loadfile", file_name.c_str(), nullptr};
+	std::vector<const char*> cmd = {"loadfile", file_name.c_str(), "replace", nullptr};
 
 	if (mpv_command(m_context, cmd.data()) < 0)
 	{

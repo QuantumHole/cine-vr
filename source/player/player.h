@@ -35,6 +35,7 @@ class Player
 		GLFWwindow* m_window;
 		struct mpv_handle* m_context;
 		struct mpv_render_context* m_render;
+		bool m_initialized;
 
 		void render_thread(void);
 		static void thread_starter(Player* player);
