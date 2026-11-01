@@ -69,9 +69,11 @@ ProgressBar::ProgressBar(
 	{
 		background_textures.push_back(texture_id());
 	}
+
+	const size_t shader_id = Application::instance().shader().id();
 	m_background_renderable = m_renderer.create_shape_set_renderable(m_background_shape_set,
 	                                                                 background_textures,
-	                                                                 Application::instance().shader().id(),
+	                                                                 shader_id,
 	                                                                 false);
 
 	const std::string extcursor = FileSystem().extension(imagecursor);
@@ -95,7 +97,7 @@ ProgressBar::ProgressBar(
 		m_cursor_transform = glm::scale(glm::mat4(1.0f), glm::vec3(svg_scale, svg_scale, 1.0f));
 		m_cursor_renderable = m_renderer.create_shape_set_renderable(m_cursor_shape_set,
 		                                                             std::vector<size_t>(),
-		                                                             Application::instance().shader().id(),
+		                                                             shader_id,
 		                                                             false);
 	}
 	else
@@ -168,19 +170,22 @@ void ProgressBar::init_cursor(const glm::vec2& cursor_size)
 	{
 		cursor_textures.push_back(m_cursor_texture);
 	}
+
+	const size_t shader_id = Application::instance().shader().id();
 	m_cursor_renderable = m_renderer.create_shape_set_renderable(m_cursor_shape_set,
 	                                                             cursor_textures,
-	                                                             Application::instance().shader().id(),
+	                                                             shader_id,
 	                                                             false);
 }
 
 void ProgressBar::draw(void) const
 {
-	Application::instance().shader().set_uniform("background", m_background_uses_texture);
+	ShaderSet& shader = Application::instance().shader();
+	shader.set_uniform("background", m_background_uses_texture);
 	m_renderer.draw(m_background_renderable);
-	Application::instance().shader().set_uniform("background", m_cursor_uses_texture);
+	shader.set_uniform("background", m_cursor_uses_texture);
 	m_renderer.draw(m_cursor_renderable);
-	Application::instance().shader().set_uniform("background", false);
+	shader.set_uniform("background", false);
 }
 
 void ProgressBar::update_state(void)

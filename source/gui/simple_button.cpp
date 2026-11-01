@@ -23,13 +23,14 @@ SimpleButton::SimpleButton(const action_t action, const std::string& image_name)
 
 	const std::string ext = FileSystem().extension(image_name);
 
+	const size_t shader_id = Application::instance().shader().id();
 	if (FileSystem().is_image(ext))
 	{
 		init_texture(image_name);
 		m_shape_set_id = Panel::shape_set_id();
 		m_renderable_id = m_renderer.create_shape_set_renderable(m_shape_set_id,
 		                                                         std::vector<size_t>(1, texture_id()),
-		                                                         Application::instance().shader().id(),
+		                                                         shader_id,
 		                                                         false);
 	}
 	else if (FileSystem().is_vector(ext))
@@ -41,7 +42,7 @@ SimpleButton::SimpleButton(const action_t action, const std::string& image_name)
 		                                                            1.0f));
 		m_renderable_id = m_renderer.create_shape_set_renderable(m_shape_set_id,
 		                                                         std::vector<size_t>(),
-		                                                         Application::instance().shader().id(),
+		                                                         shader_id,
 		                                                         false);
 	}
 	else
@@ -65,9 +66,10 @@ void SimpleButton::set_graphic(const size_t shape_set_id,
 	{
 		textures.push_back(texture_id());
 	}
+	const size_t shader_id = Application::instance().shader().id();
 	const RenderManager::RenderableId new_renderable = m_renderer.create_shape_set_renderable(shape_set_id,
 	                                                                                          textures,
-	                                                                                          Application::instance().shader().id(),
+	                                                                                          shader_id,
 	                                                                                          false);
 	m_renderer.delete_renderable(m_renderable_id);
 	m_renderable_id = new_renderable;
@@ -95,7 +97,8 @@ bool SimpleButton::update_on_interaction(const Panel::intersection_t isec, const
 
 void SimpleButton::draw(void) const
 {
-	Application::instance().shader().set_uniform("background", m_graphic_uses_texture);
+	ShaderSet& shader = Application::instance().shader();
+	shader.set_uniform("background", m_graphic_uses_texture);
 	m_renderer.draw(m_renderable_id);
-	Application::instance().shader().set_uniform("background", false);
+	shader.set_uniform("background", false);
 }

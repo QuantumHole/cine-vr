@@ -29,20 +29,21 @@ const glm::uvec2& ScrollPanel::texture_offset(void) const
 void ScrollPanel::draw(void) const
 {
 	const glm::uvec2& ts = tex_size();
+	ShaderSet& shader = Application::instance().shader();
 
 	if (ts.x && ts.y)
 	{
 		glm::vec2 offset = glm::vec2(m_tex_offset) / glm::vec2(ts);
 		glm::vec2 scale  = glm::vec2(m_tex_view) / glm::vec2(ts);
 
-		Application::instance().shader().set_uniform("texture_offset", offset);
-		Application::instance().shader().set_uniform("texture_scale", scale);
+		shader.set_uniform("texture_offset", offset);
+		shader.set_uniform("texture_scale", scale);
 	}
 
 	Panel::draw();
 
-	Application::instance().shader().set_uniform("texture_offset", glm::vec2(0.0f, 0.0f));
-	Application::instance().shader().set_uniform("texture_scale", glm::vec2(1.0f, 1.0f));
+	shader.set_uniform("texture_offset", glm::vec2(0.0f, 0.0f));
+	shader.set_uniform("texture_scale", glm::vec2(1.0f, 1.0f));
 }
 
 bool ScrollPanel::update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input)

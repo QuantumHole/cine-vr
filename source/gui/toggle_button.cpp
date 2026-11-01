@@ -28,16 +28,16 @@ bool ToggleButton::update_on_interaction(const Panel::intersection_t isec, const
 
 void ToggleButton::draw(void) const
 {
-	
+	ShaderSet& shader = Application::instance().shader();
 	if (!m_active)
 	{
-		Application::instance().shader().set_uniform("greyscale", true);
+		shader.set_uniform("greyscale", true);
 	}
 
 	SimpleButton::draw();
 
 	if (!m_active)
 	{
-		Application::instance().shader().set_uniform("greyscale", false);
+		shader.set_uniform("greyscale", false);
 	}
 }

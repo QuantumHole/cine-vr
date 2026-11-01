@@ -141,7 +141,8 @@ void Panel::text(const std::string& text, const int32_t x, const int32_t y) cons
 
 void Panel::draw(void) const
 {
-	Application::instance().shader().set_uniform("background", true);
+	ShaderSet& shader = Application::instance().shader();
+	shader.set_uniform("background", true);
 
 	if (texture().id())
 	{
@@ -154,7 +155,7 @@ void Panel::draw(void) const
 		texture().unbind();
 	}
 
-	Application::instance().shader().set_uniform("background", false);
+	shader.set_uniform("background", false);
 }
 
 void Panel::update_state(void)
