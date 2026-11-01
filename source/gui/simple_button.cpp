@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "simple_button.h"
-#include "main.h"
+#include "application.h"
 #include "util/file_system.h"
 #include <stdexcept>
 
@@ -29,7 +29,7 @@ SimpleButton::SimpleButton(const action_t action, const std::string& image_name)
 		m_shape_set_id = Panel::shape_set_id();
 		m_renderable_id = m_renderer.create_shape_set_renderable(m_shape_set_id,
 		                                                         std::vector<size_t>(1, texture_id()),
-		                                                         shader().id(),
+		                                                         Application::instance().shader().id(),
 		                                                         false);
 	}
 	else if (FileSystem().is_vector(ext))
@@ -41,7 +41,7 @@ SimpleButton::SimpleButton(const action_t action, const std::string& image_name)
 		                                                            1.0f));
 		m_renderable_id = m_renderer.create_shape_set_renderable(m_shape_set_id,
 		                                                         std::vector<size_t>(),
-		                                                         shader().id(),
+		                                                         Application::instance().shader().id(),
 		                                                         false);
 	}
 	else
@@ -67,7 +67,7 @@ void SimpleButton::set_graphic(const size_t shape_set_id,
 	}
 	const RenderManager::RenderableId new_renderable = m_renderer.create_shape_set_renderable(shape_set_id,
 	                                                                                          textures,
-	                                                                                          shader().id(),
+	                                                                                          Application::instance().shader().id(),
 	                                                                                          false);
 	m_renderer.delete_renderable(m_renderable_id);
 	m_renderable_id = new_renderable;
@@ -95,7 +95,7 @@ bool SimpleButton::update_on_interaction(const Panel::intersection_t isec, const
 
 void SimpleButton::draw(void) const
 {
-	shader().set_uniform("background", m_graphic_uses_texture);
+	Application::instance().shader().set_uniform("background", m_graphic_uses_texture);
 	m_renderer.draw(m_renderable_id);
-	shader().set_uniform("background", false);
+	Application::instance().shader().set_uniform("background", false);
 }

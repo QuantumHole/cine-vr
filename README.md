@@ -17,13 +17,16 @@ Users can configure some display options via the OpenVR controller.
 # Dependencies
 
 ## Runtime Dependencies
-* [OpenGL](https://www.opengl.org)
+* [OpenGL](https://www.opengl.org) rendering of display elements
 * [GLFW](https://www.glfw.org) 3.4 or newer, built with Wayland support for native sway sessions
-* [OpenVR](https://github.com/ValveSoftware/openvr)
-* [libpng](https://www.libpng.org/pub/png/libpng.html)
-* [libjpeg](https://jpegclub.org/reference/reference-sources)
-* [FreeType2](https://freetype.org/index.html)
-* [libmpv](https://mpv.io)
+* [OpenVR](https://github.com/ValveSoftware/openvr) VR interface and display
+* [libpng](https://www.libpng.org/pub/png/libpng.html) PNG image display
+* [libjpeg](https://jpegclub.org/reference/reference-sources) JPEG image display
+* [FreeType2](https://freetype.org) text rendering
+* [libmpv](https://mpv.io) video playback
+* [libavformat libavcodec libavutil libswscale](https://ffmpeg.org) thumbnail generation
+* [libsqlite3](https://sqlite.org) thumbnail and configuration storage
+* [libcrypto](https://docs.openssl.org/master/man7/ossl-guide-libcrypto-introduction/) calculation of hash values
 
 ## Build Dependencies
 
@@ -39,18 +42,24 @@ Users can configure some display options via the OpenVR controller.
 
 # Building
 
-`make run`
+`make all`, or when selecting a compiler explicitly
+`make gnu` or `make llvm`
 
-## Wayland
+# Runtime environment
 
-In a Wayland session, Cine-VR requests GLFW's native Wayland backend by default. GLFW must be built with Wayland support. To choose a backend explicitly, set `CINE_VR_PLATFORM` to `wayland`, `x11`, or `auto`:
+In a Wayland session, Cine-VR requests a native Wayland backend by default.
+GLFW must be built with Wayland support.
+To choose a backend explicitly, set `CINE_VR_PLATFORM` to `wayland`, `x11`, or `auto`:
 
 ```sh
 CINE_VR_PLATFORM=wayland ./cine-vr
 CINE_VR_PLATFORM=x11 ./cine-vr
 ```
 
-`x11` uses XWayland when launched from sway. `auto` lets GLFW select an available platform. The selected GLFW platform is printed at startup. Native window support does not guarantee that the installed SteamVR/OpenVR runtime supports running its compositor in the same Wayland session; that must be verified separately.
+`x11` uses XWayland when launched from a wayland environment.
+`auto` lets it select an available platform.
+Native window support does not guarantee that the installed SteamVR/OpenVR runtime supports running its compositor
+in the same wayland or X11 session; that must be verified separately.
 
 # Contribution
 

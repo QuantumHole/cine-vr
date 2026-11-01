@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "menu.h"
-#include "main.h"
+#include "application.h"
 #include "util/file_system.h"
 #include "simple_button.h"
 #include "toggle_button.h"
@@ -252,22 +252,22 @@ void Menu::create_button_panel(const std::vector<action_t>& actions)
 					b = new SimpleButton(ACTION_TILE_TOP_BOTTOM, "images/top-bottom" + menu_graphics_extension);
 					break;
 				case ACTION_FLAG_MONO:
-					b = new ToggleButton(act, "images/force-mono" + menu_graphics_extension, projection().mono());
+					b = new ToggleButton(act, "images/force-mono" + menu_graphics_extension, Application::instance().projection().mono());
 					break;
 				case ACTION_FLAG_STRETCH:
-					b = new ToggleButton(act, "images/stretch" + menu_graphics_extension, projection().stretch());
+					b = new ToggleButton(act, "images/stretch" + menu_graphics_extension, Application::instance().projection().stretch());
 					break;
 				case ACTION_FLAG_SWITCH_EYES:
-					b = new ToggleButton(act, "images/switch-eyes" + menu_graphics_extension, projection().switch_eyes());
+					b = new ToggleButton(act, "images/switch-eyes" + menu_graphics_extension, Application::instance().projection().switch_eyes());
 					break;
 				case ACTION_PARAM_ANGLE:
-					b = new SlideButton(act, "images/angle" + menu_graphics_extension, 0.0f, 2.0f * glm::pi<float>(), projection().angle());
+					b = new SlideButton(act, "images/angle" + menu_graphics_extension, 0.0f, 2.0f * glm::pi<float>(), Application::instance().projection().angle());
 					break;
 				case ACTION_PARAM_ZOOM:
-					b = new SlideButton(act, "images/zoom" + menu_graphics_extension, 0.0f, 10.0f, projection().zoom());
+					b = new SlideButton(act, "images/zoom" + menu_graphics_extension, 0.0f, 10.0f, Application::instance().projection().zoom());
 					break;
 				case ACTION_VOLUME:
-					b = new SlideButton(act, "images/volume" + menu_graphics_extension, 0.0f, 100.0f, player().volume());
+					b = new SlideButton(act, "images/volume" + menu_graphics_extension, 0.0f, 100.0f, Application::instance().player().volume());
 					break;
 				default:
 					throw std::runtime_error("invalid button ID");
@@ -291,7 +291,7 @@ void Menu::main_menu(void)
 		create_button_panel({
 			ACTION_PLAY_PREVIOUS,
 			ACTION_PLAY_BACKWARD,
-			player().is_playing() ? ACTION_PLAY_PAUSE : ACTION_PLAY_PLAY,
+			Application::instance().player().is_playing() ? ACTION_PLAY_PAUSE : ACTION_PLAY_PLAY,
 			ACTION_PLAY_FORWARD,
 			ACTION_PLAY_NEXT,
 			ACTION_VOLUME,
@@ -300,8 +300,8 @@ void Menu::main_menu(void)
 			ACTION_POWER
 		});
 
-		const float duration = player().duration();
-		const float position = player().playtime();
+		const float duration = Application::instance().player().duration();
+		const float position = Application::instance().player().playtime();
 		Panel* p = new ProgressBar(
 			ACTION_PLAY_POSITION,
 			"images/progress-bar" + menu_graphics_extension,
@@ -421,7 +421,7 @@ void Menu::file_menu(void)
 
 void Menu::settings_menu(void)
 {
-	const Projection& p = projection();
+	const Projection& p = Application::instance().projection();
 	action_t action_tile;
 	action_t action_project = ACTION_PROJECT_SPHERE;
 
@@ -489,7 +489,7 @@ void Menu::handle_button_action(const action_t action)
 			break;
 		case ACTION_DESKTOP:
 			m_submenu = MENU_NONE;
-			player_show_desktop();
+			Application::instance().player_show_desktop();
 			break;
 		case ACTION_DESKTOP_WINDOW:
 			m_submenu = MENU_NONE;
@@ -507,7 +507,7 @@ void Menu::handle_button_action(const action_t action)
 			m_submenu = MENU_NONE;
 			LinePanel& panel = *dynamic_cast<LinePanel*>(m_panel.find(action)->second);
 			const std::string file_name = panel.get_selection();
-			player_open_file(file_name);
+			Application::instance().player_open_file(file_name);
 		}
 		break;
 		case ACTION_FILE_DELETE:
@@ -516,28 +516,28 @@ void Menu::handle_button_action(const action_t action)
 			file_menu();
 			break;
 		case ACTION_PLAY_BACKWARD:
-			player_backward();
+			Application::instance().player_backward();
 			break;
 		case ACTION_PLAY_FORWARD:
-			player_forward();
+			Application::instance().player_forward();
 			break;
 		case ACTION_PLAY_NEXT:
-			player_next();
+			Application::instance().player_next();
 			break;
 		case ACTION_PLAY_PAUSE:
-			player().pause();
+			Application::instance().player().pause();
 			break;
 		case ACTION_PLAY_PLAY:
-			player().play();
+			Application::instance().player().play();
 			break;
 		case ACTION_PLAY_POSITION:
 			break;
 		case ACTION_PLAY_PREVIOUS:
-			player_previous();
+			Application::instance().player_previous();
 			break;
 		case ACTION_POWER:
 			m_submenu = MENU_NONE;
-			quit();
+			Application::instance().quit();
 			break;
 		case ACTION_PROJECT_CUBE:
 
@@ -547,8 +547,8 @@ void Menu::handle_button_action(const action_t action)
 			}
 			else
 			{
-				projection().set_projection(Projection::PROJECTION_CUBE_MAP);
-				update_projection();
+				Application::instance().projection().set_projection(Projection::PROJECTION_CUBE_MAP);
+				Application::instance().update_projection();
 				settings_menu();
 			}
 			break;
@@ -560,8 +560,8 @@ void Menu::handle_button_action(const action_t action)
 			}
 			else
 			{
-				projection().set_projection(Projection::PROJECTION_CYLINDER);
-				update_projection();
+				Application::instance().projection().set_projection(Projection::PROJECTION_CYLINDER);
+				Application::instance().update_projection();
 				settings_menu();
 			}
 			break;
@@ -573,8 +573,8 @@ void Menu::handle_button_action(const action_t action)
 			}
 			else
 			{
-				projection().set_projection(Projection::PROJECTION_FISHEYE);
-				update_projection();
+				Application::instance().projection().set_projection(Projection::PROJECTION_FISHEYE);
+				Application::instance().update_projection();
 				settings_menu();
 			}
 			break;
@@ -586,8 +586,8 @@ void Menu::handle_button_action(const action_t action)
 			}
 			else
 			{
-				projection().set_projection(Projection::PROJECTION_FLAT);
-				update_projection();
+				Application::instance().projection().set_projection(Projection::PROJECTION_FLAT);
+				Application::instance().update_projection();
 				settings_menu();
 			}
 			break;
@@ -599,8 +599,8 @@ void Menu::handle_button_action(const action_t action)
 			}
 			else
 			{
-				projection().set_projection(Projection::PROJECTION_SPHERE);
-				update_projection();
+				Application::instance().projection().set_projection(Projection::PROJECTION_SPHERE);
+				Application::instance().update_projection();
 				settings_menu();
 			}
 			break;
@@ -615,8 +615,8 @@ void Menu::handle_button_action(const action_t action)
 			}
 			else
 			{
-				projection().set_tiling(Projection::TILE_CUBE_MAP_MONO);
-				update_projection();
+				Application::instance().projection().set_tiling(Projection::TILE_CUBE_MAP_MONO);
+				Application::instance().update_projection();
 				settings_menu();
 			}
 			break;
@@ -628,8 +628,8 @@ void Menu::handle_button_action(const action_t action)
 			}
 			else
 			{
-				projection().set_tiling(Projection::TILE_CUBE_MAP_STEREO);
-				update_projection();
+				Application::instance().projection().set_tiling(Projection::TILE_CUBE_MAP_STEREO);
+				Application::instance().update_projection();
 				settings_menu();
 			}
 			break;
@@ -641,8 +641,8 @@ void Menu::handle_button_action(const action_t action)
 			}
 			else
 			{
-				projection().set_tiling(Projection::TILE_LEFT_RIGHT);
-				update_projection();
+				Application::instance().projection().set_tiling(Projection::TILE_LEFT_RIGHT);
+				Application::instance().update_projection();
 				settings_menu();
 			}
 			break;
@@ -654,8 +654,8 @@ void Menu::handle_button_action(const action_t action)
 			}
 			else
 			{
-				projection().set_tiling(Projection::TILE_MONO);
-				update_projection();
+				Application::instance().projection().set_tiling(Projection::TILE_MONO);
+				Application::instance().update_projection();
 				settings_menu();
 			}
 			break;
@@ -667,33 +667,33 @@ void Menu::handle_button_action(const action_t action)
 			}
 			else
 			{
-				projection().set_tiling(Projection::TILE_TOP_BOTTOM);
-				update_projection();
+				Application::instance().projection().set_tiling(Projection::TILE_TOP_BOTTOM);
+				Application::instance().update_projection();
 				settings_menu();
 			}
 			break;
 		case ACTION_FLAG_MONO:
-			projection().set_mono(!projection().mono());
-			update_projection();
+			Application::instance().projection().set_mono(!Application::instance().projection().mono());
+			Application::instance().update_projection();
 			break;
 		case ACTION_FLAG_STRETCH:
-			projection().set_stretch(!projection().stretch());
-			update_projection();
+			Application::instance().projection().set_stretch(!Application::instance().projection().stretch());
+			Application::instance().update_projection();
 			break;
 		case ACTION_FLAG_SWITCH_EYES:
-			projection().set_switch_eyes(!projection().switch_eyes());
-			update_projection();
+			Application::instance().projection().set_switch_eyes(!Application::instance().projection().switch_eyes());
+			Application::instance().update_projection();
 			break;
 		case ACTION_PARAM_ANGLE:
-			projection().set_angle(dynamic_cast<SlideButton*>(m_panel.find(action)->second)->slide_value());
-			update_projection();
+			Application::instance().projection().set_angle(dynamic_cast<SlideButton*>(m_panel.find(action)->second)->slide_value());
+			Application::instance().update_projection();
 			break;
 		case ACTION_PARAM_ZOOM:
-			projection().set_zoom(dynamic_cast<SlideButton*>(m_panel.find(action)->second)->slide_value());
-			update_projection();
+			Application::instance().projection().set_zoom(dynamic_cast<SlideButton*>(m_panel.find(action)->second)->slide_value());
+			Application::instance().update_projection();
 			break;
 		case ACTION_VOLUME:
-			player().set_volume(dynamic_cast<SlideButton*>(m_panel.find(action)->second)->slide_value());
+			Application::instance().player().set_volume(dynamic_cast<SlideButton*>(m_panel.find(action)->second)->slide_value());
 			break;
 		default:
 			break;

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "toggle_button.h"
-#include "main.h"
+#include "application.h"
 
 ToggleButton::ToggleButton(const action_t action, const std::string& image_name, const bool value) :
 	SimpleButton(action, image_name),
@@ -28,15 +28,16 @@ bool ToggleButton::update_on_interaction(const Panel::intersection_t isec, const
 
 void ToggleButton::draw(void) const
 {
+	
 	if (!m_active)
 	{
-		shader().set_uniform("greyscale", true);
+		Application::instance().shader().set_uniform("greyscale", true);
 	}
 
 	SimpleButton::draw();
 
 	if (!m_active)
 	{
-		shader().set_uniform("greyscale", false);
+		Application::instance().shader().set_uniform("greyscale", false);
 	}
 }

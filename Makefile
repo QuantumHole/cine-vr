@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 PROJECT_ROOT := .
-DEPENDENCIES = "glfw3 >= 3.4 openvr libpng libjpeg freetype2 mpv gl"
+DEPENDENCIES = "glfw3 >= 3.4 openvr libpng libjpeg freetype2 mpv gl libavformat libavcodec libavutil libswscale libcrypto sqlite3"
 
 include common/cplusplus.mk
 include common/license.mk
@@ -14,6 +14,7 @@ TARGET = cine-vr
 
 OBJECTS = \
 	$(BUILD_DIR)/main.o \
+	$(BUILD_DIR)/application.o \
 	$(BUILD_DIR)/shader_set.o \
 	$(BUILD_DIR)/openvr_interface.o \
 	$(BUILD_DIR)/framebuffer.o \
@@ -45,6 +46,8 @@ OBJECTS = \
 	$(BUILD_DIR)/graphics_svg.o \
 	$(BUILD_DIR)/string_tools.o \
 	$(BUILD_DIR)/render_manager.o \
+	$(BUILD_DIR)/sqlitedb.o \
+	$(BUILD_DIR)/thumbnail_generator.o \
 
 all: $(TARGET)
 

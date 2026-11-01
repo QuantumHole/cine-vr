@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "progress_bar.h"
-#include "main.h"
+#include "application.h"
 #include "util/file_system.h"
 #include <iostream>
 #include <stdexcept>
@@ -71,7 +71,7 @@ ProgressBar::ProgressBar(
 	}
 	m_background_renderable = m_renderer.create_shape_set_renderable(m_background_shape_set,
 	                                                                 background_textures,
-	                                                                 shader().id(),
+	                                                                 Application::instance().shader().id(),
 	                                                                 false);
 
 	const std::string extcursor = FileSystem().extension(imagecursor);
@@ -95,7 +95,7 @@ ProgressBar::ProgressBar(
 		m_cursor_transform = glm::scale(glm::mat4(1.0f), glm::vec3(svg_scale, svg_scale, 1.0f));
 		m_cursor_renderable = m_renderer.create_shape_set_renderable(m_cursor_shape_set,
 		                                                             std::vector<size_t>(),
-		                                                             shader().id(),
+		                                                             Application::instance().shader().id(),
 		                                                             false);
 	}
 	else
@@ -135,7 +135,7 @@ void ProgressBar::set_cursor_position(void)
 	{
 		return;
 	}
-	m_progress_pos = player().playtime();
+	m_progress_pos = Application::instance().player().playtime();
 	const float frac = glm::clamp(m_progress_pos / m_progress_max, 0.0f, 1.0f);
 	const float shift = (frac - 0.5f) * m_progress_size.x;
 
@@ -170,17 +170,17 @@ void ProgressBar::init_cursor(const glm::vec2& cursor_size)
 	}
 	m_cursor_renderable = m_renderer.create_shape_set_renderable(m_cursor_shape_set,
 	                                                             cursor_textures,
-	                                                             shader().id(),
+	                                                             Application::instance().shader().id(),
 	                                                             false);
 }
 
 void ProgressBar::draw(void) const
 {
-	shader().set_uniform("background", m_background_uses_texture);
+	Application::instance().shader().set_uniform("background", m_background_uses_texture);
 	m_renderer.draw(m_background_renderable);
-	shader().set_uniform("background", m_cursor_uses_texture);
+	Application::instance().shader().set_uniform("background", m_cursor_uses_texture);
 	m_renderer.draw(m_cursor_renderable);
-	shader().set_uniform("background", false);
+	Application::instance().shader().set_uniform("background", false);
 }
 
 void ProgressBar::update_state(void)
@@ -193,7 +193,7 @@ bool ProgressBar::update_on_interaction(const intersection_t isec, const OpenVRI
 	if (input.trigger.button.released && isec.hit)
 	{
 		const float step = m_progress_max * isec.local.x - m_progress_pos;
-		player().jump(step);
+		Application::instance().player().jump(step);
 	}
 
 	return input.trigger.button.released && isec.hit;

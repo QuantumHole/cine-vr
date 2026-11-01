@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 QuantumHole <QuantumHole@github.com>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "render_manager.h"
 #include "gui/graphics_svg.h"
 #include "shader_set.h"

@@ -4,7 +4,7 @@
 
 #include "panel.h"
 #include "font_renderer.h"
-#include "main.h"
+#include "application.h"
 #include "opengl/render_manager.h"
 
 #include <stdexcept>
@@ -141,7 +141,7 @@ void Panel::text(const std::string& text, const int32_t x, const int32_t y) cons
 
 void Panel::draw(void) const
 {
-	shader().set_uniform("background", true);
+	Application::instance().shader().set_uniform("background", true);
 
 	if (texture().id())
 	{
@@ -154,7 +154,7 @@ void Panel::draw(void) const
 		texture().unbind();
 	}
 
-	shader().set_uniform("background", false);
+	Application::instance().shader().set_uniform("background", false);
 }
 
 void Panel::update_state(void)

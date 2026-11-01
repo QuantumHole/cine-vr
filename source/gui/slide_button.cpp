@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "slide_button.h"
-#include "main.h"
+#include "application.h"
 
 static const float slide_height = 5.0f;
 

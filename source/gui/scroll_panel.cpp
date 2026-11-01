@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "scroll_panel.h"
-#include "main.h"
+#include "application.h"
 
 #include <stdexcept>
 #include <algorithm>
@@ -35,14 +35,14 @@ void ScrollPanel::draw(void) const
 		glm::vec2 offset = glm::vec2(m_tex_offset) / glm::vec2(ts);
 		glm::vec2 scale  = glm::vec2(m_tex_view) / glm::vec2(ts);
 
-		shader().set_uniform("texture_offset", offset);
-		shader().set_uniform("texture_scale", scale);
+		Application::instance().shader().set_uniform("texture_offset", offset);
+		Application::instance().shader().set_uniform("texture_scale", scale);
 	}
 
 	Panel::draw();
 
-	shader().set_uniform("texture_offset", glm::vec2(0.0f, 0.0f));
-	shader().set_uniform("texture_scale", glm::vec2(1.0f, 1.0f));
+	Application::instance().shader().set_uniform("texture_offset", glm::vec2(0.0f, 0.0f));
+	Application::instance().shader().set_uniform("texture_scale", glm::vec2(1.0f, 1.0f));
 }
 
 bool ScrollPanel::update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input)

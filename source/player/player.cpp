@@ -5,7 +5,7 @@
 #define GL_GLEXT_PROTOTYPES
 
 #include "player.h"
-#include "main.h"
+#include "application.h"
 #include "opengl/render_manager.h"
 #include <iostream>
 #include <vector>
@@ -261,8 +261,8 @@ void Player::handle_events(void)
 					{
 						std::cout << "failed creating framebuffer" << std::endl;
 					}
-					projection().set_aspect(static_cast<float>(width) / static_cast<float>(height));
-					update_projection();
+					Application::instance().projection().set_aspect(static_cast<float>(width) / static_cast<float>(height));
+					Application::instance().update_projection();
 				}
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}

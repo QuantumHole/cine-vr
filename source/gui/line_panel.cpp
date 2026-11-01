@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "line_panel.h"
-#include "main.h"
+#include "application.h"
 
 static const glm::vec2 shape_size(3.0f, 5.0f);
 static const glm::vec4 panel_color(0.5f, 0.4f, 0.2f, 0.8f);

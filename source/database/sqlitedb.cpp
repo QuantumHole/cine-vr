@@ -1,0 +1,958 @@
+// SPDX-FileCopyrightText: 2026 QuantumHole <QuantumHole@github.com>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "sqlitedb.h"
+
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+#include <fstream>
+#include <openssl/sha.h>
+#include <glm/gtc/type_ptr.hpp>
+
+SQLiteDB::SQLiteDB(const std::string& name) :
+	m_db(nullptr)
+{
+	struct passwd* pw = getpwuid(getuid());
+	const std::string home_dir = pw->pw_dir;
+	const std::string db_file = home_dir + "/.config/" + name + ".sqlite";
+
+	int status = sqlite3_open(db_file.c_str(), &m_db);
+
+	if (status)
+	{
+		throw std::runtime_error(std::string("Error open DB ") + sqlite3_errmsg(m_db));
+	}
+
+	const std::string table_camera = "CREATE TABLE IF NOT EXISTS camera("
+	                                 "id          INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
+	                                 "position_x  REAL NOT NULL,"
+	                                 "position_y  REAL NOT NULL,"
+	                                 "position_z  REAL NOT NULL,"
+	                                 "rotation_x  REAL NOT NULL,"
+	                                 "rotation_y  REAL NOT NULL,"
+	                                 "rotation_z  REAL NOT NULL,"
+	                                 "rotation_w  REAL NOT NULL,"
+	                                 "cursor_size REAL NOT NULL"
+	                                 ")";
+	run_command(table_camera);
+
+	const std::string table_video = "CREATE TABLE IF NOT EXISTS video("
+	                                "id       INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+	                                "hash     CHAR(64)        NOT NULL," // length of SHA256 hash *2 (bin->hex)
+	                                "duration REAL            NOT NULL,"
+	                                "name     TEXT            NOT NULL"
+	                                " );";
+	run_command(table_video);
+
+	const std::string table_settings = "CREATE TABLE IF NOT EXISTS settings("
+	                                   "video      INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
+	                                   "projection INT  NOT NULL,"
+	                                   "tiling     INT  NOT NULL,"
+	                                   "stretch    BOOL NOT NULL,"
+	                                   "angle      REAL NOT NULL,"
+	                                   "zoom       REAL NOT NULL,"
+	                                   "FOREIGN KEY(video) REFERENCES video(id)"
+	                                   ")";
+	run_command(table_settings);
+
+	const std::string table_thumbnail = "CREATE TABLE IF NOT EXISTS thumbnail("
+	                                    "video     INT  NOT NULL,"
+	                                    "time      REAL NOT NULL,"
+	                                    "format    INT  NOT NULL,"
+	                                    "width     INT  NOT NULL,"
+	                                    "height    INT  NOT NULL,"
+	                                    "thumbnail BLOB NOT NULL,"
+	                                    "FOREIGN KEY(video) REFERENCES video(id)"
+	                                    ")";
+	run_command(table_thumbnail);
+
+	const std::string index_thumbnail = "CREATE UNIQUE INDEX IF NOT EXISTS idx_thumbnail ON thumbnail (video, time)";
+	run_command(index_thumbnail);
+}
+
+SQLiteDB::~SQLiteDB(void)
+{
+	if (m_db)
+	{
+		sqlite3_close(m_db);
+		m_db = nullptr;
+	}
+}
+
+std::string SQLiteDB::checksum_file(const std::string& path) const
+{
+	const size_t max_hash_length = 0x100000;    /* 1MiB */
+
+	std::ifstream in_file(path, std::ios::in | std::ios::binary);
+
+	in_file.seekg(0, std::ios::end);
+	const size_t file_size = static_cast<size_t>(in_file.tellg());
+	const size_t hash_length = std::min<size_t>(max_hash_length, file_size);
+	const size_t file_offset = (file_size - hash_length) / 2;
+	in_file.seekg(static_cast<std::streamsize>(file_offset), std::ios::beg);
+	std::vector<char> buffer(hash_length);
+	in_file.read(&buffer[0], static_cast<std::streamsize>(hash_length));
+	in_file.close();
+
+	std::vector<unsigned char> hash_bytes(SHA256_DIGEST_LENGTH);
+	SHA256(reinterpret_cast<unsigned char*>(&buffer[0]), hash_length, &hash_bytes[0]);
+
+	std::stringstream s;
+	for (size_t i = 0; i < hash_bytes.size(); i++)
+	{
+		s << std::setw(2) << std::setfill('0') << std::hex << static_cast<unsigned int>(hash_bytes[i]);
+	}
+
+	std::string hash = s.str();
+
+	return hash;
+}
+
+void SQLiteDB::run_command(const std::string& command) const
+{
+	char* messageError;
+	const int status = sqlite3_exec(m_db, command.c_str(), nullptr, nullptr, &messageError);
+
+	if (status != SQLITE_OK)
+	{
+		std::string message = messageError;
+		sqlite3_free(messageError);
+		throw std::runtime_error(std::string("Error executing command: ") + message);
+	}
+}
+
+size_t SQLiteDB::get_video_id_from_hash(const std::string& hash) const
+{
+	const std::string q = "SELECT id FROM video WHERE hash = ?1";
+
+	sqlite3_stmt* stmt;
+	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("invalid SQL statement: " + q);
+	}
+
+	if (sqlite3_bind_parameter_count(stmt) != 1)
+	{
+		throw std::runtime_error("parameter count mismatch");
+	}
+
+	status = sqlite3_bind_text(stmt, 1, hash.c_str(), static_cast<int>(hash.size()), SQLITE_STATIC);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	bool done = false;
+	size_t video_id = 0;
+	while (!done)
+	{
+		status = sqlite3_step(stmt);
+		switch (status)
+		{
+			case SQLITE_ROW:
+				video_id = static_cast<size_t>(sqlite3_column_int(stmt, 0));
+				break;
+
+			case SQLITE_DONE:
+				done = true;
+				break;
+
+			case SQLITE_BUSY:
+				// repeat query step
+				break;
+
+			default:
+				throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+		}
+	}
+
+	sqlite3_finalize(stmt);
+	return video_id;
+}
+
+size_t SQLiteDB::get_video_id_from_name(const std::string& filename) const
+{
+	const std::string q = "SELECT id FROM video WHERE name = ?1";
+
+	sqlite3_stmt* stmt;
+	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("invalid SQL statement: " + q);
+	}
+
+	if (sqlite3_bind_parameter_count(stmt) != 1)
+	{
+		throw std::runtime_error("parameter count mismatch");
+	}
+
+	status = sqlite3_bind_text(stmt, 1, filename.c_str(), static_cast<int>(filename.size()), SQLITE_STATIC);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	bool done = false;
+	size_t video_id = 0;
+	while (!done)
+	{
+		status = sqlite3_step(stmt);
+		switch (status)
+		{
+			case SQLITE_ROW:
+				video_id = static_cast<size_t>(sqlite3_column_int(stmt, 0));
+				break;
+
+			case SQLITE_DONE:
+				done = true;
+				break;
+
+			case SQLITE_BUSY:
+				// repeat query step
+				break;
+
+			default:
+				throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+		}
+	}
+
+	sqlite3_finalize(stmt);
+	return video_id;
+}
+
+size_t SQLiteDB::get_video_id(const std::string& filename) const
+{
+	size_t video_id = get_video_id_from_name(filename);
+
+	if (video_id == 0)
+	{
+		const std::string hash = checksum_file(filename);
+		video_id = get_video_id_from_hash(hash);
+	}
+	return video_id;
+}
+
+size_t SQLiteDB::read_video(const std::string& filename, float& duration) const
+{
+	size_t video_id = get_video_id(filename);
+
+	if (video_id == 0)
+	{
+		duration = 0.0;
+		return 0;
+	}
+
+	const std::string q = "SELECT duration FROM video WHERE id = ?1";
+
+	sqlite3_stmt* stmt;
+	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("invalid SQL statement: " + q);
+	}
+
+	if (sqlite3_bind_parameter_count(stmt) != 1)
+	{
+		throw std::runtime_error("parameter count mismatch");
+	}
+
+	status = sqlite3_bind_int(stmt, 1, static_cast<int>(video_id));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	bool done = false;
+	while (!done)
+	{
+		status = sqlite3_step(stmt);
+		switch (status)
+		{
+			case SQLITE_ROW:
+				duration = static_cast<float>(sqlite3_column_double(stmt, 0));
+				break;
+
+			case SQLITE_DONE:
+				done = true;
+				break;
+
+			case SQLITE_BUSY:
+				// repeat query step
+				break;
+
+			default:
+				throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+		}
+	}
+
+	sqlite3_finalize(stmt);
+	return video_id;
+}
+
+size_t SQLiteDB::store_video(const std::string& file_name, const float duration) const
+{
+	size_t video_id = get_video_id_from_name(file_name);
+
+	std::string hash;
+
+	if (video_id == 0)
+	{
+		hash = checksum_file(file_name);
+		video_id = get_video_id_from_hash(hash);
+	}
+
+	if (video_id == 0)
+	{
+		/* video not yet known */
+		const std::string q = "INSERT INTO video(hash,duration,name) values(?1, ?2, ?3)";
+
+		sqlite3_stmt* stmt;
+		int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("invalid SQL statement: " + q);
+		}
+
+		if (sqlite3_bind_parameter_count(stmt) != 3)
+		{
+			throw std::runtime_error("parameter count mismatch");
+		}
+
+		status = sqlite3_bind_text(stmt, 1, hash.c_str(), static_cast<int>(hash.size()), SQLITE_STATIC);
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("failed binding parameter");
+		}
+
+		status = sqlite3_bind_double(stmt, 2, static_cast<double>(duration));
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("failed binding parameter");
+		}
+
+		status = sqlite3_bind_text(stmt, 3, file_name.c_str(), static_cast<int>(file_name.size()), SQLITE_STATIC);
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("failed binding parameter");
+		}
+
+		do
+		{
+			status = sqlite3_step(stmt);
+		}
+		while (status == SQLITE_BUSY);
+
+		if (status != SQLITE_DONE)
+		{
+			throw std::runtime_error("failed inserting video: " + std::to_string(status));
+		}
+		sqlite3_finalize(stmt);
+
+		video_id = get_video_id_from_hash(hash);
+	}
+	else
+	{
+		const std::string q = "UPDATE video SET duration=?2,name=?3 WHERE id=?1";
+
+		sqlite3_stmt* stmt;
+		int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("invalid SQL statement: " + q);
+		}
+
+		if (sqlite3_bind_parameter_count(stmt) != 3)
+		{
+			throw std::runtime_error("parameter count mismatch");
+		}
+
+		status = sqlite3_bind_int(stmt, 1, static_cast<int>(video_id));
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("failed binding parameter");
+		}
+
+		status = sqlite3_bind_double(stmt, 2, static_cast<double>(duration));
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("failed binding parameter");
+		}
+
+		status = sqlite3_bind_text(stmt, 3, file_name.c_str(), static_cast<int>(file_name.size()), SQLITE_STATIC);
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("failed binding parameter");
+		}
+
+		do
+		{
+			status = sqlite3_step(stmt);
+		}
+		while (status == SQLITE_BUSY);
+
+		if (status != SQLITE_DONE)
+		{
+			throw std::runtime_error("video update failed.");
+		}
+
+		sqlite3_finalize(stmt);
+	}
+
+	return video_id;
+}
+
+size_t SQLiteDB::store_window(const std::string& name) const
+{
+	size_t id = get_video_id_from_name(name);
+
+	if (id == 0)
+	{
+		/* video not yet known */
+		const std::string q = "INSERT INTO video(hash,duration,name) values("", 0.0, ?1)";
+
+		sqlite3_stmt* stmt;
+		int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("invalid SQL statement: " + q);
+		}
+
+		if (sqlite3_bind_parameter_count(stmt) != 1)
+		{
+			throw std::runtime_error("parameter count mismatch");
+		}
+
+		status = sqlite3_bind_text(stmt, 1, name.c_str(), static_cast<int>(name.size()), SQLITE_STATIC);
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("failed binding parameter");
+		}
+
+		do
+		{
+			status = sqlite3_step(stmt);
+		}
+		while (status == SQLITE_BUSY);
+
+		if (status != SQLITE_DONE)
+		{
+			throw std::runtime_error("failed inserting video: " + std::to_string(status));
+		}
+		sqlite3_finalize(stmt);
+
+		id = get_video_id_from_name(name);
+	}
+
+	return id;
+}
+
+void SQLiteDB::read_settings(const size_t video_id, size_t& projection, size_t& tiling, bool& stretch, float& angle, float& zoom) const
+{
+	projection = 0;
+	tiling = 0;
+	stretch = false;
+	angle = 0.0f;
+	zoom = 0.0f;
+
+	const std::string q = "SELECT projection,tiling,stretch,angle,zoom FROM settings WHERE video = ?1";
+
+	sqlite3_stmt* stmt;
+	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("invalid SQL statement: " + q);
+	}
+
+	if (sqlite3_bind_parameter_count(stmt) != 1)
+	{
+		throw std::runtime_error("parameter count mismatch");
+	}
+
+	status = sqlite3_bind_int(stmt, 1, static_cast<int>(video_id));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	bool done = false;
+	while (!done)
+	{
+		status = sqlite3_step(stmt);
+		switch (status)
+		{
+			case SQLITE_ROW:
+				projection = static_cast<size_t>(sqlite3_column_int(stmt, 0));
+				tiling     = static_cast<size_t>(sqlite3_column_int(stmt, 1));
+				stretch    = static_cast<size_t>(sqlite3_column_int(stmt, 2));
+				angle      = static_cast<float>(sqlite3_column_double(stmt, 3));
+				zoom       = static_cast<float>(sqlite3_column_double(stmt, 4));
+				break;
+			case SQLITE_DONE:
+				done = true;
+				break;
+			case SQLITE_BUSY:
+				// repeat query step
+				break;
+
+			default:
+				throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+		}
+	}
+
+	sqlite3_finalize(stmt);
+}
+
+void SQLiteDB::store_settings(const size_t video_id,
+                              const size_t projection,
+                              const size_t tiling,
+                              const bool stretch,
+                              const float angle,
+                              const float zoom) const
+{
+	const std::string q = "INSERT OR REPLACE INTO settings (video, projection, tiling, stretch, angle, zoom) values(?1, ?2, ?3, ?4, ?5, ?6)";
+
+	sqlite3_stmt* stmt;
+	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("invalid SQL statement: " + q);
+	}
+
+	if (sqlite3_bind_parameter_count(stmt) != 6)
+	{
+		throw std::runtime_error("parameter count mismatch");
+	}
+
+	status = sqlite3_bind_int(stmt, 1, static_cast<int>(video_id));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_int(stmt, 2, static_cast<int>(projection));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_int(stmt, 3, static_cast<int>(tiling));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_int(stmt, 4, stretch);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_double(stmt, 5, static_cast<double>(angle));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_double(stmt, 6, static_cast<double>(zoom));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	do
+	{
+		status = sqlite3_step(stmt);
+	}
+	while (status == SQLITE_BUSY);
+
+	if (status != SQLITE_DONE)
+	{
+		throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+	}
+
+	sqlite3_finalize(stmt);
+}
+
+void SQLiteDB::read_thumbnail(const size_t video_id,
+                              const float time,
+                              size_t& format,
+                              size_t& width,
+                              size_t& height,
+                              std::vector<uint8_t>& data) const
+{
+	const std::string q = "SELECT format,width,height,thumbnail FROM thumbnail WHERE video = ?1 AND ABS(time - $2) < 0.1";
+
+	sqlite3_stmt* stmt;
+	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("invalid SQL statement: " + q);
+	}
+
+	if (sqlite3_bind_parameter_count(stmt) != 2)
+	{
+		throw std::runtime_error("parameter count mismatch");
+	}
+
+	status = sqlite3_bind_int(stmt, 1, static_cast<int>(video_id));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_double(stmt, 2, static_cast<double>(time));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	format = 0;
+	width = 0;
+	height = 0;
+	data.clear();
+	const uint8_t* ptr;
+	size_t bytes = 0;
+	bool done = false;
+	while (!done)
+	{
+		status = sqlite3_step(stmt);
+		switch (status)
+		{
+			case SQLITE_ROW:
+				format = static_cast<size_t>(sqlite3_column_int(stmt, 0));
+				width  = static_cast<size_t>(sqlite3_column_int(stmt, 1));
+				height = static_cast<size_t>(sqlite3_column_int(stmt, 2));
+				bytes  = static_cast<size_t>(sqlite3_column_bytes(stmt, 3));
+				ptr    = static_cast<const uint8_t*>(sqlite3_column_blob(stmt, 3));
+				data.assign(ptr, ptr + bytes);
+				break;
+			case SQLITE_DONE:
+				done = true;
+				break;
+			case SQLITE_BUSY:
+				// repeat query step
+				break;
+
+			default:
+				throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+		}
+	}
+
+	sqlite3_finalize(stmt);
+}
+
+void SQLiteDB::store_thumbnail(const size_t video_id,
+                               const float time,
+                               const size_t format,
+                               const size_t width,
+                               const size_t height,
+                               const std::vector<uint8_t>& data) const
+{
+	const std::string q = "INSERT OR REPLACE INTO thumbnail (video, time, format, width, height, thumbnail) values (?1, ?2, ?3, ?4, ?5, ?6)";
+
+	sqlite3_stmt* stmt;
+	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("invalid SQL statement: " + q);
+	}
+
+	if (sqlite3_bind_parameter_count(stmt) != 6)
+	{
+		throw std::runtime_error("parameter count mismatch");
+	}
+
+	status = sqlite3_bind_int(stmt, 1, static_cast<int>(video_id));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_double(stmt, 2, static_cast<double>(time));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_int(stmt, 3, static_cast<int>(format));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_int(stmt, 4, static_cast<int>(width));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_int(stmt, 5, static_cast<int>(height));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_blob(stmt, 6, data.data(), static_cast<int>(data.size()), SQLITE_STATIC);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	do
+	{
+		status = sqlite3_step(stmt);
+	}
+	while (status == SQLITE_BUSY);
+
+	if (status != SQLITE_DONE)
+	{
+		throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+	}
+
+	sqlite3_finalize(stmt);
+}
+
+std::vector<float> SQLiteDB::read_thumb_timestamps(const size_t video_id) const
+{
+	const std::string q = "SELECT time FROM thumbnail WHERE video = ?1";
+
+	sqlite3_stmt* stmt;
+	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("invalid SQL statement: " + q);
+	}
+
+	if (sqlite3_bind_parameter_count(stmt) != 1)
+	{
+		throw std::runtime_error("parameter count mismatch");
+	}
+
+	status = sqlite3_bind_int(stmt, 1, static_cast<int>(video_id));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	float time = 0.0f;
+	std::vector<float> timestamps;
+	bool done = false;
+	while (!done)
+	{
+		status = sqlite3_step(stmt);
+		switch (status)
+		{
+			case SQLITE_ROW:
+				time = static_cast<float>(sqlite3_column_double(stmt, 0));
+				timestamps.push_back(time);
+				break;
+			case SQLITE_DONE:
+				done = true;
+				break;
+			case SQLITE_BUSY:
+				// repeat query step
+				break;
+
+			default:
+				throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+		}
+	}
+
+	sqlite3_finalize(stmt);
+	return timestamps;
+}
+
+void SQLiteDB::read_camera(glm::vec3& position,
+                           glm::quat& rotation,
+                           float& cursor_size) const
+{
+	position = glm::vec3(0.0, 0.0, 0.0);
+	rotation = glm::quat(1.0, 0.0, 0.0, 1.0);
+	cursor_size = 0.1f;
+
+	const std::string q = "SELECT position_x,position_y,position_z,"
+	                      "rotation_x,rotation_y,rotation_z,rotation_w,"
+	                      "cursor_size"
+	                      " FROM camera";
+
+	sqlite3_stmt* stmt;
+	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("invalid SQL statement: " + q);
+	}
+
+	if (sqlite3_bind_parameter_count(stmt) != 0)
+	{
+		throw std::runtime_error("parameter count mismatch");
+	}
+
+	position = glm::vec3(0.0, 0.0, 0.0);
+	rotation = glm::quat(0.0, 0.0, 0.0, 0.0);
+
+	bool done = false;
+	while (!done)
+	{
+		status = sqlite3_step(stmt);
+		switch (status)
+		{
+			case SQLITE_ROW:
+				position.x  = static_cast<float>(sqlite3_column_double(stmt, 0));
+				position.y  = static_cast<float>(sqlite3_column_double(stmt, 1));
+				position.z  = static_cast<float>(sqlite3_column_double(stmt, 2));
+				rotation.x  = static_cast<float>(sqlite3_column_double(stmt, 3));
+				rotation.y  = static_cast<float>(sqlite3_column_double(stmt, 4));
+				rotation.z  = static_cast<float>(sqlite3_column_double(stmt, 5));
+				rotation.w  = static_cast<float>(sqlite3_column_double(stmt, 6));
+				cursor_size = static_cast<float>(sqlite3_column_double(stmt, 7));
+				break;
+			case SQLITE_DONE:
+				done = true;
+				break;
+			case SQLITE_BUSY:
+				// repeat query step
+				break;
+
+			default:
+				throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+		}
+	}
+
+	sqlite3_finalize(stmt);
+}
+
+void SQLiteDB::store_camera(const glm::vec3& position,
+                            const glm::quat& rotation,
+                            const float& cursor_size) const
+{
+	const std::string q = "INSERT OR REPLACE INTO camera (id,position_x,position_y,position_z,"
+	                      "rotation_x,rotation_y,rotation_z,rotation_w,"
+	                      "cursor_size) "
+	                      "values (1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)";
+
+	sqlite3_stmt* stmt;
+	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("invalid SQL statement: " + q);
+	}
+
+	if (sqlite3_bind_parameter_count(stmt) != 8)
+	{
+		throw std::runtime_error("parameter count mismatch");
+	}
+
+	status = sqlite3_bind_double(stmt, 1, static_cast<double>(position.x));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_double(stmt, 2, static_cast<double>(position.y));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_double(stmt, 3, static_cast<double>(position.z));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_double(stmt, 4, static_cast<double>(rotation.x));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_double(stmt, 5, static_cast<double>(rotation.y));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_double(stmt, 6, static_cast<double>(rotation.z));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_double(stmt, 7, static_cast<double>(rotation.w));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_double(stmt, 8, static_cast<double>(cursor_size));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	do
+	{
+		status = sqlite3_step(stmt);
+	}
+	while (status == SQLITE_BUSY);
+
+	if (status != SQLITE_DONE)
+	{
+		throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+	}
+
+	sqlite3_finalize(stmt);
+}
