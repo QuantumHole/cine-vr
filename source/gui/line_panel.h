@@ -24,8 +24,16 @@ class LinePanel : public ScrollPanel
 		}
 		line_entry_t;
 
+		typedef struct
+		{
+			size_t renderable;
+			size_t texture;
+		}
+		text_renderable_t;
+
 		const std::string m_title;
 		std::vector<line_entry_t> m_lines;
+		std::vector<text_renderable_t> m_text_renderables;
 		size_t m_active_line;
 		Panel m_title_bar;
 		Shape m_selection_bar;

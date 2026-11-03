@@ -4,9 +4,11 @@
 
 #include "line_panel.h"
 #include "application.h"
+#include "font_renderer.h"
 #include "opengl/render_manager.h"
 
 #include <algorithm>
+#include <memory>
 
 static const glm::vec2 shape_size(3.0f, 5.0f);
 static const glm::vec4 panel_color(0.5f, 0.4f, 0.2f, 0.8f);
@@ -20,6 +22,7 @@ LinePanel::LinePanel(const action_t action, const std::string& title) :
 	ScrollPanel(action),
 	m_title(title),
 	m_lines(),
+	m_text_renderables(),
 	m_active_line(0),
 	m_title_bar(ACTION_NONE),
 	m_selection_bar()
@@ -37,6 +40,11 @@ LinePanel::LinePanel(const action_t action, const std::string& title) :
 LinePanel::~LinePanel(void)
 {
 	m_selection_bar.remove();
+	RenderManager& renderer = RenderManager::instance();
+	for (const text_renderable_t& text_renderable : m_text_renderables)
+	{
+		renderer.delete_renderable(text_renderable.renderable);
+	}
 }
 
 void LinePanel::set_transform(const glm::mat4& pose)
@@ -68,15 +76,11 @@ const std::string LinePanel::get_selection(void) const
 
 void LinePanel::init_text_bar(Shape& bar)
 {
-	const float eps = 0.05f;
-	const float y0 = 0.0f;
-	const float y1 = shape_size.y / static_cast<float>(max_lines);
-
 	const std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(-0.5f * shape_size.x, y0, eps), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3( 0.5f * shape_size.x, y1, eps), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.5f * shape_size.x, y1, eps), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3( 0.5f * shape_size.x, y0, eps), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(1.0f, 1.0f)),
+		Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3( 0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3( 0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(1.0f, 1.0f)),
 	};
 
 	const std::vector<GLuint> indices = {
@@ -116,7 +120,8 @@ void LinePanel::draw(void) const
 			                               static_cast<float>(line_height);
 			const float visible_center = 0.5f * static_cast<float>(visible_top + visible_bottom - 2 * offset);
 			const float row_height = shape_size.y / static_cast<float>(max_lines);
-			const float y = 0.5f * shape_size.y - visible_center * row_height;
+			const float pixel_height = shape_size.y / static_cast<float>(view_height);
+			const float y = 0.5f * shape_size.y - visible_center * pixel_height;
 			glm::mat4 transform = glm::translate(pose(), glm::vec3(0.0f, y, 0.01f));
 			transform = glm::scale(transform, glm::vec3(shape_size.x, row_height * visible_fraction, 1.0f));
 			renderer.draw(entry.renderable, transform, visible_fraction);
@@ -126,7 +131,24 @@ void LinePanel::draw(void) const
 	Application::instance().shader().activate();
 	if (m_active_line < m_lines.size())
 	{
-		m_selection_bar.draw();
+		const size_t row_top = m_active_line * line_height;
+		const size_t row_bottom = row_top + line_height;
+		const size_t visible_end = std::min(content_height, offset + view_height);
+		if ((row_top < visible_end) && (row_bottom > offset))
+		{
+			const size_t visible_top = std::max(row_top, offset);
+			const size_t visible_bottom = std::min(row_bottom, visible_end);
+			const float visible_fraction = static_cast<float>(visible_bottom - visible_top) /
+			                               static_cast<float>(line_height);
+			const float visible_center = 0.5f * static_cast<float>(visible_top + visible_bottom - 2 * offset);
+			const float row_height = shape_size.y / static_cast<float>(max_lines);
+			const float pixel_height = shape_size.y / static_cast<float>(view_height);
+			const float y = 0.5f * shape_size.y - visible_center * pixel_height;
+			glm::mat4 transform = glm::translate(pose(), glm::vec3(0.0f, y, 0.02f));
+			transform = glm::scale(transform, glm::vec3(shape_size.x, row_height * visible_fraction, 1.0f));
+			m_selection_bar.set_transform(transform);
+			m_selection_bar.draw();
+		}
 	}
 }
 
@@ -141,15 +163,6 @@ bool LinePanel::update_on_interaction(const intersection_t isec, const OpenVRInt
 		const size_t offset = texture_offset().y;
 		const size_t pixel_line = static_cast<size_t>(local * line_height * max_lines) + offset;
 		m_active_line = std::min(pixel_line / line_height, m_lines.size());
-
-		if (m_active_line < m_lines.size())
-		{
-			const float y = 0.5f * shape_size.y
-			                - static_cast<float>(m_active_line + 1) * shape_size.y / static_cast<float>(max_lines)
-			                + static_cast<float>(offset) * shape_size.y / (line_height * max_lines);
-			const glm::mat4 shifted_pose = glm::translate(Panel::pose(), glm::vec3(0.0f, y, 0.0f));
-			m_selection_bar.set_transform(shifted_pose);
-		}
 	}
 	else
 	{
@@ -201,13 +214,77 @@ void LinePanel::render_lines(void)
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, reinterpret_cast<const GLfloat*>(&panel_color));
 	texture().unbind();
 
+	std::unique_ptr<FontRenderer> font_renderer;
+	if (std::any_of(m_lines.begin(), m_lines.end(), [](const line_entry_t& entry)
+	{
+		return !entry.text.empty();
+	}))
+	{
+		font_renderer.reset(new FontRenderer());
+		font_renderer->load_font("/usr/share/fonts/TTF/OpenSans-Regular.ttf");
+	}
+	RenderManager& renderer = RenderManager::instance();
+	size_t text_line_index = 0;
 	for (size_t i = 0; i < m_lines.size(); i++)
 	{
 		if (!m_lines[i].text.empty())
 		{
-			Panel::text(m_lines[i].text,
-			            static_cast<int32_t>(m_lines[i].level * level_offset),
-			            static_cast<int32_t>(i * line_height));
+			const line_entry_t& entry = m_lines[i];
+			std::vector<uint32_t> glyphs;
+			font_renderer->render_text(entry.text, line_height, glyphs);
+			const size_t glyph_width = glyphs.size() / line_height;
+			const size_t indent = std::min(entry.level, texture_width / level_offset) * level_offset;
+			const size_t visible_width = indent < texture_width ? std::min(glyph_width, texture_width - indent) : 0;
+			std::vector<uint8_t> image(texture_width * line_height * sizeof(uint32_t), 0);
+			if (visible_width > 0)
+			{
+				const uint8_t* glyph_data = reinterpret_cast<const uint8_t*>(glyphs.data());
+				for (size_t row = 0; row < line_height; row++)
+				{
+					const size_t source_offset = row * glyph_width * sizeof(uint32_t);
+					const size_t target_offset = (row * texture_width + indent) * sizeof(uint32_t);
+					std::copy(glyph_data + source_offset,
+					          glyph_data + source_offset + visible_width * sizeof(uint32_t),
+					          image.begin() + target_offset);
+				}
+			}
+
+			text_renderable_t text_renderable;
+			if (text_line_index == m_text_renderables.size())
+			{
+				text_renderable.texture = renderer.create_texture();
+				renderer.texture(text_renderable.texture).init_data(image,
+				                                                  glm::uvec2(texture_width, line_height),
+				                                                  GL_RGBA,
+				                                                  0);
+
+				const size_t shape_set = renderer.create_shape_set();
+				const std::vector<Vertex> vertices = {
+					Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
+					Vertex(glm::vec3( 0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
+					Vertex(glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 0.0f)),
+					Vertex(glm::vec3( 0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
+				};
+				const std::vector<GLuint> indices = {0, 1, 2, 0, 3, 1};
+				renderer.add_shape(shape_set, vertices, indices);
+				text_renderable.renderable = renderer.create_shape_set_renderable(shape_set,
+				                                                                  std::vector<size_t>(1, text_renderable.texture),
+				                                                                  Application::instance().shader().id(),
+				                                                                  false);
+				m_text_renderables.push_back(text_renderable);
+			}
+			else
+			{
+				text_renderable = m_text_renderables[text_line_index];
+				renderer.texture(text_renderable.texture).init_data(image,
+				                                                  glm::uvec2(texture_width, line_height),
+				                                                  GL_RGBA,
+				                                                  0);
+			}
+
+			m_lines[i].renderable = text_renderable.renderable;
+			m_lines[i].has_renderable = true;
+			text_line_index++;
 		}
 	}
 }
