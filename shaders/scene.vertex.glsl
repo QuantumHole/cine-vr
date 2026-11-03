@@ -11,6 +11,7 @@ layout(location = 3) in vec2 tex;
 layout(location = 4) in mat4 inModel;
 
 uniform mat4 projview;
+uniform mat4 render_transform;
 uniform vec2 texture_offset;
 uniform vec2 texture_scale;
 
@@ -21,5 +22,5 @@ void main()
 {
 	vtxColor = color;
 	texCoords = tex * texture_scale + texture_offset;
-	gl_Position = projview * inModel * vec4(pos,1.0);
+	gl_Position = projview * render_transform * inModel * vec4(pos,1.0);
 }

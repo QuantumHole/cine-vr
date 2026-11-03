@@ -114,6 +114,8 @@ size_t RenderManager::add_shaders(const std::string& file_vertex,
 	std::unique_ptr<ShaderSet> s(new ShaderSet());
 
 	s->load_shaders(file_vertex, file_fragment, file_geometry);
+	s->set_uniform("render_transform", glm::mat4(1.0f));
+	s->set_uniform("render_opacity", 1.0f);
 	const size_t id = s->id();
 	m_shaders[id] = std::move(s);
 	return id;
@@ -208,7 +210,7 @@ size_t RenderManager::create_shape_renderable(const std::vector<Vertex>& vertice
 	return create_shape_set_renderable(shape_set_id, textures, shader_id);
 }
 
-size_t RenderManager::create_group(const std::vector<size_t>& children)
+size_t RenderManager::create_group(const std::vector<size_t>& children, const bool draw_all)
 {
 	for (std::vector<size_t>::const_iterator child_iter = children.begin(); child_iter != children.end(); ++child_iter)
 	{
@@ -225,7 +227,7 @@ size_t RenderManager::create_group(const std::vector<size_t>& children)
 			throw std::runtime_error("renderable already has a parent group");
 		}
 	}
-	renderable_t group = {true, true, false, true, 0, std::vector<size_t>(), children, 0};
+	renderable_t group = {true, true, false, draw_all, 0, std::vector<size_t>(), children, 0};
 	const size_t id = m_renderables.size();
 	m_renderables.push_back(group);
 	return id;
@@ -326,11 +328,12 @@ void RenderManager::clear(void)
 
 void RenderManager::draw(void) const
 {
+	const glm::mat4 transform(1.0f);
 	for (size_t id = 0; id < m_renderables.size(); ++id)
 	{
 		if (!is_referenced_by_group(id) && m_renderables[id].draw_all)
 		{
-			draw_renderable(id);
+			draw_renderable(id, transform, 1.0f);
 		}
 	}
 }
@@ -341,10 +344,19 @@ void RenderManager::draw(const RenderableId id) const
 	{
 		throw std::runtime_error("invalid renderable ID");
 	}
-	draw_renderable(id);
+	draw(id, glm::mat4(1.0f), 1.0f);
 }
 
-void RenderManager::draw_renderable(const size_t id) const
+void RenderManager::draw(const RenderableId id, const glm::mat4& transform, const float opacity) const
+{
+	if ((id >= m_renderables.size()) || m_renderables[id].deleted)
+	{
+		throw std::runtime_error("invalid renderable ID");
+	}
+	draw_renderable(id, transform, std::max(0.0f, std::min(opacity, 1.0f)));
+}
+
+void RenderManager::draw_renderable(const size_t id, const glm::mat4& transform, const float opacity) const
 {
 	const renderable_t& renderable = m_renderables[id];
 
@@ -357,7 +369,7 @@ void RenderManager::draw_renderable(const size_t id) const
 	{
 		for (size_t child : renderable.children)
 		{
-			draw_renderable(child);
+			draw_renderable(child, transform, opacity);
 		}
 		return;
 	}
@@ -373,6 +385,8 @@ void RenderManager::draw_renderable(const size_t id) const
 		return;
 	}
 	shader_iter->second->activate();
+	shader_iter->second->set_uniform("render_transform", transform);
+	shader_iter->second->set_uniform("render_opacity", opacity);
 	for (size_t texture_id : renderable.textures)
 	{
 		std::map<size_t, std::unique_ptr<Texture> >::const_iterator texture_iter = m_textures.find(texture_id);
@@ -393,5 +407,7 @@ void RenderManager::draw_renderable(const size_t id) const
 			texture_iter->second->unbind();
 		}
 	}
+	shader_iter->second->set_uniform("render_transform", glm::mat4(1.0f));
+	shader_iter->second->set_uniform("render_opacity", 1.0f);
 	shader_iter->second->deactivate();
 }

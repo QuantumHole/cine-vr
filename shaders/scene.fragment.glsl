@@ -7,6 +7,7 @@
 uniform sampler2D diffuse0;
 uniform bool background;
 uniform bool greyscale;
+uniform float render_opacity;
 
 in vec4 vtxColor;
 in vec2 texCoords;
@@ -33,4 +34,5 @@ void main(void)
 		float grey = dot(outColor.rgb, vec3(0.299, 0.587, 0.114));
 		outColor.rgb = vec3(grey);
 	}
+	outColor.a *= render_opacity;
 }

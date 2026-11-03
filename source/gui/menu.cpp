@@ -122,6 +122,8 @@ void Menu::list_files(LinePanel& panel) const
 	{
 		const std::string full = m_current_directory + "/" + *iter;
 		panel.add_line(*iter, full, 0);
+
+		// TODO: add thumbnail for each file, if possible
 	}
 	panel.render_lines();
 }

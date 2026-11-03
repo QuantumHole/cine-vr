@@ -26,6 +26,11 @@ const glm::uvec2& ScrollPanel::texture_offset(void) const
 	return m_tex_offset;
 }
 
+void ScrollPanel::reset_scroll(void)
+{
+	m_tex_offset = glm::uvec2(0, 0);
+}
+
 void ScrollPanel::draw(void) const
 {
 	const glm::uvec2& ts = tex_size();
@@ -53,10 +58,12 @@ bool ScrollPanel::update_on_interaction(const intersection_t isec, const OpenVRI
 	if (isec.hit && (length > 0.5f))
 	{
 		const glm::uvec2& ts = tex_size();
+		const glm::uvec2 max_offset(ts.x > m_tex_view.x ? ts.x - m_tex_view.x : 0,
+		                           ts.y > m_tex_view.y ? ts.y - m_tex_view.y : 0);
 
 		if (input.pad.position.x > 0.5f)
 		{
-			m_tex_offset.x = std::min(m_tex_offset.x + 1, ts.x - m_tex_view.x);
+			m_tex_offset.x = std::min(m_tex_offset.x + 1, max_offset.x);
 		}
 		else if ((input.pad.position.x < -0.5f) && (m_tex_offset.x > 0))
 		{
@@ -69,7 +76,7 @@ bool ScrollPanel::update_on_interaction(const intersection_t isec, const OpenVRI
 		}
 		else if (input.pad.position.y < -0.5f)
 		{
-			m_tex_offset.y = std::min(m_tex_offset.y + 1, ts.y - m_tex_view.y);
+			m_tex_offset.y = std::min(m_tex_offset.y + 1, max_offset.y);
 		}
 	}
 

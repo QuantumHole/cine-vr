@@ -47,7 +47,7 @@ class RenderManager
 
 		/** contructor. */
 		explicit RenderManager(void);
-		void draw_renderable(const size_t id) const;
+		void draw_renderable(const size_t id, const glm::mat4& transform, const float opacity) const;
 		bool is_referenced_by_group(const size_t id) const;
 
 	public:
@@ -141,8 +141,8 @@ class RenderManager
 		                                     const size_t instances = 1,
 		                                     const GLenum type = GL_TRIANGLES);
 
-		/** create a renderable group. Children remain independently addressable. */
-		RenderableId create_group(const std::vector<RenderableId>& children);
+		/** Create a renderable group. Children remain independently addressable. */
+		RenderableId create_group(const std::vector<RenderableId>& children, const bool draw_all = true);
 
 		/** set activation state of compound.
 		 * @param compound_id compound ID.
@@ -176,6 +176,7 @@ class RenderManager
 		/** draw all objects. */
 		void draw(void) const;
 		void draw(const RenderableId id) const;
+		void draw(const RenderableId id, const glm::mat4& transform, const float opacity = 1.0f) const;
 };
 
 #endif

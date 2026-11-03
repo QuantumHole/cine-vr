@@ -19,6 +19,8 @@ class LinePanel : public ScrollPanel
 			std::string text;
 			std::string content;
 			size_t level;
+			size_t renderable;
+			bool has_renderable;
 		}
 		line_entry_t;
 
@@ -40,6 +42,8 @@ class LinePanel : public ScrollPanel
 
 		void clear_lines(void);
 		void add_line(const std::string& text, const std::string& content, const size_t level = 0);
+		/** Add a non-owned renderable whose local geometry spans a normalized row. Create it with draw_all=false. */
+		void add_renderable_line(const size_t renderable, const std::string& content, const size_t level = 0);
 		void render_lines(void);
 
 		const std::string get_selection(void) const;
