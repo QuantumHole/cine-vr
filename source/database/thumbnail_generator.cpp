@@ -37,7 +37,7 @@ int64_t ThumbnailGenerator::time_step(const int64_t duration) const
 	/* 4h = 4*60*60 --> 1000 pixels */
 
 	const int64_t min_time = 1 * AV_TIME_BASE;
-	const int64_t min_width = m_thumbnail_height;
+	const int64_t min_width = static_cast<int64_t>(m_thumbnail_height);
 	const int64_t max_time = 4l * 60l * 60l * AV_TIME_BASE;
 	const int64_t max_width = 1000;
 

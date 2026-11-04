@@ -111,22 +111,21 @@ void Panel::clear(void)
 	texture().unbind();
 }
 
-void Panel::text(const std::string& text, const int32_t x, const int32_t y) const
+void Panel::text(const std::string& text, const size_t font_height, const int32_t x, const int32_t y) const
 {
 	FontRenderer renderer;
 
 	renderer.load_font("/usr/share/fonts/TTF/OpenSans-Regular.ttf");
 
-	const size_t height = 20;
 	std::vector<uint32_t> image;
-	renderer.render_text(text, height, image);
+	renderer.render_text(text, font_height, image);
 
-	const size_t width = image.size() / height;
+	const size_t width = image.size() / font_height;
 	const glm::uvec2& tex_size = texture().size();
 
 	/* copy only the visible section of the surface */
 	texture().bind();
-	for (size_t i = 0; i < height; i++)
+	for (size_t i = 0; i < font_height; i++)
 	{
 		glTexSubImage2D(GL_TEXTURE_2D, 0,
 		                x,
@@ -142,6 +141,7 @@ void Panel::text(const std::string& text, const int32_t x, const int32_t y) cons
 void Panel::draw(void) const
 {
 	ShaderSet& shader = Application::instance().shader();
+
 	shader.set_uniform("background", true);
 
 	if (texture().id())

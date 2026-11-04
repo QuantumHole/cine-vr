@@ -14,7 +14,6 @@
 #include <iostream>
 
 // #define DEBUG_LINE std::cout << "########## " << __FILE__ << "(" << __LINE__ << "): " << __FUNCTION__ << "()" << std::endl
-static const std::string menu_graphics_extension = ".svg";
 
 Menu::Menu(void) :
 	m_panel(),
@@ -24,11 +23,14 @@ Menu::Menu(void) :
 	m_focus(ACTION_NONE),
 	m_debounce(false),
 	m_playable(false),
-	m_current_directory("")
+	m_current_directory(""),
+	m_font_renderer(),
+	menu_graphics_extension(".svg")
 {
 	FileSystem fs;
 
 	m_current_directory = fs.current_directory();
+	m_font_renderer.load_font("/usr/share/fonts/TTF/OpenSans-Regular.ttf");
 }
 
 Menu::~Menu(void)
@@ -84,6 +86,53 @@ void Menu::draw(void) const
 	}
 }
 
+size_t Menu::create_list_element(const std::string& text, const size_t level) const
+{
+	std::vector<uint32_t> glyphs;
+
+	m_font_renderer.render_text(text, LinePanel::line_height, glyphs);
+	const size_t glyph_width = glyphs.size() / LinePanel::line_height;
+	const size_t level_offset = LinePanel::line_height / 2;
+	const size_t indent = std::min(level, LinePanel::texture_width / level_offset) * level_offset;
+	const size_t visible_width =
+		(indent < LinePanel::texture_width)
+		? std::min(glyph_width, LinePanel::texture_width - indent)
+		: 0;
+	std::vector<uint8_t> image(LinePanel::texture_width* LinePanel::line_height* sizeof(uint32_t), 0);
+
+	if (visible_width > 0)
+	{
+		const uint8_t* glyph_data = reinterpret_cast<const uint8_t*>(glyphs.data());
+		for (size_t row = 0; row < LinePanel::line_height; row++)
+		{
+			const size_t source_offset = row * glyph_width * sizeof(uint32_t);
+			const size_t target_offset = (row * LinePanel::texture_width + indent) * sizeof(uint32_t);
+			std::copy(glyph_data + source_offset,
+			          glyph_data + source_offset + visible_width * sizeof(uint32_t),
+			          image.begin() + static_cast<std::ptrdiff_t>(target_offset));
+		}
+	}
+
+	RenderManager& renderer = RenderManager::instance();
+	const size_t texture = renderer.create_texture();
+	renderer.texture(texture).init_data(image, glm::uvec2(LinePanel::texture_width, LinePanel::line_height), GL_RGBA, 0);
+
+	const size_t shape_set = renderer.create_shape_set();
+	const std::vector<Vertex> vertices = {
+		Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3( 0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3( 0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
+	};
+	const std::vector<GLuint> indices = {0, 1, 2, 0, 3, 1};
+	renderer.add_shape(shape_set, vertices, indices);
+	const size_t renderable = renderer.create_shape_set_renderable(shape_set,
+	                                                               std::vector<size_t>(1, texture),
+	                                                               Application::instance().shader().id(),
+	                                                               false);
+	return renderable;
+}
+
 void Menu::list_directories(LinePanel& panel) const
 {
 	FileSystem fs;
@@ -96,7 +145,8 @@ void Menu::list_directories(LinePanel& panel) const
 	{
 		const std::string full = fs.join_path(entries.begin(), iter + 1);
 
-		panel.add_line(iter->empty() ? full : (*iter), full, i);
+		const size_t renderable = create_list_element(iter->empty() ? full : (*iter), i);
+		panel.add_line(renderable, full);
 		i++;
 	}
 
@@ -106,7 +156,8 @@ void Menu::list_directories(LinePanel& panel) const
 	{
 		entries[entries.size() - 1] = *iter;
 		const std::string full = fs.join_path(entries.begin(), entries.end());
-		panel.add_line(*iter, full, i);
+		const size_t renderable = create_list_element(*iter, i);
+		panel.add_line(renderable, full);
 	}
 	panel.render_lines();
 }
@@ -121,7 +172,8 @@ void Menu::list_files(LinePanel& panel) const
 	for (std::set<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); iter++)
 	{
 		const std::string full = m_current_directory + "/" + *iter;
-		panel.add_line(*iter, full, 0);
+		const size_t renderable = create_list_element(*iter, 0);
+		panel.add_line(renderable, full);
 
 		// TODO: add thumbnail for each file, if possible
 	}
@@ -488,6 +540,7 @@ void Menu::handle_button_action(const action_t action)
 {
 	Application& app = Application::instance();
 	Projection& proj = app.projection();
+
 	switch (action)
 	{
 		case ACTION_BACK:

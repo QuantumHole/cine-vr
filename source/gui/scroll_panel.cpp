@@ -54,29 +54,30 @@ void ScrollPanel::draw(void) const
 bool ScrollPanel::update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input)
 {
 	const float length = glm::length(input.pad.position);
+	const unsigned int scroll_speed = 5;
 
 	if (isec.hit && (length > 0.5f))
 	{
 		const glm::uvec2& ts = tex_size();
 		const glm::uvec2 max_offset(ts.x > m_tex_view.x ? ts.x - m_tex_view.x : 0,
-		                           ts.y > m_tex_view.y ? ts.y - m_tex_view.y : 0);
+		                            ts.y > m_tex_view.y ? ts.y - m_tex_view.y : 0);
 
 		if (input.pad.position.x > 0.5f)
 		{
-			m_tex_offset.x = std::min(m_tex_offset.x + 1, max_offset.x);
+			m_tex_offset.x = std::min(m_tex_offset.x + scroll_speed, max_offset.x);
 		}
 		else if ((input.pad.position.x < -0.5f) && (m_tex_offset.x > 0))
 		{
-			m_tex_offset.x--;
+			m_tex_offset.x = (scroll_speed > m_tex_offset.x) ? 0 : (m_tex_offset.x - scroll_speed);
 		}
 
 		if ((input.pad.position.y > 0.5f) && (m_tex_offset.y > 0))
 		{
-			m_tex_offset.y--;
+			m_tex_offset.y = (scroll_speed > m_tex_offset.y) ? 0 : (m_tex_offset.y - scroll_speed);
 		}
 		else if (input.pad.position.y < -0.5f)
 		{
-			m_tex_offset.y = std::min(m_tex_offset.y + 1, max_offset.y);
+			m_tex_offset.y = std::min(m_tex_offset.y + scroll_speed, max_offset.y);
 		}
 	}
 

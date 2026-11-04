@@ -24,7 +24,7 @@ class FontRenderer
 		FontRenderer(void);
 		~FontRenderer(void);
 		void load_font(const std::string& filename);
-		void render_text(const std::string& text, const size_t font_height, std::vector<uint32_t>& image);
+		void render_text(const std::string& text, const size_t font_height, std::vector<uint32_t>& image) const;
 };
 
 #endif

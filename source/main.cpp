@@ -7,5 +7,6 @@
 int main(void)
 {
 	Application& app = Application::instance();
+
 	return app.run();
 }

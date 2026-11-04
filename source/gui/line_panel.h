@@ -16,42 +16,30 @@ class LinePanel : public ScrollPanel
 	private:
 		typedef struct
 		{
-			std::string text;
-			std::string content;
-			size_t level;
 			size_t renderable;
-			bool has_renderable;
+			std::string content;
 		}
 		line_entry_t;
 
-		typedef struct
-		{
-			size_t renderable;
-			size_t texture;
-		}
-		text_renderable_t;
-
 		const std::string m_title;
 		std::vector<line_entry_t> m_lines;
-		std::vector<text_renderable_t> m_text_renderables;
 		size_t m_active_line;
 		Panel m_title_bar;
 		Shape m_selection_bar;
 
 		void init_text_bar(Shape& bar);
 
-	protected:
-
 	public:
+		static const size_t line_height;
+		static const size_t texture_width;
+
 		explicit LinePanel(const action_t action, const std::string& title);
 		~LinePanel(void) override;
 
 		void set_transform(const glm::mat4& pose) override;
 
 		void clear_lines(void);
-		void add_line(const std::string& text, const std::string& content, const size_t level = 0);
-		/** Add a non-owned renderable whose local geometry spans a normalized row. Create it with draw_all=false. */
-		void add_renderable_line(const size_t renderable, const std::string& content, const size_t level = 0);
+		void add_line(const size_t renderable, const std::string& content);
 		void render_lines(void);
 
 		const std::string get_selection(void) const;

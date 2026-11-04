@@ -171,14 +171,38 @@ void FontRenderer::load_font(const std::string& filename)
 
 void FontRenderer::render_text(const std::string& text,
                                const size_t font_height,
-                               std::vector<uint32_t>& image)
+                               std::vector<uint32_t>& image) const
 {
-	/* use 50pt at 100dpi */
-	FT_Error status = FT_Set_Pixel_Sizes(m_face, static_cast<FT_UInt>(font_height), 0);                /* set character size */
-
-	if (status)
+	if (font_height == 0)
 	{
-		throw std::runtime_error("failed setting font size");
+		image.clear();
+		return;
+	}
+
+	FT_UInt pixel_size = static_cast<FT_UInt>(font_height);
+	FT_Error status = 0;
+	size_t descent = 0;
+
+	while (pixel_size > 0)
+	{
+		status = FT_Set_Pixel_Sizes(m_face, pixel_size, 0);
+
+		if (status)
+		{
+			throw std::runtime_error("failed setting font size");
+		}
+
+		const FT_Pos ascender = m_face->size->metrics.ascender;
+		const FT_Pos descender = m_face->size->metrics.descender;
+		const size_t ascent_pixels = static_cast<size_t>((ascender + 63) / 64);
+		descent = static_cast<size_t>((-descender + 63) / 64);
+
+		if ((ascent_pixels + descent <= font_height) || (pixel_size == 1))
+		{
+			break;
+		}
+
+		--pixel_size;
 	}
 
 	/* cmap selection omitted;                                        */
@@ -263,7 +287,7 @@ void FontRenderer::render_text(const std::string& text,
 		/* now, draw to our target surface (convert position) */
 		draw_bitmap(&slot->bitmap,
 		            static_cast<size_t>(slot->bitmap_left),
-		            font_height - static_cast<size_t>(slot->bitmap_top) - 1,
+		            font_height - descent - static_cast<size_t>(slot->bitmap_top),
 		            font_height,
 		            image);
 

@@ -181,6 +181,7 @@ void ProgressBar::init_cursor(const glm::vec2& cursor_size)
 void ProgressBar::draw(void) const
 {
 	ShaderSet& shader = Application::instance().shader();
+
 	shader.set_uniform("background", m_background_uses_texture);
 	m_renderer.draw(m_background_renderable);
 	shader.set_uniform("background", m_cursor_uses_texture);

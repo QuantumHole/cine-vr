@@ -12,6 +12,11 @@
 class FileSystem
 {
 	private:
+		const std::string directory_separator = "/";    ///< separator between path sections.
+		const std::set<std::string> image_extensions = {"png", "jpg", "jpeg", "tga", "bmp"};    ///< supported image file extensions.
+		const std::set<std::string> video_extensions = {"avi", "mkv", "mpg", "mp4"};    ///< supported video file extensions.
+		const std::set<std::string> vector_extensions = {"svg"};    ///< supported vector graphics file extensions.
+
 		std::set<std::string> select_files(const std::string& dir, const bool use_files, const bool use_dirs, const bool show_hidden) const;
 
 	public:

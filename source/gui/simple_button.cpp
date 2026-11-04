@@ -24,6 +24,7 @@ SimpleButton::SimpleButton(const action_t action, const std::string& image_name)
 	const std::string ext = FileSystem().extension(image_name);
 
 	const size_t shader_id = Application::instance().shader().id();
+
 	if (FileSystem().is_image(ext))
 	{
 		init_texture(image_name);
@@ -98,6 +99,7 @@ bool SimpleButton::update_on_interaction(const Panel::intersection_t isec, const
 void SimpleButton::draw(void) const
 {
 	ShaderSet& shader = Application::instance().shader();
+
 	shader.set_uniform("background", m_graphic_uses_texture);
 	m_renderer.draw(m_renderable_id);
 	shader.set_uniform("background", false);

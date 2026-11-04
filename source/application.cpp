@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 QuantumHole <QuantumHole@github.com>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "application.h"
 #include "util/file_system.h"
 
@@ -9,45 +13,45 @@ Application* Application::m_instance = nullptr;
 glm::uvec2 Application::g_window_size(800, 600);
 
 Application::Application(void) :
-    g_Running(true),
-    g_window(nullptr),
-    g_vr(),
-    g_scene_shader(0),
-    g_image_texture(0),
-    g_video_texture(0),
-    g_scene_shape_set(0),
-    g_scene_renderable(0),
-    g_scene_ready(false),
-    g_controller(),
-    g_framebuffer(Eyes::size()),
-    g_menu(),
-    g_projection(),
-    g_vector(nullptr),
-    g_hmd_reference_pos(),
-    g_hmd_reference_rot(),
-    g_current_file_name(""),
-    g_jump_step(10.0f),      // seconds
-    g_source(SOURCE_NONE),
-    g_player()
+	g_Running(true),
+	g_window(nullptr),
+	g_vr(),
+	g_scene_shader(0),
+	g_image_texture(0),
+	g_video_texture(0),
+	g_scene_shape_set(0),
+	g_scene_renderable(0),
+	g_scene_ready(false),
+	g_controller(),
+	g_framebuffer(Eyes::size()),
+	g_menu(),
+	g_projection(),
+	g_vector(nullptr),
+	g_hmd_reference_pos(),
+	g_hmd_reference_rot(),
+	g_current_file_name(""),
+	g_jump_step(10.0f),      // seconds
+	g_source(SOURCE_NONE),
+	g_player()
 {
 }
 
 Application& Application::instance(void)
 {
-    if (!m_instance)
-    {
-        m_instance = new Application();
-    }
-    return *m_instance;
+	if (!m_instance)
+	{
+		m_instance = new Application();
+	}
+	return *m_instance;
 }
 
 Application::~Application(void)
 {
-    if (m_instance)
-    {
-        delete m_instance;
-        m_instance = nullptr;
-    }
+	if (m_instance)
+	{
+		delete m_instance;
+		m_instance = nullptr;
+	}
 }
 
 void Application::framebuffer_size_callback(GLFWwindow* window __attribute__((unused)), int width, int height)

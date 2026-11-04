@@ -12,11 +12,9 @@
 #include <algorithm>
 #include <fstream>
 
-/** separator between path sections. */
-static const std::string directory_separator = "/";
-
 /** default constructor. */
-FileSystem::FileSystem(void)
+FileSystem::FileSystem(void) :
+	directory_separator("/")
 {
 }
 
@@ -49,15 +47,7 @@ std::string FileSystem::extension(const std::string& name) const
  */
 bool FileSystem::is_image(const std::string& ext) const
 {
-	static const std::set<std::string> extensions = {
-		"png",
-		"jpg",
-		"jpeg",
-		"tga",
-		"bmp"
-	};
-
-	return extensions.find(ext) != extensions.end();
+	return image_extensions.find(ext) != image_extensions.end();
 }
 
 /** checks if the file extesion represents a video.
@@ -66,14 +56,7 @@ bool FileSystem::is_image(const std::string& ext) const
  */
 bool FileSystem::is_video(const std::string& ext) const
 {
-	static const std::set<std::string> extensions = {
-		"avi",
-		"mkv",
-		"mpg",
-		"mp4"
-	};
-
-	return extensions.find(ext) != extensions.end();
+	return video_extensions.find(ext) != video_extensions.end();
 }
 
 /** checks if the file extesion represents a vector graphics.
@@ -82,11 +65,7 @@ bool FileSystem::is_video(const std::string& ext) const
  */
 bool FileSystem::is_vector(const std::string& ext) const
 {
-	static const std::set<std::string> extensions = {
-		"svg"
-	};
-
-	return extensions.find(ext) != extensions.end();
+	return vector_extensions.find(ext) != vector_extensions.end();
 }
 
 /** checks if the file extension is supported.

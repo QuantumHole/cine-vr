@@ -329,6 +329,7 @@ void RenderManager::clear(void)
 void RenderManager::draw(void) const
 {
 	const glm::mat4 transform(1.0f);
+
 	for (size_t id = 0; id < m_renderables.size(); ++id)
 	{
 		if (!is_referenced_by_group(id) && m_renderables[id].draw_all)
