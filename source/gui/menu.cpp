@@ -9,9 +9,13 @@
 #include "toggle_button.h"
 #include "slide_button.h"
 #include "progress_bar.h"
+#include "database/thumbnail_store.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <mutex>
+#include <set>
+#include <thread>
 
 // #define DEBUG_LINE std::cout << "########## " << __FILE__ << "(" << __LINE__ << "): " << __FUNCTION__ << "()" << std::endl
 
@@ -25,6 +29,7 @@ Menu::Menu(void) :
 	m_playable(false),
 	m_current_directory(""),
 	m_font_renderer(),
+	m_database("cine-vr"),
 	menu_graphics_extension(".svg")
 {
 	FileSystem fs;
@@ -172,6 +177,15 @@ void Menu::list_files(LinePanel& panel) const
 	for (std::set<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); iter++)
 	{
 		const std::string full = m_current_directory + "/" + *iter;
+
+		const std::string ext = fs.extension(full);
+
+		if (fs.is_video(ext))
+		{
+			ThumbnailStore store(full);
+			Thumbnail thumbnail = store.get_thumbnail(-1.0f);
+		}
+
 		const size_t renderable = create_list_element(*iter, 0);
 		panel.add_line(renderable, full);
 

@@ -48,6 +48,7 @@ OBJECTS = \
 	$(BUILD_DIR)/render_manager.o \
 	$(BUILD_DIR)/sqlitedb.o \
 	$(BUILD_DIR)/thumbnail_generator.o \
+	$(BUILD_DIR)/thumbnail_store.o \
 
 all: $(TARGET)
 

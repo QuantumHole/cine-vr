@@ -14,8 +14,6 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
-#include <libavutil/error.h>
-#include <libavutil/avutil.h>
 }
 
 /** represents a thumbnail image */
@@ -69,7 +67,7 @@ class ThumbnailGenerator
 			const int64_t startPts,
 			int64_t& nextThumbnailUs,
 			const int64_t intervalUs,
-			SwsContext& sws,
+			SwsContext*& sws,
 			std::vector<Thumbnail>& thumbnails) const;
 
 		/** receives decoded video frames and generates thumbnails.
@@ -90,7 +88,7 @@ class ThumbnailGenerator
 			const int64_t startPts,
 			int64_t& nextThumbnailUs,
 			const int64_t intervalUs,
-			SwsContext& sws,
+			SwsContext*& sws,
 			std::vector<Thumbnail>& thumbnails) const;
 };
 

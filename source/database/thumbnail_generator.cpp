@@ -17,6 +17,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <iostream>
 
 static std::string ffmpegError(int error)
 {
@@ -61,9 +62,14 @@ void ThumbnailGenerator::process_frame(
 	const int64_t startPts,
 	int64_t& nextThumbnailUs,
 	const int64_t intervalUs,
-	SwsContext& sws,
+	SwsContext*& sws,
 	std::vector<Thumbnail>& thumbnails) const
 {
+	if ((frame->width <= 0) || (frame->height <= 0) || (frame->format == AV_PIX_FMT_NONE))
+	{
+		throw std::runtime_error("Decoded frame has invalid dimensions or pixel format");
+	}
+
 	const int64_t pts = frame->best_effort_timestamp;
 
 	if (pts == AV_NOPTS_VALUE)
@@ -87,33 +93,31 @@ void ThumbnailGenerator::process_frame(
 							 static_cast<double>(m_thumbnail_height) / static_cast<double>(frame->height))));
 
 	// update scaling context
-	SwsContext* updated = sws_getCachedContext(
-		&sws,
+	sws = sws_getCachedContext(
+		sws,
 		frame->width,
 		frame->height,
 		static_cast<AVPixelFormat>(frame->format),
 		width,
 		static_cast<int>(m_thumbnail_height),
-		AV_PIX_FMT_RGBA,
-		SWS_BILINEAR,
+		AV_PIX_FMT_RGB24,
+		SWS_SCALE_POINT,    // SWS_FAST_BILINEAR, SWS_BILINEAR
 		nullptr,
 		nullptr,
 		nullptr
 		);
 
-	if (!updated)
+	if (!sws)
 	{
 		throw std::runtime_error("Cannot create scaling context");
 	}
-
-	sws = *updated;
 
 	// create thumbnail
 	Thumbnail thumbnail;
 
 	thumbnail.width = width;
 	thumbnail.height = static_cast<int>(m_thumbnail_height);
-	thumbnail.stride = width * 4;
+	thumbnail.stride = width * 3;
 	thumbnail.timestampMs = av_rescale_q(pts - startPts, stream->time_base, AVRational{1, 1000});
 	thumbnail.pixels.resize(static_cast<size_t>(thumbnail.stride) * m_thumbnail_height);
 
@@ -126,9 +130,9 @@ void ThumbnailGenerator::process_frame(
 
 	int dstLinesize[4] = {thumbnail.stride, 0, 0, 0};
 
-	// scale and convert to RGBA
+	// scale and convert to RGB24
 	int scaledHeight = sws_scale(
-		&sws,
+		sws,
 		frame->data,
 		frame->linesize,
 		0,
@@ -143,6 +147,11 @@ void ThumbnailGenerator::process_frame(
 	}
 
 	thumbnails.push_back(std::move(thumbnail));
+	std::cout << "Generated thumbnail "
+	          << thumbnails.size() << " at "
+	          << (static_cast<double>(thumbnail.timestampMs) / 1000.0) << " s, size: "
+	          << thumbnail.width << "x"
+	          << thumbnail.height << std::endl;
 
 	// determine next thumbnail timestamp
 	do
@@ -159,7 +168,7 @@ int ThumbnailGenerator::receiveFrames(
 	const int64_t startPts,
 	int64_t& nextThumbnailUs,
 	const int64_t intervalUs,
-	SwsContext& sws,
+	SwsContext*& sws,
 	std::vector<Thumbnail>& thumbnails) const
 {
 	while (true)
@@ -193,32 +202,30 @@ std::vector<Thumbnail> ThumbnailGenerator::generate(const std::string& filename)
 	}
 
 	AVFormatContext* format = rawFormat;
-
-	// Stream-Informationen ermitteln
 	ret = avformat_find_stream_info(format, nullptr);
 
 	if (ret < 0)
 	{
+		avformat_close_input(&rawFormat);
 		throw std::runtime_error("Cannot read stream information: " + ffmpegError(ret));
 	}
 
-	// Videostream finden
 	const AVCodec* decoder = nullptr;
-
-	int videoStream = av_find_best_stream(format, AVMEDIA_TYPE_VIDEO, -1, -1, &decoder, 0);
+	const int videoStream = av_find_best_stream(format, AVMEDIA_TYPE_VIDEO, -1, -1, &decoder, 0);
 
 	if (videoStream < 0)
 	{
+		avformat_close_input(&rawFormat);
 		throw std::runtime_error("No video stream found");
 	}
+	std::cout << filename << ": video stream " << videoStream << std::endl;
 
 	AVStream* stream = format->streams[videoStream];
-
-	// initialize decoder
 	AVCodecContext* codec = avcodec_alloc_context3(decoder);
 
 	if (!codec)
 	{
+		avformat_close_input(&rawFormat);
 		throw std::runtime_error("Cannot allocate codec context");
 	}
 
@@ -226,50 +233,41 @@ std::vector<Thumbnail> ThumbnailGenerator::generate(const std::string& filename)
 
 	if (ret < 0)
 	{
+		avcodec_free_context(&codec);
+		avformat_close_input(&rawFormat);
 		throw std::runtime_error(ffmpegError(ret));
 	}
 
+	std::cout << filename << ": codec " << decoder->name << std::endl;
 	ret = avcodec_open2(codec, decoder, nullptr);
 
 	if (ret < 0)
 	{
+		avcodec_free_context(&codec);
+		avformat_close_input(&rawFormat);
 		throw std::runtime_error("Cannot open decoder: " + ffmpegError(ret));
 	}
 
-	// packet and frame
 	AVPacket* packet = av_packet_alloc();
 	AVFrame* frame = av_frame_alloc();
 
 	if (!packet || !frame)
 	{
+		av_packet_free(&packet);
+		av_frame_free(&frame);
+		avcodec_free_context(&codec);
+		avformat_close_input(&rawFormat);
 		throw std::runtime_error("Cannot allocate packet/frame");
 	}
 
-	// scaling context
-	SwsContext* rawSws = sws_getContext(
-		codec->width,
-		codec->height,
-		codec->pix_fmt,
-		codec->width,
-		static_cast<int>(m_thumbnail_height),
-		AV_PIX_FMT_RGBA,
-		SWS_BILINEAR,
-		nullptr,
-		nullptr,
-		nullptr
-		);
-	std::vector<Thumbnail> thumbnails;
-
-	// time code of start of stream
-	const int64_t startPts = ((stream->start_time != AV_NOPTS_VALUE) ? stream->start_time : 0);
-
-	// next required timestamp
+	const int64_t startPts = (stream->start_time != AV_NOPTS_VALUE) ? stream->start_time : 0;
 	int64_t nextThumbnailUs = 0;
-
-	const int64_t durationUs = (format->duration == AV_NOPTS_VALUE) ? 0 : static_cast<int64_t>(format->duration);
+	const int64_t durationUs = (format->duration == AV_NOPTS_VALUE) ? 0 : format->duration;
 	const int64_t intervalUs = time_step(durationUs);
+	std::cout << filename << ": Duration: " << durationUs << " us, Interval: " << intervalUs << " us" << std::endl;
 
-	// read packets and decode frames
+	SwsContext* rawSws = nullptr;
+	std::vector<Thumbnail> thumbnails;
 	while ((ret = av_read_frame(format, packet)) >= 0)
 	{
 		if (packet->stream_index == videoStream)
@@ -278,10 +276,11 @@ std::vector<Thumbnail> ThumbnailGenerator::generate(const std::string& filename)
 
 			if (ret < 0)
 			{
+				av_packet_unref(packet);
 				throw std::runtime_error("Packet submission failed: " + ffmpegError(ret));
 			}
 
-			receiveFrames(codec, frame, stream, startPts, nextThumbnailUs, intervalUs, *rawSws, thumbnails);
+			receiveFrames(codec, frame, stream, startPts, nextThumbnailUs, intervalUs, rawSws, thumbnails);
 		}
 
 		av_packet_unref(packet);
@@ -292,16 +291,19 @@ std::vector<Thumbnail> ThumbnailGenerator::generate(const std::string& filename)
 		throw std::runtime_error("Video reading failed: " + ffmpegError(ret));
 	}
 
-	// Decoder-Buffer leeren (letzte Frames)
 	ret = avcodec_send_packet(codec, nullptr);
 
 	if ((ret < 0) && (ret != AVERROR_EOF))
 	{
-		throw std::runtime_error(ffmpegError(ret));
+		throw std::runtime_error("Decoder flush failed: " + ffmpegError(ret));
 	}
 
-	receiveFrames(codec, frame, stream, startPts, nextThumbnailUs, intervalUs, *rawSws, thumbnails);
+	receiveFrames(codec, frame, stream, startPts, nextThumbnailUs, intervalUs, rawSws, thumbnails);
 
 	sws_freeContext(rawSws);
+	av_packet_free(&packet);
+	av_frame_free(&frame);
+	avcodec_free_context(&codec);
+	avformat_close_input(&rawFormat);
 	return thumbnails;
 }

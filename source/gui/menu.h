@@ -8,6 +8,8 @@
 #include "line_panel.h"
 #include "util/openvr_interface.h"
 #include "font_renderer.h"
+#include "database/sqlitedb.h"
+#include "database/thumbnail_generator.h"
 #include <map>
 
 class Menu
@@ -33,6 +35,7 @@ class Menu
 		bool m_playable;
 		std::string m_current_directory;
 		FontRenderer m_font_renderer;
+		SQLiteDB m_database;
 		const std::string menu_graphics_extension;
 
 		void create_button_panel(const std::vector<action_t>& actions);
@@ -40,6 +43,7 @@ class Menu
 		size_t create_list_element(const std::string& text, const size_t level = 0) const;
 		void list_directories(LinePanel& panel) const;
 		void list_files(LinePanel& panel) const;
+		Thumbnail load_thumbnail(const std::string& video_file) const;
 
 		void main_menu(void);
 		void tiling_menu(void);

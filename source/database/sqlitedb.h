@@ -6,11 +6,9 @@
 #define SQLITEDB_H
 
 #include <string>
-#include <sqlite3.h>
 #include <vector>
-#include <stdint.h>
+#include <sqlite3.h>
 #include <glm/glm.hpp>
-#include <GL/glew.h>
 
 /** SQLite database interface for storing video metadata, thumbnails, and configuration. */
 class SQLiteDB
