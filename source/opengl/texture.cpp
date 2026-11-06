@@ -175,6 +175,9 @@ void Texture::init_data(const std::vector<uint8_t>& data, const glm::uvec2& size
 	{
 		return;
 	}
+	GLint unpack_alignment = 4;
+	glGetIntegerv(GL_UNPACK_ALIGNMENT, &unpack_alignment);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexImage2D(tex_type,
 	             0,
 	             internal_format,
@@ -183,6 +186,7 @@ void Texture::init_data(const std::vector<uint8_t>& data, const glm::uvec2& size
 	             0, format,
 	             GL_UNSIGNED_BYTE,
 	             data.data());
+	glPixelStorei(GL_UNPACK_ALIGNMENT, unpack_alignment);
 }
 
 void Texture::init_sdl(const SDL_Surface* surface, const GLuint slot)

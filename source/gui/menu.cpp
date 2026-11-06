@@ -11,10 +11,13 @@
 #include "progress_bar.h"
 #include "database/thumbnail_store.h"
 
+#include <algorithm>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <iomanip>
 #include <mutex>
 #include <set>
+#include <sstream>
 #include <thread>
 
 // #define DEBUG_LINE std::cout << "########## " << __FILE__ << "(" << __LINE__ << "): " << __FUNCTION__ << "()" << std::endl
@@ -91,30 +94,107 @@ void Menu::draw(void) const
 	}
 }
 
-size_t Menu::create_list_element(const std::string& text, const size_t level) const
+size_t Menu::create_thumbnail_label(const std::string& text, const bool align_right, const bool top_half) const
 {
+	const size_t font_height = LinePanel::line_height;
 	std::vector<uint32_t> glyphs;
-
-	m_font_renderer.render_text(text, LinePanel::line_height, glyphs);
-	const size_t glyph_width = glyphs.size() / LinePanel::line_height;
-	const size_t level_offset = LinePanel::line_height / 2;
-	const size_t indent = std::min(level, LinePanel::texture_width / level_offset) * level_offset;
-	const size_t visible_width =
-		(indent < LinePanel::texture_width)
-		? std::min(glyph_width, LinePanel::texture_width - indent)
-		: 0;
-	std::vector<uint8_t> image(LinePanel::texture_width* LinePanel::line_height* sizeof(uint32_t), 0);
+	m_font_renderer.render_text(text, font_height, glyphs);
+	const size_t glyph_width = glyphs.size() / font_height;
+	const size_t visible_width = std::min(glyph_width, LinePanel::texture_width);
+	const size_t texture_width = std::max<size_t>(1, visible_width);
+	std::vector<uint8_t> image(texture_width * font_height * sizeof(uint32_t), 0);
 
 	if (visible_width > 0)
 	{
 		const uint8_t* glyph_data = reinterpret_cast<const uint8_t*>(glyphs.data());
-		for (size_t row = 0; row < LinePanel::line_height; row++)
+		for (size_t row = 0; row < font_height; ++row)
 		{
 			const size_t source_offset = row * glyph_width * sizeof(uint32_t);
-			const size_t target_offset = (row * LinePanel::texture_width + indent) * sizeof(uint32_t);
+			const size_t target_offset = row * texture_width * sizeof(uint32_t);
 			std::copy(glyph_data + source_offset,
 			          glyph_data + source_offset + visible_width * sizeof(uint32_t),
 			          image.begin() + static_cast<std::ptrdiff_t>(target_offset));
+		}
+	}
+
+	RenderManager& renderer = RenderManager::instance();
+	const size_t texture = renderer.add_texture(
+		image,
+		glm::uvec2(static_cast<GLuint>(texture_width), static_cast<GLuint>(font_height)),
+		GL_RGBA,
+		0);
+	const float top = top_half ? 0.5f : 0.0f;
+	const float bottom = top_half ? 0.0f : -0.5f;
+	const float display_width = 0.5f * static_cast<float>(visible_width) / static_cast<float>(LinePanel::texture_width);
+	const float left = align_right ? 0.5f - display_width : -0.5f;
+	const float right = left + display_width;
+	const std::vector<Vertex> vertices = {
+		Vertex(glm::vec3(left,  bottom, 0.001f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3(right, top,    0.001f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(left,  top,    0.001f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3(right, bottom, 0.001f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
+	};
+	const std::vector<GLuint> indices = {0, 1, 2, 0, 3, 1};
+	return renderer.create_shape_renderable(vertices, indices, std::vector<size_t>(1, texture), Application::instance().shader().id());
+}
+
+size_t Menu::create_list_element(const std::string& text, const size_t level, const Thumbnail* background, const std::string& duration) const
+{
+	const size_t level_offset = LinePanel::line_height / 2;
+	const size_t indent = std::min(level, LinePanel::texture_width / level_offset) * level_offset;
+	std::vector<uint8_t> image(LinePanel::texture_width* LinePanel::line_height* sizeof(uint32_t), 0);
+	const int64_t minimum_stride = background ? static_cast<int64_t>(background->width) * 3 : 0;
+	const bool has_background = background &&
+	                            (background->width > 0) && (background->height > 0) &&
+	                            (static_cast<int64_t>(background->stride) == minimum_stride) &&
+	                            (background->pixels.size() >= static_cast<size_t>(background->stride) *
+	                             static_cast<size_t>(background->height));
+
+	if (has_background)
+	{
+		RenderManager& renderer = RenderManager::instance();
+		const size_t background_texture = renderer.add_texture(
+			background->pixels,
+			glm::uvec2(static_cast<GLuint>(background->width), static_cast<GLuint>(background->height)),
+			GL_RGB,
+			0);
+		const std::vector<Vertex> background_vertices = {
+			Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
+			Vertex(glm::vec3( 0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
+			Vertex(glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 0.0f)),
+			Vertex(glm::vec3( 0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
+		};
+		const std::vector<GLuint> background_indices = {0, 1, 2, 0, 3, 1};
+		const size_t background_renderable = renderer.create_shape_renderable(
+			background_vertices,
+			background_indices,
+			std::vector<size_t>(1, background_texture),
+			Application::instance().shader().id());
+		const size_t name_renderable = create_thumbnail_label(text, false, true);
+		const size_t duration_renderable = create_thumbnail_label(duration, true, false);
+		return renderer.create_group({background_renderable, name_renderable, duration_renderable}, false);
+	}
+	else
+	{
+		std::vector<uint32_t> glyphs;
+		m_font_renderer.render_text(text, LinePanel::line_height, glyphs);
+		const size_t glyph_width = glyphs.size() / LinePanel::line_height;
+		const size_t visible_width =
+			(indent < LinePanel::texture_width)
+			? std::min(glyph_width, LinePanel::texture_width - indent)
+			: 0;
+
+		if (visible_width > 0)
+		{
+			const uint8_t* glyph_data = reinterpret_cast<const uint8_t*>(glyphs.data());
+			for (size_t row = 0; row < LinePanel::line_height; row++)
+			{
+				const size_t source_offset = row * glyph_width * sizeof(uint32_t);
+				const size_t target_offset = (row * LinePanel::texture_width + indent) * sizeof(uint32_t);
+				std::copy(glyph_data + source_offset,
+				          glyph_data + source_offset + visible_width * sizeof(uint32_t),
+				          image.begin() + static_cast<std::ptrdiff_t>(target_offset));
+			}
 		}
 	}
 
@@ -135,6 +215,7 @@ size_t Menu::create_list_element(const std::string& text, const size_t level) co
 	                                                               std::vector<size_t>(1, texture),
 	                                                               Application::instance().shader().id(),
 	                                                               false);
+
 	return renderable;
 }
 
@@ -177,23 +258,38 @@ void Menu::list_files(LinePanel& panel) const
 	for (std::set<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); iter++)
 	{
 		const std::string full = m_current_directory + "/" + *iter;
-
 		const std::string ext = fs.extension(full);
+		size_t renderable = 0;
 
 		if (fs.is_video(ext))
 		{
 			ThumbnailStore store(full);
 			Thumbnail thumbnail = store.get_thumbnail(-1.0f);
 
-			if ((thumbnail.width > 0) && (thumbnail.height > 0) && (thumbnail.pixels.size() > 0))
+			if ((thumbnail.width > 0) && (thumbnail.height > 0) && !thumbnail.pixels.empty())
 			{
+				float duration = 0.0f;
+				m_database.read_video(full, duration);
+				const unsigned int total_seconds = static_cast<unsigned int>(std::max(0.0f, duration));
+				const unsigned int hours = total_seconds / 3600;
+				const unsigned int minutes = (total_seconds / 60) % 60;
+				const unsigned int seconds = total_seconds % 60;
+				std::ostringstream duration_text;
+				duration_text << std::setfill('0') << std::setw(2) << hours << ":"
+				              << std::setw(2) << minutes << ":" << std::setw(2) << seconds;
+				renderable = create_list_element(*iter, 0, &thumbnail, duration_text.str());
+			}
+			else
+			{
+				renderable = create_list_element(*iter, 0);
 			}
 		}
+		else
+		{
+			renderable = create_list_element(*iter, 0);
+		}
 
-		const size_t renderable = create_list_element(*iter, 0);
 		panel.add_line(renderable, full);
-
-		// TODO: add thumbnail for each file, if possible
 	}
 	panel.render_lines();
 }

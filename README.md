@@ -11,7 +11,7 @@ It renders a media file into HMD stereoscopically.
 It also shows the left eye view in a companion window on the desktop.
 It demonstrates handling of a menu structure.
 To achieve this, the most basic graphical elements for user interactions had to be implemented from scratch.
-These elements contain simple and toggle buttons, slideable gauges as well as scrollable text boxes.
+These elements contain simple and toggle buttons, slideable gauges as well as scrollable list views.
 Users can configure some display options via the OpenVR controller.
 
 # Dependencies

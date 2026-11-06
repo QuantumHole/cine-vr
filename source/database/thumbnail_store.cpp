@@ -143,7 +143,22 @@ Thumbnail ThumbnailStore::get_thumbnail(const float timestamp) const
 			m_database.read_thumbnail(video_id, timestamp, format, width, height, data);
 		}
 
-		if (data.empty())
+		if (!data.empty() && (format == 0) && (width > 0) && (height > 0) &&
+		    (width <= static_cast<size_t>(std::numeric_limits<int>::max() / 3)) &&
+		    (height <= static_cast<size_t>(std::numeric_limits<int>::max())))
+		{
+			const size_t stride = width * 3;
+			if (data.size() >= stride * height)
+			{
+				thumbnail.width = static_cast<int>(width);
+				thumbnail.height = static_cast<int>(height);
+				thumbnail.stride = static_cast<int>(stride);
+				thumbnail.timestampMs = -1;
+				thumbnail.pixels = std::move(data);
+			}
+		}
+
+		if (thumbnail.pixels.empty())
 		{
 			std::cout << m_file_path << ": No thumbnail found for video_id: " << video_id << ", generating..." << std::endl;
 			std::lock_guard<std::mutex> lock(thumbnail_jobs_mutex);

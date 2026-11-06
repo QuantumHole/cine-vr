@@ -12,7 +12,7 @@
 static const glm::vec2 shape_size(3.0f, 5.0f);
 static const glm::vec4 panel_color(0.5f, 0.4f, 0.2f, 0.8f);
 static const glm::vec4 selection_color(0.5f * panel_color);
-static const size_t max_lines = 25;
+static const size_t max_lines = 15;
 const size_t LinePanel::line_height = 30;
 const size_t LinePanel::texture_width = static_cast<size_t>(max_lines * LinePanel::line_height * shape_size.x / shape_size.y);
 
