@@ -10,40 +10,99 @@
 #include <thread>
 #include <stdexcept>
 #include <string>
+#include <limits>
 
 static std::mutex thumbnail_jobs_mutex;
 static std::set<std::string> thumbnail_jobs;
+
+static Thumbnail mix_frames(const std::vector<Thumbnail>& thumbnails)
+{
+	Thumbnail timeline;
+
+	if (thumbnails.empty())
+	{
+		return timeline;
+	}
+
+	if ((thumbnails.size() > static_cast<size_t>(std::numeric_limits<int>::max() / 3)) ||
+	    (thumbnails[0].height <= 0))
+	{
+		throw std::runtime_error("Invalid thumbnail dimensions for timeline");
+	}
+
+	timeline.width = static_cast<int>(thumbnails.size());
+	timeline.height = thumbnails[0].height;
+	timeline.stride = timeline.width * 3;
+	timeline.timestampMs = -1;
+	timeline.pixels.resize(static_cast<size_t>(timeline.stride) * static_cast<size_t>(timeline.height));
+
+	const size_t tn_stride = thumbnails[0].stride;
+	for (size_t frameIndex = 0; frameIndex < thumbnails.size(); frameIndex++)
+	{
+		const Thumbnail& thumbnail = thumbnails[frameIndex];
+
+		if ((thumbnail.width <= 0) || (thumbnail.height <= 0) ||
+		    (static_cast<size_t>(thumbnail.stride) != tn_stride) ||
+		    (thumbnail.pixels.size() != static_cast<size_t>(thumbnail.stride) * static_cast<size_t>(thumbnail.height)))
+		{
+			throw std::runtime_error("Invalid thumbnail buffer while building timeline");
+		}
+
+		for (size_t row = 0; row < static_cast<size_t>(timeline.height); row++)
+		{
+			const size_t sourceRowOffset = row * static_cast<size_t>(thumbnail.stride);
+			const size_t targetOffset = row * static_cast<size_t>(timeline.stride) + frameIndex * 3;
+
+			for (size_t channel = 0; channel < 3; channel++)
+			{
+				uint64_t sum = 0;
+				for (int column = 0; column < thumbnail.width; column++)
+				{
+					const size_t sourceOffset = sourceRowOffset + static_cast<size_t>(column) * 3 + channel;
+					sum += thumbnail.pixels[sourceOffset];
+				}
+
+				timeline.pixels[targetOffset + channel] = static_cast<uint8_t>((sum + static_cast<uint64_t>(thumbnail.width / 2)) /
+				                                                               static_cast<uint64_t>(thumbnail.width));
+			}
+		}
+	}
+
+	return timeline;
+}
 
 static void generate_thumbnails(const std::string& video_file, size_t video_id)
 {
 	try
 	{
-		ThumbnailGenerator generator;
-		const std::vector<Thumbnail> thumbnails = generator.generate(video_file);
+		ThumbnailGenerator generator(video_file);
+		const std::vector<Thumbnail> thumbnails = generator.generate();
 
 		std::cout << "received " << thumbnails.size() << " thumbnails for " << video_file << std::endl;
 		SQLiteDB database("cine-vr");
 
 		if (video_id == 0)
 		{
-			// video_id = database.store_video(video_file, 0.0f);
+			video_id = database.store_video(video_file, static_cast<float>(generator.duration()));
 		}
 
-		// bool stored_global_thumbnail = false;
-		// for (const Thumbnail& thumbnail : thumbnails)
-		// {
-		// const float timestamp = static_cast<float>(thumbnail.timestampMs) / 1000.0f;
-		// database.store_thumbnail(video_id, timestamp, GL_RGBA,
-		// static_cast<size_t>(thumbnail.width),
-		// static_cast<size_t>(thumbnail.height), thumbnail.pixels);
-		// if (!stored_global_thumbnail)
-		// {
-		// database.store_thumbnail(video_id, -1.0f, GL_RGBA,
-		// static_cast<size_t>(thumbnail.width),
-		// static_cast<size_t>(thumbnail.height), thumbnail.pixels);
-		// stored_global_thumbnail = true;
-		// }
-		// }
+		const size_t tn_format = 0;    // uncompressed 24bit RGB values
+		for (const Thumbnail& thumbnail : thumbnails)
+		{
+			const float timestamp = static_cast<float>(thumbnail.timestampMs) / 1000.0f;
+			database.store_thumbnail(
+				video_id, timestamp, tn_format,
+				static_cast<size_t>(thumbnail.width),
+				static_cast<size_t>(thumbnail.height),
+				thumbnail.pixels);
+		}
+
+		const Thumbnail timeline = mix_frames(thumbnails);
+		database.store_thumbnail(
+			video_id, -1.0f, tn_format,
+			static_cast<size_t>(timeline.width),
+			static_cast<size_t>(timeline.height),
+			timeline.pixels);
 	}
 	catch (const std::exception& error)
 	{

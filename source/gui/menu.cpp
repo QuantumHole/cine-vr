@@ -184,6 +184,10 @@ void Menu::list_files(LinePanel& panel) const
 		{
 			ThumbnailStore store(full);
 			Thumbnail thumbnail = store.get_thumbnail(-1.0f);
+
+			if ((thumbnail.width > 0) && (thumbnail.height > 0) && (thumbnail.pixels.size() > 0))
+			{
+			}
 		}
 
 		const size_t renderable = create_list_element(*iter, 0);

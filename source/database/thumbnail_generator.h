@@ -30,17 +30,43 @@ struct Thumbnail
 class ThumbnailGenerator
 {
 	public:
-		/** constructor. */
-		explicit ThumbnailGenerator(void);
+		/** constructor.
+		 * @param file_path path to the video file
+		 */
+		explicit ThumbnailGenerator(const std::string& file_path);
+
+		/** returns the duration of the video in seconds.
+		 * @return video duration in seconds
+		 */
+		double duration(void) const;
 
 		/** generates thumbnails for a video file.
-		 * @param filename path to the video file
 		 * @return vector of generated thumbnails
 		 */
-		std::vector<Thumbnail> generate(const std::string& filename) const;
+		std::vector<Thumbnail> generate(void);
 
 	private:
-		const size_t m_thumbnail_height;   ///< height of the generated thumbnails in pixels
+		const size_t m_thumbnail_height;     ///< height of the generated thumbnails in pixels
+		const std::string m_file_path;       ///< path to the current video file
+		int64_t m_duration;                  ///< duration of the video in microseconds
+		int64_t m_stepsize;                  ///< step size for thumbnail generation in microseconds
+		std::vector<Thumbnail> m_thumbnails; ///< vector to store generated thumbnails
+		SwsContext* m_sws;                   ///< scaling context for converting frames to thumbnails
+		int64_t m_start_pts;                 ///< start presentation timestamp of the video stream in microseconds
+		AVFormatContext* m_file_format;      ///< format context for the video file
+		AVFormatContext* m_stream_format;    ///< format context for the video stream
+		int64_t m_next_thumbnail_pts;        ///< next presentation timestamp for thumbnail generation in microseconds
+		AVPacket* m_packet;                  ///< packet for reading video frames
+		int m_video_stream_index;            ///< index of the video stream in the format context
+		AVStream* m_stream;                  ///< video stream
+		AVCodecContext* m_codec;             ///< video codec
+		AVFrame* m_frame;                    ///< buffer for one video frame
+
+		/** copy constructor. */
+		ThumbnailGenerator(const ThumbnailGenerator&) = delete;
+
+		/** assignment operator. */
+		ThumbnailGenerator& operator=(const ThumbnailGenerator&) = delete;
 
 		/** determine thumbnail step size in seconds.
 		 * Thumbnail interval is determined by the width of the video thumbnail.
@@ -52,44 +78,13 @@ class ThumbnailGenerator
 		 */
 		int64_t time_step(const int64_t duration) const;
 
-		/** processes a video frame and generates a thumbnail.
-		 * @param frame the video frame to process
-		 * @param stream the video stream
-		 * @param startPts the start presentation timestamp
-		 * @param nextThumbnailUs the next thumbnail timestamp in microseconds
-		 * @param intervalUs the thumbnail interval in microseconds
-		 * @param sws the scaling context
-		 * @param thumbnails the vector to store generated thumbnails
-		 */
-		void process_frame(
-			AVFrame* frame,
-			AVStream* stream,
-			const int64_t startPts,
-			int64_t& nextThumbnailUs,
-			const int64_t intervalUs,
-			SwsContext*& sws,
-			std::vector<Thumbnail>& thumbnails) const;
+		/** processes a video frame and generates a thumbnail. */
+		void process_frame(void);
 
 		/** receives decoded video frames and generates thumbnails.
-		 * @param codec the codec context
-		 * @param frame the video frame to process
-		 * @param stream the video stream
-		 * @param startPts the start presentation timestamp
-		 * @param nextThumbnailUs the next thumbnail timestamp in microseconds
-		 * @param intervalUs the thumbnail interval in microseconds
-		 * @param sws the scaling context
-		 * @param thumbnails the vector to store generated thumbnails
 		 * @return 0 if all frames have been processed, AVERROR(EAGAIN) if more packets are needed, or an error code
 		 */
-		int receiveFrames(
-			AVCodecContext* codec,
-			AVFrame* frame,
-			AVStream* stream,
-			const int64_t startPts,
-			int64_t& nextThumbnailUs,
-			const int64_t intervalUs,
-			SwsContext*& sws,
-			std::vector<Thumbnail>& thumbnails) const;
+		int receiveFrames(void);
 };
 
 #endif
