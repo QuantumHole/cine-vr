@@ -36,7 +36,7 @@ static Thumbnail mix_frames(const std::vector<Thumbnail>& thumbnails)
 	timeline.timestampMs = -1;
 	timeline.pixels.resize(static_cast<size_t>(timeline.stride) * static_cast<size_t>(timeline.height));
 
-	const size_t tn_stride = thumbnails[0].stride;
+	const size_t tn_stride = static_cast<size_t>(thumbnails[0].stride);
 	for (size_t frameIndex = 0; frameIndex < thumbnails.size(); frameIndex++)
 	{
 		const Thumbnail& thumbnail = thumbnails[frameIndex];

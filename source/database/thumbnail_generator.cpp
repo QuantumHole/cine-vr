@@ -162,10 +162,16 @@ void ThumbnailGenerator::process_frame(void)
 	}
 
 	// calculate thumbnail size
+	// respect sample aspect ratio for non-square pixels
+	const AVRational sar =
+		m_frame->sample_aspect_ratio.num > 0
+			? m_frame->sample_aspect_ratio
+			: m_stream->sample_aspect_ratio;
+
 	const int width = std::max(
 		1,
 		static_cast<int>(std::lround(
-							 static_cast<double>(m_frame->width) *
+							 static_cast<double>(m_frame->width) * av_q2d(sar) *
 							 static_cast<double>(m_thumbnail_height) / static_cast<double>(m_frame->height))));
 
 	// update scaling context

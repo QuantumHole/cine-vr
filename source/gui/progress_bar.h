@@ -30,12 +30,22 @@ class ProgressBar : public Panel
 		void set_cursor_position(void);
 
 	public:
+
+		/** constructor.
+		 * @param action the action ID reported when the progress bar is clicked.
+		 * @param imagebar file name of the default progress bar texture.
+		 * @param imagecursor file name of the progress bar cursor.
+		 * @param max value reported at the end of the progress bar.
+		 * @param pos current position of the progress bar cursor.
+		 * @param preview texture ID of an alternative bar texture, when available, or 0.
+		 */
 		explicit ProgressBar(
 			const action_t action,
 			const std::string& imagebar,
 			const std::string& imagecursor,
 			const float max,
-			const float pos);
+			const float pos,
+			const size_t preview);
 		~ProgressBar(void) override;
 		void set_transform(const glm::mat4& pose) override;
 		void set_max(const float max);

@@ -31,6 +31,7 @@ Menu::Menu(void) :
 	m_debounce(false),
 	m_playable(false),
 	m_current_directory(""),
+		m_preview_textures(),
 	m_font_renderer(),
 	m_database("cine-vr"),
 	menu_graphics_extension(".svg")
@@ -138,8 +139,12 @@ size_t Menu::create_thumbnail_label(const std::string& text, const bool align_ri
 	return renderer.create_shape_renderable(vertices, indices, std::vector<size_t>(1, texture), Application::instance().shader().id());
 }
 
-size_t Menu::create_list_element(const std::string& text, const size_t level, const Thumbnail* background, const std::string& duration) const
+size_t Menu::create_list_element(const std::string& text, const size_t level, const Thumbnail* background, const std::string& duration, size_t* preview_texture) const
 {
+	if (preview_texture)
+	{
+		*preview_texture = 0;
+	}
 	const size_t level_offset = LinePanel::line_height / 2;
 	const size_t indent = std::min(level, LinePanel::texture_width / level_offset) * level_offset;
 	std::vector<uint8_t> image(LinePanel::texture_width* LinePanel::line_height* sizeof(uint32_t), 0);
@@ -158,6 +163,10 @@ size_t Menu::create_list_element(const std::string& text, const size_t level, co
 			glm::uvec2(static_cast<GLuint>(background->width), static_cast<GLuint>(background->height)),
 			GL_RGB,
 			0);
+		if (preview_texture)
+		{
+			*preview_texture = background_texture;
+		}
 		const std::vector<Vertex> background_vertices = {
 			Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
 			Vertex(glm::vec3( 0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
@@ -248,12 +257,13 @@ void Menu::list_directories(LinePanel& panel) const
 	panel.render_lines();
 }
 
-void Menu::list_files(LinePanel& panel) const
+void Menu::list_files(LinePanel& panel)
 {
 	FileSystem fs;
 	std::set<std::string> entries = fs.file_names(m_current_directory);
 
 	panel.clear_lines();
+	m_preview_textures.clear();
 
 	for (std::set<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); iter++)
 	{
@@ -265,6 +275,7 @@ void Menu::list_files(LinePanel& panel) const
 		{
 			ThumbnailStore store(full);
 			Thumbnail thumbnail = store.get_thumbnail(-1.0f);
+			size_t preview_texture = 0;
 
 			if ((thumbnail.width > 0) && (thumbnail.height > 0) && !thumbnail.pixels.empty())
 			{
@@ -277,7 +288,8 @@ void Menu::list_files(LinePanel& panel) const
 				std::ostringstream duration_text;
 				duration_text << std::setfill('0') << std::setw(2) << hours << ":"
 				              << std::setw(2) << minutes << ":" << std::setw(2) << seconds;
-				renderable = create_list_element(*iter, 0, &thumbnail, duration_text.str());
+				renderable = create_list_element(*iter, 0, &thumbnail, duration_text.str(), &preview_texture);
+				m_preview_textures[full] = preview_texture;
 			}
 			else
 			{
@@ -292,6 +304,12 @@ void Menu::list_files(LinePanel& panel) const
 		panel.add_line(renderable, full);
 	}
 	panel.render_lines();
+}
+
+Thumbnail Menu::load_thumbnail(const std::string& video_file) const
+{
+	ThumbnailStore store(video_file);
+	return store.get_thumbnail(-1.0f);
 }
 
 void Menu::create_points(void)
@@ -472,12 +490,16 @@ void Menu::main_menu(void)
 
 		const float duration = player.duration();
 		const float position = player.playtime();
+		const std::map<std::string, size_t>::const_iterator preview_iter =
+			m_preview_textures.find(Application::instance().current_file_name());
+		const size_t preview_texture = (preview_iter != m_preview_textures.end()) ? preview_iter->second : 0;
 		Panel* p = new ProgressBar(
 			ACTION_PLAY_POSITION,
 			"images/progress-bar" + menu_graphics_extension,
 			"images/progress-cursor" + menu_graphics_extension,
 			duration,
-			position);
+			position,
+			preview_texture);
 		glm::mat4 pose = glm::mat4(1.0f);
 		pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 		pose = m_hmd_pose * pose;

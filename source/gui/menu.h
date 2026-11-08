@@ -34,6 +34,7 @@ class Menu
 		bool m_debounce;
 		bool m_playable;
 		std::string m_current_directory;
+		std::map<std::string, size_t> m_preview_textures;
 		FontRenderer m_font_renderer;
 		SQLiteDB m_database;
 		const std::string menu_graphics_extension;
@@ -41,9 +42,9 @@ class Menu
 		void create_button_panel(const std::vector<action_t>& actions);
 		void create_points(void);
 		size_t create_thumbnail_label(const std::string& text, const bool align_right, const bool top_half) const;
-		size_t create_list_element(const std::string& text, const size_t level = 0, const Thumbnail* background = nullptr, const std::string& duration = "") const;
+		size_t create_list_element(const std::string& text, const size_t level = 0, const Thumbnail* background = nullptr, const std::string& duration = "", size_t* preview_texture = nullptr) const;
 		void list_directories(LinePanel& panel) const;
-		void list_files(LinePanel& panel) const;
+		void list_files(LinePanel& panel);
 		Thumbnail load_thumbnail(const std::string& video_file) const;
 
 		void main_menu(void);

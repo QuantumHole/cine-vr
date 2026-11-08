@@ -54,6 +54,15 @@ class SQLiteDB
 		std::string checksum_file(const std::string& path) const;
 
 	public:
+		/** supported image types for thumbnails. */
+		typedef enum
+		{
+			FORMAT_RGB24,      ///< uncompressed 24 bit RGB values.
+			FORMAT_JPEG,       ///< jpeg compression, intended for regular thumbnails.
+			FORMAT_PNG,        ///< PNG compression, intended for timeline preview images.
+			FORMAT_WEBP        ///< WEBP format, not yet supported.
+		} format_t;
+
 		/** Constructor.
 		 * @param name Database name.
 		 */

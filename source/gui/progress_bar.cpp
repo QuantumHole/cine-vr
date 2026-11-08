@@ -15,7 +15,8 @@ ProgressBar::ProgressBar(
 	const std::string& imagebar,
 	const std::string& imagecursor,
 	const float max,
-	const float pos) :
+	const float pos,
+	const size_t preview) :
 	Panel(action),
 	m_progress_max(max),
 	m_progress_pos(pos),
@@ -34,7 +35,12 @@ ProgressBar::ProgressBar(
 {
 	const std::string extbar = FileSystem().extension(imagebar);
 
-	if (FileSystem().is_image(extbar))
+	if (preview > 0)
+	{
+		m_progress_size = tex2shape * glm::vec2(605.0f, 29.0f);
+		m_background_uses_texture = true;
+	}
+	else if (FileSystem().is_image(extbar))
 	{
 		init_texture(imagebar);
 		m_progress_size = tex2shape * glm::vec2(texture().size());
@@ -67,7 +73,7 @@ ProgressBar::ProgressBar(
 
 	if (m_background_uses_texture)
 	{
-		background_textures.push_back(texture_id());
+		background_textures.push_back(preview > 0 ? preview : texture_id());
 	}
 
 	const size_t shader_id = Application::instance().shader().id();

@@ -329,6 +329,11 @@ Player& Application::player(void)
 	return g_player;
 }
 
+const std::string& Application::current_file_name(void) const
+{
+	return g_current_file_name;
+}
+
 Projection& Application::projection(void)
 {
 	return g_projection;

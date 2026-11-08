@@ -121,6 +121,7 @@ class Application
 		 * @return reference to the player
 		 */
 		Player& player(void);
+		const std::string& current_file_name(void) const;
 
 		/** returns a reference to the projection.
 		 * @return reference to the projection
