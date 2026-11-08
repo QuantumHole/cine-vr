@@ -151,7 +151,7 @@ class SQLiteDB
 		 */
 		void read_thumbnail(const size_t video_id,
 		                    const float time,
-		                    size_t& format,
+		                    format_t& format,
 		                    size_t& width,
 		                    size_t& height,
 		                    std::vector<uint8_t>& data) const;
@@ -166,7 +166,7 @@ class SQLiteDB
 		 */
 		void store_thumbnail(const size_t video_id,
 		                     const float time,
-		                     const size_t format,
+		                     const format_t format,
 		                     const size_t width,
 		                     const size_t height,
 		                     const std::vector<uint8_t>& data) const;

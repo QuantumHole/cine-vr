@@ -606,7 +606,7 @@ void SQLiteDB::store_settings(const size_t video_id,
 
 void SQLiteDB::read_thumbnail(const size_t video_id,
                               const float time,
-                              size_t& format,
+                              format_t& format,
                               size_t& width,
                               size_t& height,
                               std::vector<uint8_t>& data) const
@@ -640,7 +640,7 @@ void SQLiteDB::read_thumbnail(const size_t video_id,
 		throw std::runtime_error("failed binding parameter");
 	}
 
-	format = 0;
+	format = FORMAT_RGB24;
 	width = 0;
 	height = 0;
 	data.clear();
@@ -653,7 +653,7 @@ void SQLiteDB::read_thumbnail(const size_t video_id,
 		switch (status)
 		{
 			case SQLITE_ROW:
-				format = static_cast<size_t>(sqlite3_column_int(stmt, 0));
+				format = static_cast<format_t>(sqlite3_column_int(stmt, 0));
 				width  = static_cast<size_t>(sqlite3_column_int(stmt, 1));
 				height = static_cast<size_t>(sqlite3_column_int(stmt, 2));
 				bytes  = static_cast<size_t>(sqlite3_column_bytes(stmt, 3));
@@ -677,7 +677,7 @@ void SQLiteDB::read_thumbnail(const size_t video_id,
 
 void SQLiteDB::store_thumbnail(const size_t video_id,
                                const float time,
-                               const size_t format,
+                               const format_t format,
                                const size_t width,
                                const size_t height,
                                const std::vector<uint8_t>& data) const

@@ -86,7 +86,7 @@ static void generate_thumbnails(const std::string& video_file, size_t video_id)
 			video_id = database.store_video(video_file, static_cast<float>(generator.duration()));
 		}
 
-		const size_t tn_format = 0;    // uncompressed 24bit RGB values
+		const SQLiteDB::format_t tn_format = SQLiteDB::FORMAT_RGB24;    // uncompressed 24bit RGB values
 		for (const Thumbnail& thumbnail : thumbnails)
 		{
 			const float timestamp = static_cast<float>(thumbnail.timestampMs) / 1000.0f;
@@ -130,7 +130,7 @@ Thumbnail ThumbnailStore::get_thumbnail(const float timestamp) const
 	try
 	{
 		float duration = 0.0f;
-		size_t format = 0;
+		SQLiteDB::format_t format = SQLiteDB::FORMAT_RGB24;
 		size_t width = 0;
 		size_t height = 0;
 		std::vector<uint8_t> data;
@@ -143,7 +143,7 @@ Thumbnail ThumbnailStore::get_thumbnail(const float timestamp) const
 			m_database.read_thumbnail(video_id, timestamp, format, width, height, data);
 		}
 
-		if (!data.empty() && (format == 0) && (width > 0) && (height > 0) &&
+		if (!data.empty() && (format == SQLiteDB::FORMAT_RGB24) && (width > 0) && (height > 0) &&
 		    (width <= static_cast<size_t>(std::numeric_limits<int>::max() / 3)) &&
 		    (height <= static_cast<size_t>(std::numeric_limits<int>::max())))
 		{
