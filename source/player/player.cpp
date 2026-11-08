@@ -46,20 +46,7 @@ Player::Player(void) :
 
 Player::~Player(void)
 {
-	stop_render_thread();
-
-	if (m_render)
-	{
-		mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
-		mpv_render_context_free(m_render);
-		m_render = nullptr;
-	}
-
-	if (m_context)
-	{
-		mpv_terminate_destroy(m_context);
-		m_context = nullptr;
-	}
+	close();
 }
 
 void Player::thread_starter(Player* player)
@@ -417,9 +404,25 @@ void Player::open_file(const std::string& file_name, GLFWwindow* window, const s
 
 void Player::close(void)
 {
-	pause();
+	stop_render_thread();
 
-	std::cout << "player close" << std::endl;
+	if (m_render)
+	{
+		mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
+		mpv_render_context_free(m_render);
+		m_render = nullptr;
+	}
+
+	if (m_context)
+	{
+		mpv_terminate_destroy(m_context);
+		m_context = nullptr;
+	}
+
+	m_initialized = false;
+	m_playing = false;
+	m_framebuffer = 0;
+	m_size = glm::uvec2(0, 0);
 }
 
 void Player::play(void)

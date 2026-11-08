@@ -660,6 +660,7 @@ int Application::run(void)
 
 	// Cleanup
 	g_menu.clear();
+	g_player.close();
 	g_vector.reset();
 	renderer.clear();
 	glfwTerminate();
