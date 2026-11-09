@@ -136,7 +136,7 @@ size_t Menu::create_thumbnail_label(const std::string& text, const bool align_ri
 		Vertex(glm::vec3(right, bottom, 0.001f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
 	};
 	const std::vector<GLuint> indices = {0, 1, 2, 0, 3, 1};
-	return renderer.create_shape_renderable(vertices, indices, std::vector<size_t>(1, texture), Application::instance().shader().id());
+	return renderer.create_shape_renderable(vertices, indices, std::vector<size_t>(1, texture), Application::instance().shader().id(), 1, GL_TRIANGLES, false);
 }
 
 size_t Menu::create_list_element(const std::string& text, const size_t level, const Thumbnail* background, const std::string& duration, size_t* preview_texture) const
@@ -178,7 +178,10 @@ size_t Menu::create_list_element(const std::string& text, const size_t level, co
 			background_vertices,
 			background_indices,
 			std::vector<size_t>(1, background_texture),
-			Application::instance().shader().id());
+			Application::instance().shader().id(),
+			1,
+			GL_TRIANGLES,
+			false);
 		const size_t name_renderable = create_thumbnail_label(text, false, true);
 		const size_t duration_renderable = create_thumbnail_label(duration, true, false);
 		return renderer.create_group({background_renderable, name_renderable, duration_renderable}, false);

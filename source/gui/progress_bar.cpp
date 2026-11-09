@@ -4,8 +4,13 @@
 
 #include "progress_bar.h"
 #include "application.h"
+#include "font_renderer.h"
 #include "util/file_system.h"
+#include <algorithm>
+#include <iomanip>
 #include <iostream>
+#include <limits>
+#include <sstream>
 #include <stdexcept>
 
 static const float tex2shape = 0.01f;
@@ -23,11 +28,16 @@ ProgressBar::ProgressBar(
 	m_renderer(RenderManager::instance()),
 	m_background_renderable(0),
 	m_cursor_renderable(0),
+	m_tooltip_text_renderable(0),
 	m_background_shape_set(0),
 	m_cursor_shape_set(0),
+	m_tooltip_text_shape_set(0),
 	m_cursor_texture(0),
+	m_tooltip_texture(0),
+	m_tooltip_second(std::numeric_limits<size_t>::max()),
 	m_progress_size(0.0f, 0.0f),
 	m_cursor_size(0.0f, 0.0f),
+	m_tooltip_size(0.0f, 0.0f),
 	m_background_transform(1.0f),
 	m_cursor_transform(1.0f),
 	m_background_uses_texture(false),
@@ -111,6 +121,7 @@ ProgressBar::ProgressBar(
 		throw std::runtime_error("unsupported image format: " + extcursor);
 	}
 
+	init_tooltip();
 	set_cursor_position();
 }
 
@@ -118,6 +129,7 @@ ProgressBar::~ProgressBar(void)
 {
 	m_renderer.delete_renderable(m_background_renderable);
 	m_renderer.delete_renderable(m_cursor_renderable);
+	m_renderer.delete_renderable(m_tooltip_text_renderable);
 }
 
 void ProgressBar::set_transform(const glm::mat4& pose)
@@ -184,6 +196,103 @@ void ProgressBar::init_cursor(const glm::vec2& cursor_size)
 	                                                             false);
 }
 
+void ProgressBar::init_tooltip(void)
+{
+	const size_t text_width = 128;
+	const size_t text_height = 24;
+	m_tooltip_size = tex2shape * glm::vec2(static_cast<float>(text_width), static_cast<float>(text_height));
+	const std::vector<GLuint> indices = {0, 1, 2, 0, 3, 1};
+	const size_t shader_id = Application::instance().shader().id();
+	std::vector<uint8_t> pixels(text_width * text_height * sizeof(uint32_t), 0);
+	for (size_t pixel = 0; pixel < text_width * text_height; ++pixel)
+	{
+		pixels[pixel * 4] = 24;
+		pixels[pixel * 4 + 1] = 24;
+		pixels[pixel * 4 + 2] = 24;
+		pixels[pixel * 4 + 3] = 255;
+	}
+	m_tooltip_texture = m_renderer.add_texture(
+		pixels,
+		glm::uvec2(static_cast<GLuint>(text_width), static_cast<GLuint>(text_height)),
+		GL_RGBA,
+		0);
+	const std::vector<Vertex> text_vertices = {
+		Vertex(glm::vec3(-0.5f * m_tooltip_size.x, -0.5f * m_tooltip_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3( 0.5f * m_tooltip_size.x,  0.5f * m_tooltip_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.5f * m_tooltip_size.x,  0.5f * m_tooltip_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3( 0.5f * m_tooltip_size.x, -0.5f * m_tooltip_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
+	};
+	m_tooltip_text_shape_set = m_renderer.create_shape_set();
+	m_renderer.add_shape(m_tooltip_text_shape_set, text_vertices, indices);
+	m_tooltip_text_renderable = m_renderer.create_shape_set_renderable(
+		m_tooltip_text_shape_set, std::vector<size_t>(1, m_tooltip_texture), shader_id, false);
+	m_renderer.enable(m_tooltip_text_renderable, false);
+}
+
+void ProgressBar::update_tooltip(const float position)
+{
+	const unsigned long long total_seconds = static_cast<unsigned long long>(std::max(0.0f, position));
+	const size_t second = static_cast<size_t>(total_seconds);
+
+	if (second != m_tooltip_second)
+	{
+		const unsigned long long hours = total_seconds / 3600;
+		const unsigned int minutes = static_cast<unsigned int>((total_seconds / 60) % 60);
+		const unsigned int seconds = static_cast<unsigned int>(total_seconds % 60);
+		std::ostringstream text;
+		text << std::setfill('0') << std::setw(2) << hours << ":"
+		     << std::setw(2) << minutes << ":" << std::setw(2) << seconds;
+
+		FontRenderer font_renderer;
+		font_renderer.load_font("/usr/share/fonts/TTF/OpenSans-Regular.ttf");
+		std::vector<uint32_t> glyphs;
+		font_renderer.render_text(text.str(), 24, glyphs);
+		const size_t glyph_width = glyphs.size() / 24;
+		const size_t visible_width = std::min<size_t>(glyph_width, 128);
+		std::vector<uint8_t> pixels(128 * 24 * sizeof(uint32_t), 0);
+		for (size_t pixel = 0; pixel < 128 * 24; ++pixel)
+		{
+			pixels[pixel * 4] = 24;
+			pixels[pixel * 4 + 1] = 24;
+			pixels[pixel * 4 + 2] = 24;
+			pixels[pixel * 4 + 3] = 255;
+		}
+		const uint8_t* glyph_data = reinterpret_cast<const uint8_t*>(glyphs.data());
+		const size_t left = (128 - visible_width) / 2;
+
+		for (size_t row = 0; row < 24; ++row)
+		{
+			const size_t source_offset = row * glyph_width * sizeof(uint32_t);
+			const size_t target_offset = (row * 128 + left) * sizeof(uint32_t);
+			for (size_t column = 0; column < visible_width; ++column)
+			{
+				const uint8_t coverage = glyph_data[source_offset + column * 4];
+				if (coverage > 0)
+				{
+					pixels[target_offset + column * 4] = coverage;
+					pixels[target_offset + column * 4 + 1] = coverage;
+					pixels[target_offset + column * 4 + 2] = coverage;
+					pixels[target_offset + column * 4 + 3] = 255;
+				}
+			}
+		}
+
+		m_renderer.texture(m_tooltip_texture).init_data(
+			pixels, glm::uvec2(128, 24), GL_RGBA, 0);
+		m_tooltip_second = second;
+	}
+
+	const float fraction = (m_progress_max > 0.0f)
+		? glm::clamp(position / m_progress_max, 0.0f, 1.0f)
+		: 0.0f;
+	const float max_shift = 0.5f * (m_progress_size.x - m_tooltip_size.x);
+	const float shift = glm::clamp((fraction - 0.5f) * m_progress_size.x, -max_shift, max_shift);
+	const float height = 0.5f * (m_progress_size.y + m_tooltip_size.y) + 0.02f;
+	const glm::mat4 tooltip_pose = glm::translate(Panel::pose(), glm::vec3(shift, height, 2e-4f));
+	m_renderer.set_shape_set_transform(m_tooltip_text_shape_set, tooltip_pose);
+	m_renderer.enable(m_tooltip_text_renderable, true);
+}
+
 void ProgressBar::draw(void) const
 {
 	ShaderSet& shader = Application::instance().shader();
@@ -192,16 +301,28 @@ void ProgressBar::draw(void) const
 	m_renderer.draw(m_background_renderable);
 	shader.set_uniform("background", m_cursor_uses_texture);
 	m_renderer.draw(m_cursor_renderable);
+	shader.set_uniform("background", true);
+	m_renderer.draw(m_tooltip_text_renderable);
 	shader.set_uniform("background", false);
 }
 
 void ProgressBar::update_state(void)
 {
+	m_renderer.enable(m_tooltip_text_renderable, false);
 	set_cursor_position();
 }
 
 bool ProgressBar::update_on_interaction(const intersection_t isec, const OpenVRInterface::input_state_t& input)
 {
+	if (isec.hit && (m_progress_max > 0.0f))
+	{
+		update_tooltip(isec.local.x * m_progress_max);
+	}
+	else
+	{
+		m_renderer.enable(m_tooltip_text_renderable, false);
+	}
+
 	if (input.trigger.button.released && isec.hit)
 	{
 		const float step = m_progress_max * isec.local.x - m_progress_pos;

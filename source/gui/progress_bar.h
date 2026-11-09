@@ -16,17 +16,24 @@ class ProgressBar : public Panel
 		RenderManager& m_renderer;
 		RenderManager::RenderableId m_background_renderable;
 		RenderManager::RenderableId m_cursor_renderable;
+		RenderManager::RenderableId m_tooltip_text_renderable;
 		size_t m_background_shape_set;
 		size_t m_cursor_shape_set;
+		size_t m_tooltip_text_shape_set;
 		size_t m_cursor_texture;
+		size_t m_tooltip_texture;
+		size_t m_tooltip_second;
 		glm::vec2 m_progress_size;
 		glm::vec2 m_cursor_size;
+		glm::vec2 m_tooltip_size;
 		glm::mat4 m_background_transform;
 		glm::mat4 m_cursor_transform;
 		bool m_background_uses_texture;
 		bool m_cursor_uses_texture;
 
 		void init_cursor(const glm::vec2& cursor_size);
+		void init_tooltip(void);
+		void update_tooltip(const float position);
 		void set_cursor_position(void);
 
 	public:

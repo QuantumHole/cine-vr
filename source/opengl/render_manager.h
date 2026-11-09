@@ -139,7 +139,8 @@ class RenderManager
 		                                     const std::vector<size_t>& textures,
 		                                     const size_t shader_id,
 		                                     const size_t instances = 1,
-		                                     const GLenum type = GL_TRIANGLES);
+	                                     const GLenum type = GL_TRIANGLES,
+	                                     const bool draw_all = true);
 
 		/** Create a renderable group. Children remain independently addressable. */
 		RenderableId create_group(const std::vector<RenderableId>& children, const bool draw_all = true);
