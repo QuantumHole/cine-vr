@@ -113,12 +113,8 @@ void Panel::clear(void)
 
 void Panel::text(const std::string& text, const size_t font_height, const int32_t x, const int32_t y) const
 {
-	FontRenderer renderer;
-
-	renderer.load_font("/usr/share/fonts/TTF/OpenSans-Regular.ttf");
-
 	std::vector<uint32_t> image;
-	renderer.render_text(text, font_height, image);
+	FontRenderer::instance().render_text(text, font_height, image);
 
 	const size_t width = image.size() / font_height;
 	const glm::uvec2& tex_size = texture().size();

@@ -243,10 +243,8 @@ void ProgressBar::update_tooltip(const float position)
 		text << std::setfill('0') << std::setw(2) << hours << ":"
 		     << std::setw(2) << minutes << ":" << std::setw(2) << seconds;
 
-		FontRenderer font_renderer;
-		font_renderer.load_font("/usr/share/fonts/TTF/OpenSans-Regular.ttf");
 		std::vector<uint32_t> glyphs;
-		font_renderer.render_text(text.str(), 24, glyphs);
+		FontRenderer::instance().render_text(text.str(), 24, glyphs);
 		const size_t glyph_width = glyphs.size() / 24;
 		const size_t visible_width = std::min<size_t>(glyph_width, 128);
 		std::vector<uint8_t> pixels(128 * 24 * sizeof(uint32_t), 0);

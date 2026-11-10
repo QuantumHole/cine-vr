@@ -450,6 +450,9 @@ int Application::run(void)
 		iter->init(render_size);
 	}
 
+	// load font for Renderer initially
+	FontRenderer::instance().load_font("/usr/share/fonts/TTF/OpenSans-Regular.ttf");
+
 	// create shaders & geometry
 	RenderManager& renderer = RenderManager::instance();
 	g_scene_shader = renderer.add_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");

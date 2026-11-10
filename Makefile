@@ -49,6 +49,7 @@ OBJECTS = \
 	$(BUILD_DIR)/sqlitedb.o \
 	$(BUILD_DIR)/thumbnail_generator.o \
 	$(BUILD_DIR)/thumbnail_store.o \
+	$(BUILD_DIR)/list_element.o \
 
 all: $(TARGET)
 

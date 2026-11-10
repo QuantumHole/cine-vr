@@ -10,6 +10,7 @@
 #include "slide_button.h"
 #include "progress_bar.h"
 #include "database/thumbnail_store.h"
+#include "list_element.h"
 
 #include <algorithm>
 #include <glm/gtc/type_ptr.hpp>
@@ -30,16 +31,11 @@ Menu::Menu(void) :
 	m_focus(ACTION_NONE),
 	m_debounce(false),
 	m_playable(false),
-	m_current_directory(""),
-		m_preview_textures(),
-	m_font_renderer(),
+	m_current_directory(FileSystem().current_directory()),
+	m_preview_textures(),
 	m_database("cine-vr"),
 	menu_graphics_extension(".svg")
 {
-	FileSystem fs;
-
-	m_current_directory = fs.current_directory();
-	m_font_renderer.load_font("/usr/share/fonts/TTF/OpenSans-Regular.ttf");
 }
 
 Menu::~Menu(void)
@@ -99,7 +95,7 @@ size_t Menu::create_thumbnail_label(const std::string& text, const bool align_ri
 {
 	const size_t font_height = LinePanel::line_height;
 	std::vector<uint32_t> glyphs;
-	m_font_renderer.render_text(text, font_height, glyphs);
+	FontRenderer::instance().render_text(text, font_height, glyphs);
 	const size_t glyph_width = glyphs.size() / font_height;
 	const size_t visible_width = std::min(glyph_width, LinePanel::texture_width);
 	const size_t texture_width = std::max<size_t>(1, visible_width);
@@ -136,7 +132,14 @@ size_t Menu::create_thumbnail_label(const std::string& text, const bool align_ri
 		Vertex(glm::vec3(right, bottom, 0.001f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
 	};
 	const std::vector<GLuint> indices = {0, 1, 2, 0, 3, 1};
-	return renderer.create_shape_renderable(vertices, indices, std::vector<size_t>(1, texture), Application::instance().shader().id(), 1, GL_TRIANGLES, false);
+	return renderer.create_shape_renderable(
+		vertices,
+		indices,
+		std::vector<size_t>(1, texture),
+		Application::instance().shader().id(),
+		1,
+		GL_TRIANGLES,
+		false);
 }
 
 size_t Menu::create_list_element(const std::string& text, const size_t level, const Thumbnail* background, const std::string& duration, size_t* preview_texture) const
@@ -186,49 +189,9 @@ size_t Menu::create_list_element(const std::string& text, const size_t level, co
 		const size_t duration_renderable = create_thumbnail_label(duration, true, false);
 		return renderer.create_group({background_renderable, name_renderable, duration_renderable}, false);
 	}
-	else
-	{
-		std::vector<uint32_t> glyphs;
-		m_font_renderer.render_text(text, LinePanel::line_height, glyphs);
-		const size_t glyph_width = glyphs.size() / LinePanel::line_height;
-		const size_t visible_width =
-			(indent < LinePanel::texture_width)
-			? std::min(glyph_width, LinePanel::texture_width - indent)
-			: 0;
 
-		if (visible_width > 0)
-		{
-			const uint8_t* glyph_data = reinterpret_cast<const uint8_t*>(glyphs.data());
-			for (size_t row = 0; row < LinePanel::line_height; row++)
-			{
-				const size_t source_offset = row * glyph_width * sizeof(uint32_t);
-				const size_t target_offset = (row * LinePanel::texture_width + indent) * sizeof(uint32_t);
-				std::copy(glyph_data + source_offset,
-				          glyph_data + source_offset + visible_width * sizeof(uint32_t),
-				          image.begin() + static_cast<std::ptrdiff_t>(target_offset));
-			}
-		}
-	}
-
-	RenderManager& renderer = RenderManager::instance();
-	const size_t texture = renderer.create_texture();
-	renderer.texture(texture).init_data(image, glm::uvec2(LinePanel::texture_width, LinePanel::line_height), GL_RGBA, 0);
-
-	const size_t shape_set = renderer.create_shape_set();
-	const std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3( 0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3( 0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
-	};
-	const std::vector<GLuint> indices = {0, 1, 2, 0, 3, 1};
-	renderer.add_shape(shape_set, vertices, indices);
-	const size_t renderable = renderer.create_shape_set_renderable(shape_set,
-	                                                               std::vector<size_t>(1, texture),
-	                                                               Application::instance().shader().id(),
-	                                                               false);
-
-	return renderable;
+	ListElement element;
+	return element.create_text_element(text, level);
 }
 
 void Menu::list_directories(LinePanel& panel) const
@@ -268,6 +231,7 @@ void Menu::list_files(LinePanel& panel)
 	panel.clear_lines();
 	m_preview_textures.clear();
 
+	ListElement element;
 	for (std::set<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); iter++)
 	{
 		const std::string full = m_current_directory + "/" + *iter;

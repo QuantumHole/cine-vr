@@ -35,7 +35,6 @@ class Menu
 		bool m_playable;
 		std::string m_current_directory;
 		std::map<std::string, size_t> m_preview_textures;
-		FontRenderer m_font_renderer;
 		SQLiteDB m_database;
 		const std::string menu_graphics_extension;
 

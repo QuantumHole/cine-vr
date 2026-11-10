@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <sstream>
 
+FontRenderer* FontRenderer::m_instance = nullptr;
+
 static uint8_t mask_byte(const char byte)
 {
 	return static_cast<uint8_t>(0xff & byte);
@@ -156,6 +158,15 @@ FontRenderer::~FontRenderer(void)
 		FT_Done_FreeType(m_library);
 		m_library = nullptr;
 	}
+}
+
+FontRenderer& FontRenderer::instance(void)
+{
+	if (m_instance == nullptr)
+	{
+		m_instance = new FontRenderer();
+	}
+	return *m_instance;
 }
 
 void FontRenderer::load_font(const std::string& filename)

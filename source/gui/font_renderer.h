@@ -14,14 +14,17 @@
 class FontRenderer
 {
 	private:
+		static FontRenderer* m_instance;
+
 		FT_Library m_library;
 		FT_Face m_face;
 
+		FontRenderer(void);
 		FontRenderer(const FontRenderer&);
 		FontRenderer& operator=(const FontRenderer&);
 
 	public:
-		FontRenderer(void);
+		static FontRenderer& instance(void);
 		~FontRenderer(void);
 		void load_font(const std::string& filename);
 		void render_text(const std::string& text, const size_t font_height, std::vector<uint32_t>& image) const;
