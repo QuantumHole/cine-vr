@@ -14,11 +14,14 @@
 
 struct ThumbnailVolume
 {
-	ThumbnailVolume(void) : size(0, 0), timestamps(), pixels()
+	ThumbnailVolume(void) :
+		size(0, 0, 0),
+		duration(0.0),
+		pixels()
 	{
 	}
-	glm::uvec2 size;
-	std::vector<float> timestamps;
+	glm::uvec3 size;
+	float duration;
 	std::vector<uint8_t> pixels;
 };
 

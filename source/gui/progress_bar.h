@@ -26,8 +26,8 @@ class ProgressBar : public Panel
 		size_t m_tooltip_texture;
 		size_t m_preview_texture;
 		size_t m_tooltip_second;
-		std::vector<float> m_preview_timestamps;
 		float m_preview_slice;
+		glm::uvec3 m_preview_size;
 		glm::vec2 m_progress_size;
 		glm::vec2 m_cursor_size;
 		glm::vec2 m_tooltip_size;
@@ -60,7 +60,7 @@ class ProgressBar : public Panel
 			const float pos,
 			const size_t preview,
 			const size_t preview_volume,
-			const std::vector<float>& preview_timestamps);
+			const glm::uvec3& preview_size);
 		~ProgressBar(void) override;
 		void set_transform(const glm::mat4& pose) override;
 		void set_max(const float max);

@@ -15,6 +15,7 @@
 #include <stdexcept>
 
 static const float tex2shape = 0.01f;
+static const size_t text_width = 4 * FontRenderer::font_size;
 
 ProgressBar::ProgressBar(
 	const action_t action,
@@ -24,7 +25,7 @@ ProgressBar::ProgressBar(
 	const float pos,
 	const size_t preview,
 	const size_t preview_volume,
-	const std::vector<float>& preview_timestamps) :
+	const glm::uvec3& preview_size) :
 	Panel(action),
 	m_progress_max(max),
 	m_progress_pos(pos),
@@ -41,8 +42,8 @@ ProgressBar::ProgressBar(
 	m_tooltip_texture(0),
 	m_preview_texture(preview_volume),
 	m_tooltip_second(std::numeric_limits<size_t>::max()),
-	m_preview_timestamps(preview_timestamps),
 	m_preview_slice(0.0f),
+	m_preview_size(preview_size),
 	m_progress_size(0.0f, 0.0f),
 	m_cursor_size(0.0f, 0.0f),
 	m_tooltip_size(0.0f, 0.0f),
@@ -213,30 +214,26 @@ void ProgressBar::init_cursor(const glm::vec2& cursor_size)
 
 void ProgressBar::init_tooltip(void)
 {
-	const size_t text_width = 128;
-	const size_t text_height = 24;
+	m_tooltip_text_size = 0.003f * glm::vec2(static_cast<float>(text_width), static_cast<float>(FontRenderer::font_size));
 
-	m_tooltip_text_size = tex2shape * glm::vec2(static_cast<float>(text_width), static_cast<float>(text_height));
-
-	if ((m_preview_texture > 0) && !m_preview_timestamps.empty())
+	if (m_preview_texture > 0)
 	{
-		m_tooltip_image_size = tex2shape * glm::vec2(static_cast<float>(text_width), static_cast<float>(text_width) * (9.0f / 16.0f));
-		m_tooltip_text_size = 0.25f * m_tooltip_image_size;
+		m_tooltip_image_size = 0.003f * glm::vec2(static_cast<float>(m_preview_size.x), static_cast<float>(m_preview_size.y));
 	}
 	m_tooltip_size = (m_tooltip_image_size.x > 0.0f) ? m_tooltip_image_size : m_tooltip_text_size;
 	const std::vector<GLuint> indices = {0, 1, 2, 0, 3, 1};
 	const size_t shader_id = Application::instance().shader().id();
-	std::vector<uint8_t> pixels(text_width * text_height * sizeof(uint32_t), 0);
-	for (size_t pixel = 0; pixel < text_width * text_height; ++pixel)
+	std::vector<uint8_t> pixels(text_width * FontRenderer::font_size * sizeof(uint32_t), 0);
+	for (size_t pixel = 0; pixel < text_width * FontRenderer::font_size; pixel++)
 	{
 		pixels[pixel * 4] = 24;
 		pixels[pixel * 4 + 1] = 24;
 		pixels[pixel * 4 + 2] = 24;
-		pixels[pixel * 4 + 3] = 160;
+		pixels[pixel * 4 + 3] = 128;
 	}
 	m_tooltip_texture = m_renderer.add_texture(
 		pixels,
-		glm::uvec2(static_cast<GLuint>(text_width), static_cast<GLuint>(text_height)),
+		glm::uvec2(static_cast<GLuint>(text_width), static_cast<GLuint>(FontRenderer::font_size)),
 		GL_RGBA,
 		0);
 	const std::vector<Vertex> text_vertices = {
@@ -251,7 +248,7 @@ void ProgressBar::init_tooltip(void)
 		m_tooltip_text_shape_set, std::vector<size_t>(1, m_tooltip_texture), shader_id, false);
 	m_renderer.enable(m_tooltip_text_renderable, false);
 
-	if ((m_preview_texture > 0) && !m_preview_timestamps.empty())
+	if (m_preview_texture > 0)
 	{
 		const std::vector<Vertex> image_vertices = {
 			Vertex(glm::vec3(-0.5f * m_tooltip_image_size.x, -0.5f * m_tooltip_image_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
@@ -269,23 +266,9 @@ void ProgressBar::init_tooltip(void)
 
 void ProgressBar::update_tooltip(const float position)
 {
-	if (!m_preview_timestamps.empty())
+	if (m_preview_size.z > 0)
 	{
-		const std::vector<float>::const_iterator next = std::lower_bound(
-			m_preview_timestamps.begin(), m_preview_timestamps.end(), position);
-		size_t slice = 0;
-
-		if (next == m_preview_timestamps.end())
-		{
-			slice = m_preview_timestamps.size() - 1;
-		}
-		else if (next != m_preview_timestamps.begin())
-		{
-			const size_t upper = static_cast<size_t>(next - m_preview_timestamps.begin());
-			const size_t lower = upper - 1;
-			slice = (position - m_preview_timestamps[lower] <= m_preview_timestamps[upper] - position) ? lower : upper;
-		}
-		m_preview_slice = (static_cast<float>(slice) + 0.5f) / static_cast<float>(m_preview_timestamps.size());
+		m_preview_slice = std::min(1.0f, position / m_progress_max);
 	}
 	const unsigned long long total_seconds = static_cast<unsigned long long>(std::max(0.0f, position));
 	const size_t second = static_cast<size_t>(total_seconds);
@@ -296,44 +279,46 @@ void ProgressBar::update_tooltip(const float position)
 		const unsigned int minutes = static_cast<unsigned int>((total_seconds / 60) % 60);
 		const unsigned int seconds = static_cast<unsigned int>(total_seconds % 60);
 		std::ostringstream text;
-		text << std::setfill('0') << std::setw(2) << hours << ":"
-		     << std::setw(2) << minutes << ":" << std::setw(2) << seconds;
+		text << std::setfill('0')
+			 << std::setw(2) << hours << ":"
+		     << std::setw(2) << minutes << ":"
+			 << std::setw(2) << seconds;
 
 		std::vector<uint32_t> glyphs;
 		FontRenderer::instance().render_text(text.str(), glyphs);
 		const size_t glyph_width = glyphs.size() / FontRenderer::font_size;
-		const size_t visible_width = std::min<size_t>(glyph_width, 128);
-		std::vector<uint8_t> pixels(128 * FontRenderer::font_size* sizeof(uint32_t), 0);
-		for (size_t pixel = 0; pixel < 128 * FontRenderer::font_size; pixel++)
+		const size_t visible_width = std::min<size_t>(glyph_width, text_width);
+		std::vector<uint8_t> pixels(text_width * FontRenderer::font_size * sizeof(uint32_t), 0);
+		for (size_t pixel = 0; pixel < pixels.size(); pixel+=4)
 		{
-			pixels[pixel * 4] = 24;
-			pixels[pixel * 4 + 1] = 24;
-			pixels[pixel * 4 + 2] = 24;
-			pixels[pixel * 4 + 3] = 160;
+			pixels[pixel + 0] = 24;
+			pixels[pixel + 1] = 24;
+			pixels[pixel + 2] = 24;
+			pixels[pixel + 3] = 160;
 		}
 		const uint8_t* glyph_data = reinterpret_cast<const uint8_t*>(glyphs.data());
-		const size_t left = (128 - visible_width) / 2;
+		const size_t left = (text_width - visible_width) / 2;
 
-		for (size_t row = 0; row < 24; ++row)
+		for (size_t row = 0; row < FontRenderer::font_size; row++)
 		{
 			const size_t source_offset = row * glyph_width * sizeof(uint32_t);
-			const size_t target_offset = (row * 128 + left) * sizeof(uint32_t);
-			for (size_t column = 0; column < visible_width; ++column)
+			const size_t target_offset = (row * text_width + left) * sizeof(uint32_t);
+			for (size_t column = 0; column < 4 * visible_width; column += 4)
 			{
-				const uint8_t coverage = glyph_data[source_offset + column * 4];
+				const uint8_t coverage = glyph_data[source_offset + column];
 
 				if (coverage > 0)
 				{
-					pixels[target_offset + column * 4] = coverage;
-					pixels[target_offset + column * 4 + 1] = coverage;
-					pixels[target_offset + column * 4 + 2] = coverage;
-					pixels[target_offset + column * 4 + 3] = 255;
+					pixels[target_offset + column + 0] = coverage;
+					pixels[target_offset + column + 1] = coverage;
+					pixels[target_offset + column + 2] = coverage;
+					pixels[target_offset + column + 3] = 255;
 				}
 			}
 		}
 
 		m_renderer.texture(m_tooltip_texture).init_data(
-			pixels, glm::uvec2(128, 24), GL_RGBA, 0);
+			pixels, glm::uvec2(text_width, FontRenderer::font_size), GL_RGBA, 0);
 		m_tooltip_second = second;
 	}
 
@@ -348,7 +333,7 @@ void ProgressBar::update_tooltip(const float position)
 	const glm::mat4 text_pose = glm::translate(tooltip_pose, glm::vec3(0.0f, text_y, 1e-3f));
 	m_renderer.set_shape_set_transform(m_tooltip_text_shape_set, text_pose);
 
-	if ((m_preview_texture > 0) && !m_preview_timestamps.empty())
+	if (m_preview_texture > 0)
 	{
 		m_renderer.set_shape_set_transform(m_tooltip_image_shape_set, tooltip_pose);
 		m_renderer.enable(m_tooltip_image_renderable, true);
@@ -366,7 +351,7 @@ void ProgressBar::draw(void) const
 	m_renderer.draw(m_cursor_renderable);
 	shader.set_uniform("background", true);
 
-	if ((m_preview_texture > 0) && !m_preview_timestamps.empty())
+	if (m_preview_texture > 0)
 	{
 		shader.set_uniform("preview3d", 1);
 		shader.set_uniform("use_preview3d", 1);

@@ -142,11 +142,9 @@ Thumbnail ThumbnailStore::get_thumbnail(const float timestamp) const
 		size_t slices = 0;
 		std::vector<uint8_t> data;
 		const size_t video_id = m_database.read_video(m_file_path, duration);
-		std::cout << m_file_path << ", video_id: " << video_id << ", duration: " << duration << std::endl;
 
 		if (video_id)
 		{
-			std::cout << m_file_path << ": reading thumbnail for video_id: " << video_id << std::endl;
 			m_database.read_thumbnail(video_id, timestamp, format, width, height, slices, data);
 		}
 
@@ -221,13 +219,12 @@ ThumbnailVolume ThumbnailStore::get_thumbnail_volume(void) const
 		return volume;
 	}
 
-	volume.size = glm::uvec2(static_cast<unsigned int>(width), static_cast<unsigned int>(height));
+	volume.duration = duration;
+	volume.size = glm::uvec3(
+		static_cast<unsigned int>(width),
+		static_cast<unsigned int>(height),
+		static_cast<unsigned int>(slices));
 	volume.pixels = pixels;
 
-	// fake timestamps from thumbnails
-	for (size_t i = 0; i < slices; i++)
-	{
-		volume.timestamps.push_back(duration * static_cast<float>(i) / static_cast<float>(slices));
-	}
 	return volume;
 }

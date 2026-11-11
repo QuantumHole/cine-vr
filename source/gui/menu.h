@@ -37,11 +37,15 @@ class Menu
 		std::map<std::string, size_t> m_preview_textures;
 		struct preview_volume_t
 		{
-			preview_volume_t(void) : texture(0), timestamps()
+			preview_volume_t(void) :
+				texture(0),
+				size(0, 0, 0),
+				duration(0.0f)
 			{
 			}
 			size_t texture;
-			std::vector<float> timestamps;
+			glm::uvec3 size;
+			float duration;
 		};
 		std::map<std::string, preview_volume_t> m_preview_volumes;
 		SQLiteDB m_database;

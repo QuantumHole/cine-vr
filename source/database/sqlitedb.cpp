@@ -1009,6 +1009,11 @@ void SQLiteDB::store_thumbnail(const size_t video_id,
 		throw std::runtime_error("failed binding parameter");
 	}
 
+	if (data.size() > 1000000000)
+	{
+		throw std::runtime_error("thumbnails too big.");
+	}
+
 	status = sqlite3_bind_blob(stmt, 7, data.data(), static_cast<int>(data.size()), SQLITE_STATIC);
 
 	if (status != SQLITE_OK)

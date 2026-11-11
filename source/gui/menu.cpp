@@ -468,14 +468,15 @@ void Menu::main_menu(void)
 		{
 			const ThumbnailVolume volume = ThumbnailStore(current_file).get_thumbnail_volume();
 
-			if (!volume.timestamps.empty())
+			if (volume.size.z > 0)
 			{
 				RenderManager& renderer = RenderManager::instance();
 				preview_volume.texture = renderer.create_texture();
-				preview_volume.timestamps = volume.timestamps;
+				preview_volume.size = volume.size;
+				preview_volume.duration = duration;
 				renderer.texture(preview_volume.texture).init_data_3d(
 					volume.pixels,
-					glm::uvec3(volume.size.x, volume.size.y, static_cast<GLuint>(volume.timestamps.size())),
+					volume.size,
 					GL_RGB,
 					1);
 			}
@@ -488,7 +489,7 @@ void Menu::main_menu(void)
 			position,
 			preview_texture,
 			preview_volume.texture,
-			preview_volume.timestamps);
+			preview_volume.size);
 		glm::mat4 pose = glm::mat4(1.0f);
 		pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 		pose = m_hmd_pose * pose;
