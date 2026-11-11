@@ -16,7 +16,7 @@ class SimpleButton : public Panel
 	protected:
 		static const glm::vec2 m_button_size;
 		RenderManager& m_renderer;
-		RenderManager::RenderableId m_renderable_id;
+		size_t m_renderable_id;
 		size_t m_shape_set_id;
 		glm::mat4 m_graphic_transform;
 		bool m_graphic_uses_texture;

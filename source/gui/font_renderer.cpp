@@ -9,6 +9,7 @@
 #include <sstream>
 
 FontRenderer* FontRenderer::m_instance = nullptr;
+const size_t FontRenderer::font_size = 30;
 
 static uint8_t mask_byte(const char byte)
 {
@@ -181,16 +182,9 @@ void FontRenderer::load_font(const std::string& filename)
 }
 
 void FontRenderer::render_text(const std::string& text,
-                               const size_t font_height,
                                std::vector<uint32_t>& image) const
 {
-	if (font_height == 0)
-	{
-		image.clear();
-		return;
-	}
-
-	FT_UInt pixel_size = static_cast<FT_UInt>(font_height);
+	FT_UInt pixel_size = static_cast<FT_UInt>(font_size);
 	FT_Error status = 0;
 	size_t descent = 0;
 
@@ -208,12 +202,12 @@ void FontRenderer::render_text(const std::string& text,
 		const size_t ascent_pixels = static_cast<size_t>((ascender + 63) / 64);
 		descent = static_cast<size_t>((-descender + 63) / 64);
 
-		if ((ascent_pixels + descent <= font_height) || (pixel_size == 1))
+		if ((ascent_pixels + descent <= font_size) || (pixel_size == 1))
 		{
 			break;
 		}
 
-		--pixel_size;
+		pixel_size--;
 	}
 
 	/* cmap selection omitted;                                        */
@@ -268,7 +262,7 @@ void FontRenderer::render_text(const std::string& text,
 		pen.x += slot->advance.x;
 		pen.y += slot->advance.y;
 	}
-	image.resize(font_height * image_width);
+	image.resize(font_size * image_width);
 
 	/* draw text to bitmap */
 	pen.x = 0;
@@ -298,8 +292,8 @@ void FontRenderer::render_text(const std::string& text,
 		/* now, draw to our target surface (convert position) */
 		draw_bitmap(&slot->bitmap,
 		            static_cast<size_t>(slot->bitmap_left),
-		            font_height - descent - static_cast<size_t>(slot->bitmap_top),
-		            font_height,
+		            font_size - descent - static_cast<size_t>(slot->bitmap_top),
+		            font_size,
 		            image);
 
 		/* increment pen position */

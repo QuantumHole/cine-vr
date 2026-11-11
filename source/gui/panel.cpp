@@ -111,22 +111,22 @@ void Panel::clear(void)
 	texture().unbind();
 }
 
-void Panel::text(const std::string& text, const size_t font_height, const int32_t x, const int32_t y) const
+void Panel::text(const std::string& text) const
 {
 	std::vector<uint32_t> image;
-	FontRenderer::instance().render_text(text, font_height, image);
+	FontRenderer::instance().render_text(text, image);
 
-	const size_t width = image.size() / font_height;
+	const size_t width = image.size() / FontRenderer::font_size;
 	const glm::uvec2& tex_size = texture().size();
 
 	/* copy only the visible section of the surface */
 	texture().bind();
-	for (size_t i = 0; i < font_height; i++)
+	for (size_t i = 0; i < FontRenderer::font_size; i++)
 	{
 		glTexSubImage2D(GL_TEXTURE_2D, 0,
-		                x,
-		                y + static_cast<GLint>(i),
-		                std::min(static_cast<GLsizei>(width), static_cast<GLsizei>(std::max(0, static_cast<int32_t>(tex_size.x) - x))),
+		                0,
+		                static_cast<GLint>(i),
+		                std::min(static_cast<GLsizei>(width), static_cast<GLsizei>(tex_size.x)),
 		                1,
 		                GL_RGBA, GL_UNSIGNED_BYTE,
 		                image.data() + static_cast<ptrdiff_t>(i * width));

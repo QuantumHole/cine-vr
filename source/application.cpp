@@ -361,7 +361,7 @@ void Application::update_projection(void)
 	{
 		textures.push_back(g_video_texture);
 	}
-	const RenderManager::RenderableId new_renderable =
+	const size_t new_renderable =
 		renderer.create_shape_set_renderable(new_shape_set, textures, g_scene_shader);
 
 	if (g_scene_ready)

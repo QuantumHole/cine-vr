@@ -14,10 +14,10 @@ class ProgressBar : public Panel
 		float m_progress_max;
 		float m_progress_pos;
 		RenderManager& m_renderer;
-		RenderManager::RenderableId m_background_renderable;
-		RenderManager::RenderableId m_cursor_renderable;
-		RenderManager::RenderableId m_tooltip_text_renderable;
-		RenderManager::RenderableId m_tooltip_image_renderable;
+		size_t m_background_renderable;
+		size_t m_cursor_renderable;
+		size_t m_tooltip_text_renderable;
+		size_t m_tooltip_image_renderable;
 		size_t m_background_shape_set;
 		size_t m_cursor_shape_set;
 		size_t m_tooltip_text_shape_set;

@@ -277,7 +277,7 @@ void RenderManager::enable(const size_t compound_id, const bool active)
 	m_renderables[compound_id].active = active;
 }
 
-void RenderManager::set_textures(const RenderableId id, const std::vector<size_t>& textures)
+void RenderManager::set_textures(const size_t id, const std::vector<size_t>& textures)
 {
 	if ((id >= m_renderables.size()) || m_renderables[id].deleted || m_renderables[id].is_group)
 	{
@@ -340,7 +340,7 @@ void RenderManager::draw(void) const
 	}
 }
 
-void RenderManager::draw(const RenderableId id) const
+void RenderManager::draw(const size_t id) const
 {
 	if ((id >= m_renderables.size()) || m_renderables[id].deleted)
 	{
@@ -349,7 +349,7 @@ void RenderManager::draw(const RenderableId id) const
 	draw(id, glm::mat4(1.0f), 1.0f);
 }
 
-void RenderManager::draw(const RenderableId id, const glm::mat4& transform, const float opacity) const
+void RenderManager::draw(const size_t id, const glm::mat4& transform, const float opacity) const
 {
 	if ((id >= m_renderables.size()) || m_renderables[id].deleted)
 	{

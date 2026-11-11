@@ -295,11 +295,11 @@ void ProgressBar::update_tooltip(const float position)
 		     << std::setw(2) << minutes << ":" << std::setw(2) << seconds;
 
 		std::vector<uint32_t> glyphs;
-		FontRenderer::instance().render_text(text.str(), 24, glyphs);
-		const size_t glyph_width = glyphs.size() / 24;
+		FontRenderer::instance().render_text(text.str(), glyphs);
+		const size_t glyph_width = glyphs.size() / FontRenderer::font_size;
 		const size_t visible_width = std::min<size_t>(glyph_width, 128);
-		std::vector<uint8_t> pixels(128 * 24 * sizeof(uint32_t), 0);
-		for (size_t pixel = 0; pixel < 128 * 24; ++pixel)
+		std::vector<uint8_t> pixels(128 * FontRenderer::font_size * sizeof(uint32_t), 0);
+		for (size_t pixel = 0; pixel < 128 * FontRenderer::font_size; pixel++)
 		{
 			pixels[pixel * 4] = 24;
 			pixels[pixel * 4 + 1] = 24;

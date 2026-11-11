@@ -28,7 +28,7 @@ LinePanel::LinePanel(const action_t action, const std::string& title) :
 
 	const glm::vec2 title_size(shape_size.x, line_height * shape_size.x / static_cast<float>(texture_width));
 	m_title_bar.init_area(title_size, panel_color, glm::uvec2(texture_width, line_height));
-	m_title_bar.text(m_title, line_height, 0, 0);
+	m_title_bar.text(m_title);
 
 	init_text_bar(m_selection_bar);
 	set_view_size(glm::uvec2(texture_width, line_height * max_lines));

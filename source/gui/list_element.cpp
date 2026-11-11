@@ -11,18 +11,17 @@ ListElement::ListElement(void)
 
 size_t ListElement::create_thumbnail_label(const std::string& text, const bool align_right, const bool top_half) const
 {
-	const size_t font_height = LinePanel::line_height;
 	std::vector<uint32_t> glyphs;
-	FontRenderer::instance().render_text(text, font_height, glyphs);
-	const size_t glyph_width = glyphs.size() / font_height;
+	FontRenderer::instance().render_text(text, glyphs);
+	const size_t glyph_width = glyphs.size() / FontRenderer::font_size;
 	const size_t visible_width = std::min(glyph_width, LinePanel::texture_width);
 	const size_t texture_width = std::max<size_t>(1, visible_width);
-	std::vector<uint8_t> image(texture_width * font_height * sizeof(uint32_t), 0);
+	std::vector<uint8_t> image(texture_width * FontRenderer::font_size * sizeof(uint32_t), 0);
 
 	if (visible_width > 0)
 	{
 		const uint8_t* glyph_data = reinterpret_cast<const uint8_t*>(glyphs.data());
-		for (size_t row = 0; row < font_height; ++row)
+		for (size_t row = 0; row < FontRenderer::font_size; row++)
 		{
 			const size_t source_offset = row * glyph_width * sizeof(uint32_t);
 			const size_t target_offset = row * texture_width * sizeof(uint32_t);
@@ -35,7 +34,7 @@ size_t ListElement::create_thumbnail_label(const std::string& text, const bool a
 	RenderManager& renderer = RenderManager::instance();
 	const size_t texture = renderer.add_texture(
 		image,
-		glm::uvec2(static_cast<GLuint>(texture_width), static_cast<GLuint>(font_height)),
+		glm::uvec2(static_cast<GLuint>(texture_width), static_cast<GLuint>(FontRenderer::font_size)),
 		GL_RGBA,
 		0);
 	const float top = top_half ? 0.5f : 0.0f;
@@ -67,7 +66,7 @@ size_t ListElement::create_text_element(const std::string& text, const size_t in
 	std::vector<uint8_t> image(LinePanel::texture_width* LinePanel::line_height* sizeof(uint32_t), 0);
 
     std::vector<uint32_t> glyphs;
-    FontRenderer::instance().render_text(text, LinePanel::line_height, glyphs);
+    FontRenderer::instance().render_text(text, glyphs);
     const size_t glyph_width = glyphs.size() / LinePanel::line_height;
     const size_t visible_width =
         (indent < LinePanel::texture_width)

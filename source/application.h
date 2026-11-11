@@ -42,7 +42,7 @@ class Application
 		size_t g_image_texture;                 ///< ID of the displayed image
 		size_t g_video_texture;                 ///< ID of the displayed video
 		size_t g_scene_shape_set;               ///< ID of the shape set for the scene
-		RenderManager::RenderableId g_scene_renderable;   ///< ID of the renderable compound for the scene
+		size_t g_scene_renderable;   ///< ID of the renderable compound for the scene
 		bool g_scene_ready;                     ///< indicates if the scene is ready
 		std::map<vr::TrackedDeviceIndex_t, Controller> g_controller;   ///< map of OpenVR controllers
 		std::vector<Framebuffer> g_framebuffer; ///< vector of framebuffers for each eye

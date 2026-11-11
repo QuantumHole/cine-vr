@@ -19,9 +19,6 @@
  */
 class RenderManager
 {
-	public:
-		typedef size_t RenderableId;
-
 	private:
 		typedef struct
 		{
@@ -128,13 +125,13 @@ class RenderManager
 		                       const size_t shader_id);
 
 		/** create a renderable from one shape set. */
-		RenderableId create_shape_set_renderable(const size_t shape_set_id,
+		size_t create_shape_set_renderable(const size_t shape_set_id,
 		                                         const std::vector<size_t>& textures,
 		                                         const size_t shader_id,
 		                                         const bool draw_all = true);
 
 		/** create a renderable containing one shape. */
-		RenderableId create_shape_renderable(const std::vector<Vertex>& vertices,
+		size_t create_shape_renderable(const std::vector<Vertex>& vertices,
 		                                     const std::vector<GLuint>& indices,
 		                                     const std::vector<size_t>& textures,
 		                                     const size_t shader_id,
@@ -143,7 +140,7 @@ class RenderManager
 	                                     const bool draw_all = true);
 
 		/** Create a renderable group. Children remain independently addressable. */
-		RenderableId create_group(const std::vector<RenderableId>& children, const bool draw_all = true);
+		size_t create_group(const std::vector<size_t>& children, const bool draw_all = true);
 
 		/** set activation state of compound.
 		 * @param compound_id compound ID.
@@ -151,7 +148,7 @@ class RenderManager
 		 */
 		void enable(const size_t compound_id,
 		            const bool active);
-		void set_textures(const RenderableId id, const std::vector<size_t>& textures);
+		void set_textures(const size_t id, const std::vector<size_t>& textures);
 
 		/** invalidate a renderable handle; manager-owned resources remain available.
 		 * @param id renderable ID.
@@ -176,8 +173,8 @@ class RenderManager
 
 		/** draw all objects. */
 		void draw(void) const;
-		void draw(const RenderableId id) const;
-		void draw(const RenderableId id, const glm::mat4& transform, const float opacity = 1.0f) const;
+		void draw(const size_t id) const;
+		void draw(const size_t id, const glm::mat4& transform, const float opacity = 1.0f) const;
 };
 
 #endif
