@@ -95,6 +95,7 @@ static void generate_thumbnails(const std::string& video_file, size_t video_id)
 				video_id, timestamp, tn_format,
 				static_cast<size_t>(thumbnail.width),
 				static_cast<size_t>(thumbnail.height),
+				1,
 				thumbnail.pixels);
 		}
 
@@ -103,6 +104,7 @@ static void generate_thumbnails(const std::string& video_file, size_t video_id)
 			video_id, -1.0f, tn_format,
 			static_cast<size_t>(timeline.width),
 			static_cast<size_t>(timeline.height),
+			1,
 			timeline.pixels);
 	}
 	catch (const std::exception& error)
@@ -134,6 +136,7 @@ Thumbnail ThumbnailStore::get_thumbnail(const float timestamp) const
 		SQLiteDB::format_t format = SQLiteDB::FORMAT_RGB24;
 		size_t width = 0;
 		size_t height = 0;
+		size_t slices = 0;
 		std::vector<uint8_t> data;
 		const size_t video_id = m_database.read_video(m_file_path, duration);
 		std::cout << m_file_path << ", video_id: " << video_id << ", duration: " << duration << std::endl;
@@ -141,7 +144,7 @@ Thumbnail ThumbnailStore::get_thumbnail(const float timestamp) const
 		if (video_id)
 		{
 			std::cout << m_file_path << ": reading thumbnail for video_id: " << video_id << std::endl;
-			m_database.read_thumbnail(video_id, timestamp, format, width, height, data);
+			m_database.read_thumbnail(video_id, timestamp, format, width, height, slices, data);
 		}
 
 		if (!data.empty() && (format == SQLiteDB::FORMAT_RGB24) && (width > 0) && (height > 0) &&
@@ -213,10 +216,11 @@ ThumbnailVolume ThumbnailStore::get_thumbnail_volume(void) const
 		SQLiteDB::format_t format = SQLiteDB::FORMAT_RGB24;
 		size_t width = 0;
 		size_t height = 0;
+		size_t slices = 0;
 		std::vector<uint8_t> pixels;
-		m_database.read_thumbnail(video_id, timestamp, format, width, height, pixels);
-		if ((format != SQLiteDB::FORMAT_RGB24) || (width == 0) || (height == 0) ||
-		    (pixels.size() != width * height * 3))
+		m_database.read_thumbnail(video_id, timestamp, format, width, height, slices, pixels);
+		if ((format != SQLiteDB::FORMAT_RGB24) || (width == 0) || (height == 0) || (slices == 0) ||
+		    (pixels.size() != width * height * slices * 3))
 		{
 			continue;
 		}

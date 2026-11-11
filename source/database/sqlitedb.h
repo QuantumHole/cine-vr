@@ -154,6 +154,7 @@ class SQLiteDB
 		                    format_t& format,
 		                    size_t& width,
 		                    size_t& height,
+							size_t& slices,
 		                    std::vector<uint8_t>& data) const;
 
 		/** Store thumbnail information.
@@ -162,6 +163,7 @@ class SQLiteDB
 		 * @param format Thumbnail format.
 		 * @param width Thumbnail width.
 		 * @param height Thumbnail height.
+		 * @param slices number of thumbnails in image.
 		 * @param data Thumbnail data.
 		 */
 		void store_thumbnail(const size_t video_id,
@@ -169,6 +171,7 @@ class SQLiteDB
 		                     const format_t format,
 		                     const size_t width,
 		                     const size_t height,
+							 const size_t slices,
 		                     const std::vector<uint8_t>& data) const;
 
 		/** Read all thumbnail timestamps for a given video.

@@ -66,6 +66,7 @@ SQLiteDB::SQLiteDB(const std::string& name) :
 	                                    "format    INT  NOT NULL,"
 	                                    "width     INT  NOT NULL,"
 	                                    "height    INT  NOT NULL,"
+	                                    "sections  INT  NOT NULL,"
 	                                    "thumbnail BLOB NOT NULL,"
 	                                    "FOREIGN KEY(video) REFERENCES video(id)"
 	                                    ")";
@@ -609,9 +610,10 @@ void SQLiteDB::read_thumbnail(const size_t video_id,
                               format_t& format,
                               size_t& width,
                               size_t& height,
+							  size_t& slices,
                               std::vector<uint8_t>& data) const
 {
-	const std::string q = "SELECT format,width,height,thumbnail FROM thumbnail WHERE video = ?1 AND ABS(time - $2) < 0.1";
+	const std::string q = "SELECT format,width,height,slices,thumbnail FROM thumbnail WHERE video = ?1 AND ABS(time - $2) < 0.1";
 
 	sqlite3_stmt* stmt;
 	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
@@ -643,6 +645,7 @@ void SQLiteDB::read_thumbnail(const size_t video_id,
 	format = FORMAT_RGB24;
 	width = 0;
 	height = 0;
+	slices = 0;
 	data.clear();
 	const uint8_t* ptr;
 	size_t bytes = 0;
@@ -656,8 +659,9 @@ void SQLiteDB::read_thumbnail(const size_t video_id,
 				format = static_cast<format_t>(sqlite3_column_int(stmt, 0));
 				width  = static_cast<size_t>(sqlite3_column_int(stmt, 1));
 				height = static_cast<size_t>(sqlite3_column_int(stmt, 2));
-				bytes  = static_cast<size_t>(sqlite3_column_bytes(stmt, 3));
-				ptr    = static_cast<const uint8_t*>(sqlite3_column_blob(stmt, 3));
+				slices = static_cast<size_t>(sqlite3_column_int(stmt, 3));
+				bytes  = static_cast<size_t>(sqlite3_column_bytes(stmt, 4));
+				ptr    = static_cast<const uint8_t*>(sqlite3_column_blob(stmt, 4));
 				data.assign(ptr, ptr + bytes);
 				break;
 			case SQLITE_DONE:
@@ -680,9 +684,10 @@ void SQLiteDB::store_thumbnail(const size_t video_id,
                                const format_t format,
                                const size_t width,
                                const size_t height,
+							   const size_t slices,
                                const std::vector<uint8_t>& data) const
 {
-	const std::string q = "INSERT OR REPLACE INTO thumbnail (video, time, format, width, height, thumbnail) values (?1, ?2, ?3, ?4, ?5, ?6)";
+	const std::string q = "INSERT OR REPLACE INTO thumbnail (video, time, format, width, height, slices, thumbnail) values (?1, ?2, ?3, ?4, ?5, ?6, ?7)";
 
 	sqlite3_stmt* stmt;
 	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
@@ -692,7 +697,7 @@ void SQLiteDB::store_thumbnail(const size_t video_id,
 		throw std::runtime_error("invalid SQL statement: " + q);
 	}
 
-	if (sqlite3_bind_parameter_count(stmt) != 6)
+	if (sqlite3_bind_parameter_count(stmt) != 7)
 	{
 		throw std::runtime_error("parameter count mismatch");
 	}
@@ -732,7 +737,14 @@ void SQLiteDB::store_thumbnail(const size_t video_id,
 		throw std::runtime_error("failed binding parameter");
 	}
 
-	status = sqlite3_bind_blob(stmt, 6, data.data(), static_cast<int>(data.size()), SQLITE_STATIC);
+	status = sqlite3_bind_int(stmt, 6, static_cast<int>(slices));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_blob(stmt, 7, data.data(), static_cast<int>(data.size()), SQLITE_STATIC);
 
 	if (status != SQLITE_OK)
 	{
