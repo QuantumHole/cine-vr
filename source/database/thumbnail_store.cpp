@@ -88,16 +88,19 @@ static void generate_thumbnails(const std::string& video_file, size_t video_id)
 		}
 
 		const SQLiteDB::format_t tn_format = SQLiteDB::FORMAT_RGB24;    // uncompressed 24bit RGB values
+		Thumbnail thumbs;
 		for (const Thumbnail& thumbnail : thumbnails)
 		{
-			const float timestamp = static_cast<float>(thumbnail.timestampMs) / 1000.0f;
-			database.store_thumbnail(
-				video_id, timestamp, tn_format,
-				static_cast<size_t>(thumbnail.width),
-				static_cast<size_t>(thumbnail.height),
-				1,
-				thumbnail.pixels);
+			thumbs.width = thumbnail.width;
+			thumbs.height = thumbnail.height;
+			thumbs.pixels.insert(thumbs.pixels.end(), thumbnail.pixels.begin(), thumbnail.pixels.end());
 		}
+		database.store_thumbnail(
+			video_id, -2.0f, tn_format,
+			static_cast<size_t>(thumbs.width),
+			static_cast<size_t>(thumbs.height),
+			thumbnails.size(),
+			thumbs.pixels);
 
 		const Thumbnail timeline = mix_frames(thumbnails);
 		database.store_thumbnail(
@@ -205,39 +208,26 @@ ThumbnailVolume ThumbnailStore::get_thumbnail_volume(void) const
 		return volume;
 	}
 
-	std::vector<float> timestamps = m_database.read_thumb_timestamps(video_id);
-	timestamps.erase(std::remove_if(timestamps.begin(), timestamps.end(), [](const float timestamp)
+	SQLiteDB::format_t format = SQLiteDB::FORMAT_RGB24;
+	size_t width = 0;
+	size_t height = 0;
+	size_t slices = 0;
+	std::vector<uint8_t> pixels;
+	m_database.read_thumbnail(video_id, -2.0, format, width, height, slices, pixels);
+
+	if ((format != SQLiteDB::FORMAT_RGB24) || (width == 0) || (height == 0) || (slices == 0) ||
+		(pixels.size() != width * height * slices * 3))
 	{
-		return timestamp < 0.0f;
-	}), timestamps.end());
-	std::sort(timestamps.begin(), timestamps.end());
-	timestamps.erase(std::unique(timestamps.begin(), timestamps.end()), timestamps.end());
+		return volume;
+	}
 
-	for (const float timestamp : timestamps)
+	volume.size = glm::uvec2(static_cast<unsigned int>(width), static_cast<unsigned int>(height));
+	volume.pixels = pixels;
+
+	// fake timestamps from thumbnails
+	for (size_t i = 0; i < slices; i++)
 	{
-		SQLiteDB::format_t format = SQLiteDB::FORMAT_RGB24;
-		size_t width = 0;
-		size_t height = 0;
-		size_t slices = 0;
-		std::vector<uint8_t> pixels;
-		m_database.read_thumbnail(video_id, timestamp, format, width, height, slices, pixels);
-
-		if ((format != SQLiteDB::FORMAT_RGB24) || (width == 0) || (height == 0) || (slices == 0) ||
-		    (pixels.size() != width * height * slices * 3))
-		{
-			continue;
-		}
-
-		if (volume.timestamps.empty())
-		{
-			volume.size = glm::uvec2(static_cast<unsigned int>(width), static_cast<unsigned int>(height));
-		}
-		else if ((width != volume.size.x) || (height != volume.size.y))
-		{
-			continue;
-		}
-		volume.pixels.insert(volume.pixels.end(), pixels.begin(), pixels.end());
-		volume.timestamps.push_back(timestamp);
+		volume.timestamps.push_back(duration * static_cast<float>(i) / static_cast<float>(slices));
 	}
 	return volume;
 }

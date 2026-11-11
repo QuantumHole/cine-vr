@@ -38,6 +38,9 @@ class SQLiteDB
 		/** introduce column thumbnail.slices */
 		void update_database_v2(void) const;
 
+		/** merge all thumbnails of each video. */
+		void update_database_v3(void) const;
+
 		/** update database to the current scheme. */
 		void update_database(void) const;
 
@@ -188,12 +191,6 @@ class SQLiteDB
 		                     const size_t height,
 		                     const size_t slices,
 		                     const std::vector<uint8_t>& data) const;
-
-		/** Read all thumbnail timestamps for a given video.
-		 * @param video_id Video ID.
-		 * @return Vector of thumbnail timestamps.
-		 */
-		std::vector<float> read_thumb_timestamps(const size_t video_id) const;
 };
 
 #endif

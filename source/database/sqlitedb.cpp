@@ -11,6 +11,8 @@
 #include <sstream>
 #include <iomanip>
 #include <fstream>
+#include <set>
+#include <algorithm>
 #include <openssl/sha.h>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -186,11 +188,178 @@ void SQLiteDB::update_database_v2(void) const
 	run_command("PRAGMA user_version = 2");
 }
 
+void SQLiteDB::update_database_v3(void) const
+{
+	// find out all video IDs with thumbnails, ignore global preview strips.
+	const std::string list_frames = "SELECT DISTINCT video FROM thumbnail WHERE time >= 0.0";
+	sqlite3_stmt* stmt;
+	int status = sqlite3_prepare_v2(m_db, list_frames.c_str(), static_cast<int>(list_frames.size()), &stmt, NULL);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("invalid SQL statement: " + list_frames);
+	}
+
+	if (sqlite3_bind_parameter_count(stmt) != 0)
+	{
+		throw std::runtime_error("parameter count mismatch");
+	}
+
+	std::set<size_t> video_ids;
+	bool done = false;
+	while (!done)
+	{
+		status = sqlite3_step(stmt);
+		switch (status)
+		{
+			case SQLITE_ROW:
+				video_ids.insert(static_cast<size_t>(sqlite3_column_int(stmt, 0)));
+				break;
+
+			case SQLITE_DONE:
+				done = true;
+				break;
+
+			case SQLITE_BUSY:
+				// repeat query step
+				break;
+
+			default:
+				throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+		}
+	}
+	sqlite3_finalize(stmt);
+
+	for (const size_t video : video_ids)
+	{
+std::cout << "converting thumbnails for video " << video << std::endl;
+
+		// load thumbnail timestamps, ignore global preview strips.
+		const std::string q = "SELECT time FROM thumbnail WHERE video = ?1 AND time >= 0.0";
+		status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("invalid SQL statement: " + q);
+		}
+
+		if (sqlite3_bind_parameter_count(stmt) != 1)
+		{
+			throw std::runtime_error("parameter count mismatch");
+		}
+
+		status = sqlite3_bind_int(stmt, 1, static_cast<int>(video));
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("failed binding parameter");
+		}
+
+		float time = 0.0f;
+		std::vector<float> timestamps;
+		done = false;
+		while (!done)
+		{
+			status = sqlite3_step(stmt);
+			switch (status)
+			{
+				case SQLITE_ROW:
+					time = static_cast<float>(sqlite3_column_double(stmt, 0));
+					timestamps.push_back(time);
+					break;
+				case SQLITE_DONE:
+					done = true;
+					break;
+				case SQLITE_BUSY:
+					// repeat query step
+					break;
+
+				default:
+					throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+			}
+		}
+		sqlite3_finalize(stmt);
+
+		SQLiteDB::format_t format = SQLiteDB::FORMAT_RGB24;
+		size_t width = 0;
+		size_t height = 0;
+		size_t slices3d = 0;
+		std::vector<uint8_t> pixels3d;
+		for (const float timestamp : timestamps)
+		{
+			size_t slices = 0;
+			std::vector<uint8_t> pixels;
+			read_thumbnail(video, timestamp, format, width, height, slices, pixels);
+
+			if ((format != SQLiteDB::FORMAT_RGB24) || (width == 0) || (height == 0) || (slices != 1) ||
+				(pixels.size() != width * height * slices * 3))
+			{
+				continue;
+			}
+
+			pixels3d.insert(pixels3d.end(), pixels.begin(), pixels.end());
+			slices3d++;
+		}
+
+		if (slices3d == timestamps.size())
+		{
+			store_thumbnail(video, -2.0, format, width, height, slices3d, pixels3d);
+		}
+
+		// delete single frame thumbnails
+		const std::string delete_thumbnails = "DELETE FROM thumbnail WHERE video=?1 AND time >= 0.0";
+		status = sqlite3_prepare_v2(m_db, delete_thumbnails.c_str(), static_cast<int>(delete_thumbnails.size()), &stmt, NULL);
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("invalid SQL statement: " + delete_thumbnails);
+		}
+
+		if (sqlite3_bind_parameter_count(stmt) != 1)
+		{
+			throw std::runtime_error("parameter count mismatch");
+		}
+
+		status = sqlite3_bind_int(stmt, 1, static_cast<int>(video));
+
+		if (status != SQLITE_OK)
+		{
+			throw std::runtime_error("failed binding parameter");
+		}
+
+		done = false;
+		while (!done)
+		{
+			status = sqlite3_step(stmt);
+			switch (status)
+			{
+				case SQLITE_ROW:
+					break;
+
+				case SQLITE_DONE:
+					done = true;
+					break;
+
+				case SQLITE_BUSY:
+					// repeat query step
+					break;
+
+				default:
+					throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+			}
+		}
+		sqlite3_finalize(stmt);
+	}
+
+	run_command("PRAGMA user_version = 3");
+}
+
 void SQLiteDB::update_database(void) const
 {
+	const size_t max_version = 3;
 	const size_t version = database_version();
 
-	if (version > 2)
+	if (version > max_version)
 	{
 		throw std::runtime_error("Database version is newer than this application supports");
 	}
@@ -207,6 +376,11 @@ void SQLiteDB::update_database(void) const
 		if (version < 2)
 		{
 			update_database_v2();
+		}
+
+		if (version < 3)
+		{
+			update_database_v3();
 		}
 
 		run_command("COMMIT");
@@ -850,62 +1024,10 @@ void SQLiteDB::store_thumbnail(const size_t video_id,
 
 	if (status != SQLITE_DONE)
 	{
-		throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+		throw std::runtime_error("invalid query result (line " + std::to_string(__LINE__) + "): " + std::to_string(status));
 	}
 
 	sqlite3_finalize(stmt);
-}
-
-std::vector<float> SQLiteDB::read_thumb_timestamps(const size_t video_id) const
-{
-	const std::string q = "SELECT time FROM thumbnail WHERE video = ?1";
-
-	sqlite3_stmt* stmt;
-	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
-
-	if (status != SQLITE_OK)
-	{
-		throw std::runtime_error("invalid SQL statement: " + q);
-	}
-
-	if (sqlite3_bind_parameter_count(stmt) != 1)
-	{
-		throw std::runtime_error("parameter count mismatch");
-	}
-
-	status = sqlite3_bind_int(stmt, 1, static_cast<int>(video_id));
-
-	if (status != SQLITE_OK)
-	{
-		throw std::runtime_error("failed binding parameter");
-	}
-
-	float time = 0.0f;
-	std::vector<float> timestamps;
-	bool done = false;
-	while (!done)
-	{
-		status = sqlite3_step(stmt);
-		switch (status)
-		{
-			case SQLITE_ROW:
-				time = static_cast<float>(sqlite3_column_double(stmt, 0));
-				timestamps.push_back(time);
-				break;
-			case SQLITE_DONE:
-				done = true;
-				break;
-			case SQLITE_BUSY:
-				// repeat query step
-				break;
-
-			default:
-				throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
-		}
-	}
-
-	sqlite3_finalize(stmt);
-	return timestamps;
 }
 
 void SQLiteDB::read_camera(glm::vec3& position,

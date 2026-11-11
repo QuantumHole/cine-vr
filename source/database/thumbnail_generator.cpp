@@ -229,11 +229,6 @@ void ThumbnailGenerator::process_frame(void)
 	}
 
 	m_thumbnails.push_back(std::move(thumbnail));
-	std::cout << "Generated thumbnail "
-	          << m_thumbnails.size() << " at "
-	          << (static_cast<double>(thumbnail.timestampMs) / 1000.0) << " s, size: "
-	          << thumbnail.width << "x"
-	          << thumbnail.height << std::endl;
 
 	// determine next thumbnail timestamp
 	do
