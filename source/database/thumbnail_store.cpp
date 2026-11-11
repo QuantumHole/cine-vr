@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <limits>
+#include <algorithm>
 
 static std::mutex thumbnail_jobs_mutex;
 static std::set<std::string> thumbnail_jobs;
@@ -187,4 +188,48 @@ Thumbnail ThumbnailStore::get_thumbnail(const float timestamp) const
 	}
 
 	return thumbnail;
+}
+
+ThumbnailVolume ThumbnailStore::get_thumbnail_volume(void) const
+{
+	ThumbnailVolume volume;
+	float duration = 0.0f;
+	const size_t video_id = m_database.read_video(m_file_path, duration);
+	if (!video_id)
+	{
+		return volume;
+	}
+
+	std::vector<float> timestamps = m_database.read_thumb_timestamps(video_id);
+	timestamps.erase(std::remove_if(timestamps.begin(), timestamps.end(), [](const float timestamp)
+	{
+		return timestamp < 0.0f;
+	}), timestamps.end());
+	std::sort(timestamps.begin(), timestamps.end());
+	timestamps.erase(std::unique(timestamps.begin(), timestamps.end()), timestamps.end());
+
+	for (const float timestamp : timestamps)
+	{
+		SQLiteDB::format_t format = SQLiteDB::FORMAT_RGB24;
+		size_t width = 0;
+		size_t height = 0;
+		std::vector<uint8_t> pixels;
+		m_database.read_thumbnail(video_id, timestamp, format, width, height, pixels);
+		if ((format != SQLiteDB::FORMAT_RGB24) || (width == 0) || (height == 0) ||
+		    (pixels.size() != width * height * 3))
+		{
+			continue;
+		}
+		if (volume.timestamps.empty())
+		{
+			volume.size = glm::uvec2(static_cast<unsigned int>(width), static_cast<unsigned int>(height));
+		}
+		else if ((width != volume.size.x) || (height != volume.size.y))
+		{
+			continue;
+		}
+		volume.pixels.insert(volume.pixels.end(), pixels.begin(), pixels.end());
+		volume.timestamps.push_back(timestamp);
+	}
+	return volume;
 }

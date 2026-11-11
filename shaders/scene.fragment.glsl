@@ -5,6 +5,9 @@
 #version 330 core
 
 uniform sampler2D diffuse0;
+uniform sampler3D preview3d;
+uniform bool use_preview3d;
+uniform float preview_slice;
 uniform bool background;
 uniform bool greyscale;
 uniform float render_opacity;
@@ -16,7 +19,9 @@ out vec4 outColor;
 
 void main(void)
 {
-	vec4 texColor = texture(diffuse0, texCoords);
+	vec4 texColor = use_preview3d
+		? texture(preview3d, vec3(texCoords, preview_slice))
+		: texture(diffuse0, texCoords);
 
 	if (background)
 	{

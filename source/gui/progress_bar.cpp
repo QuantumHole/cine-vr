@@ -4,6 +4,7 @@
 
 #include "progress_bar.h"
 #include "application.h"
+#include "database/thumbnail_store.h"
 #include "font_renderer.h"
 #include "util/file_system.h"
 #include <algorithm>
@@ -21,7 +22,9 @@ ProgressBar::ProgressBar(
 	const std::string& imagecursor,
 	const float max,
 	const float pos,
-	const size_t preview) :
+	const size_t preview,
+	const size_t preview_volume,
+	const std::vector<float>& preview_timestamps) :
 	Panel(action),
 	m_progress_max(max),
 	m_progress_pos(pos),
@@ -29,15 +32,22 @@ ProgressBar::ProgressBar(
 	m_background_renderable(0),
 	m_cursor_renderable(0),
 	m_tooltip_text_renderable(0),
+	m_tooltip_image_renderable(std::numeric_limits<size_t>::max()),
 	m_background_shape_set(0),
 	m_cursor_shape_set(0),
 	m_tooltip_text_shape_set(0),
+	m_tooltip_image_shape_set(0),
 	m_cursor_texture(0),
 	m_tooltip_texture(0),
+	m_preview_texture(preview_volume),
 	m_tooltip_second(std::numeric_limits<size_t>::max()),
+	m_preview_timestamps(preview_timestamps),
+	m_preview_slice(0.0f),
 	m_progress_size(0.0f, 0.0f),
 	m_cursor_size(0.0f, 0.0f),
 	m_tooltip_size(0.0f, 0.0f),
+	m_tooltip_text_size(0.0f, 0.0f),
+	m_tooltip_image_size(0.0f, 0.0f),
 	m_background_transform(1.0f),
 	m_cursor_transform(1.0f),
 	m_background_uses_texture(false),
@@ -130,6 +140,10 @@ ProgressBar::~ProgressBar(void)
 	m_renderer.delete_renderable(m_background_renderable);
 	m_renderer.delete_renderable(m_cursor_renderable);
 	m_renderer.delete_renderable(m_tooltip_text_renderable);
+	if (m_tooltip_image_renderable != std::numeric_limits<size_t>::max())
+	{
+		m_renderer.delete_renderable(m_tooltip_image_renderable);
+	}
 }
 
 void ProgressBar::set_transform(const glm::mat4& pose)
@@ -200,7 +214,13 @@ void ProgressBar::init_tooltip(void)
 {
 	const size_t text_width = 128;
 	const size_t text_height = 24;
-	m_tooltip_size = tex2shape * glm::vec2(static_cast<float>(text_width), static_cast<float>(text_height));
+	m_tooltip_text_size = tex2shape * glm::vec2(static_cast<float>(text_width), static_cast<float>(text_height));
+	if ((m_preview_texture > 0) && !m_preview_timestamps.empty())
+	{
+		m_tooltip_image_size = tex2shape * glm::vec2(static_cast<float>(text_width), static_cast<float>(text_width) * (9.0f / 16.0f));
+		m_tooltip_text_size = 0.25f * m_tooltip_image_size;
+	}
+	m_tooltip_size = (m_tooltip_image_size.x > 0.0f) ? m_tooltip_image_size : m_tooltip_text_size;
 	const std::vector<GLuint> indices = {0, 1, 2, 0, 3, 1};
 	const size_t shader_id = Application::instance().shader().id();
 	std::vector<uint8_t> pixels(text_width * text_height * sizeof(uint32_t), 0);
@@ -209,7 +229,7 @@ void ProgressBar::init_tooltip(void)
 		pixels[pixel * 4] = 24;
 		pixels[pixel * 4 + 1] = 24;
 		pixels[pixel * 4 + 2] = 24;
-		pixels[pixel * 4 + 3] = 255;
+		pixels[pixel * 4 + 3] = 160;
 	}
 	m_tooltip_texture = m_renderer.add_texture(
 		pixels,
@@ -217,20 +237,51 @@ void ProgressBar::init_tooltip(void)
 		GL_RGBA,
 		0);
 	const std::vector<Vertex> text_vertices = {
-		Vertex(glm::vec3(-0.5f * m_tooltip_size.x, -0.5f * m_tooltip_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3( 0.5f * m_tooltip_size.x,  0.5f * m_tooltip_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.5f * m_tooltip_size.x,  0.5f * m_tooltip_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3( 0.5f * m_tooltip_size.x, -0.5f * m_tooltip_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
+		Vertex(glm::vec3(-0.5f * m_tooltip_text_size.x, -0.5f * m_tooltip_text_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3( 0.5f * m_tooltip_text_size.x,  0.5f * m_tooltip_text_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.5f * m_tooltip_text_size.x,  0.5f * m_tooltip_text_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3( 0.5f * m_tooltip_text_size.x, -0.5f * m_tooltip_text_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
 	};
 	m_tooltip_text_shape_set = m_renderer.create_shape_set();
 	m_renderer.add_shape(m_tooltip_text_shape_set, text_vertices, indices);
 	m_tooltip_text_renderable = m_renderer.create_shape_set_renderable(
 		m_tooltip_text_shape_set, std::vector<size_t>(1, m_tooltip_texture), shader_id, false);
 	m_renderer.enable(m_tooltip_text_renderable, false);
+	if (m_preview_texture > 0 && !m_preview_timestamps.empty())
+	{
+		const std::vector<Vertex> image_vertices = {
+			Vertex(glm::vec3(-0.5f * m_tooltip_image_size.x, -0.5f * m_tooltip_image_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
+			Vertex(glm::vec3( 0.5f * m_tooltip_image_size.x,  0.5f * m_tooltip_image_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
+			Vertex(glm::vec3(-0.5f * m_tooltip_image_size.x,  0.5f * m_tooltip_image_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 0.0f)),
+			Vertex(glm::vec3( 0.5f * m_tooltip_image_size.x, -0.5f * m_tooltip_image_size.y, 1e-4f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
+		};
+		m_tooltip_image_shape_set = m_renderer.create_shape_set();
+		m_renderer.add_shape(m_tooltip_image_shape_set, image_vertices, indices);
+		m_tooltip_image_renderable = m_renderer.create_shape_set_renderable(
+			m_tooltip_image_shape_set, std::vector<size_t>(1, m_preview_texture), shader_id, false);
+		m_renderer.enable(m_tooltip_image_renderable, false);
+	}
 }
 
 void ProgressBar::update_tooltip(const float position)
 {
+	if (!m_preview_timestamps.empty())
+	{
+		const std::vector<float>::const_iterator next = std::lower_bound(
+			m_preview_timestamps.begin(), m_preview_timestamps.end(), position);
+		size_t slice = 0;
+		if (next == m_preview_timestamps.end())
+		{
+			slice = m_preview_timestamps.size() - 1;
+		}
+		else if (next != m_preview_timestamps.begin())
+		{
+			const size_t upper = static_cast<size_t>(next - m_preview_timestamps.begin());
+			const size_t lower = upper - 1;
+			slice = (position - m_preview_timestamps[lower] <= m_preview_timestamps[upper] - position) ? lower : upper;
+		}
+		m_preview_slice = (static_cast<float>(slice) + 0.5f) / static_cast<float>(m_preview_timestamps.size());
+	}
 	const unsigned long long total_seconds = static_cast<unsigned long long>(std::max(0.0f, position));
 	const size_t second = static_cast<size_t>(total_seconds);
 
@@ -253,7 +304,7 @@ void ProgressBar::update_tooltip(const float position)
 			pixels[pixel * 4] = 24;
 			pixels[pixel * 4 + 1] = 24;
 			pixels[pixel * 4 + 2] = 24;
-			pixels[pixel * 4 + 3] = 255;
+			pixels[pixel * 4 + 3] = 160;
 		}
 		const uint8_t* glyph_data = reinterpret_cast<const uint8_t*>(glyphs.data());
 		const size_t left = (128 - visible_width) / 2;
@@ -287,7 +338,14 @@ void ProgressBar::update_tooltip(const float position)
 	const float shift = glm::clamp((fraction - 0.5f) * m_progress_size.x, -max_shift, max_shift);
 	const float height = 0.5f * (m_progress_size.y + m_tooltip_size.y) + 0.02f;
 	const glm::mat4 tooltip_pose = glm::translate(Panel::pose(), glm::vec3(shift, height, 2e-4f));
-	m_renderer.set_shape_set_transform(m_tooltip_text_shape_set, tooltip_pose);
+	const float text_y = -0.5f * (m_tooltip_image_size.y - m_tooltip_text_size.y);
+	const glm::mat4 text_pose = glm::translate(tooltip_pose, glm::vec3(0.0f, text_y, 1e-3f));
+	m_renderer.set_shape_set_transform(m_tooltip_text_shape_set, text_pose);
+	if (m_preview_texture > 0 && !m_preview_timestamps.empty())
+	{
+		m_renderer.set_shape_set_transform(m_tooltip_image_shape_set, tooltip_pose);
+		m_renderer.enable(m_tooltip_image_renderable, true);
+	}
 	m_renderer.enable(m_tooltip_text_renderable, true);
 }
 
@@ -300,7 +358,16 @@ void ProgressBar::draw(void) const
 	shader.set_uniform("background", m_cursor_uses_texture);
 	m_renderer.draw(m_cursor_renderable);
 	shader.set_uniform("background", true);
+	if (m_preview_texture > 0 && !m_preview_timestamps.empty())
+	{
+		shader.set_uniform("preview3d", 1);
+		shader.set_uniform("use_preview3d", 1);
+		shader.set_uniform("preview_slice", m_preview_slice);
+		m_renderer.draw(m_tooltip_image_renderable);
+		shader.set_uniform("use_preview3d", 0);
+	}
 	m_renderer.draw(m_tooltip_text_renderable);
+	shader.set_uniform("preview3d", 0);
 	shader.set_uniform("background", false);
 }
 
@@ -319,6 +386,10 @@ bool ProgressBar::update_on_interaction(const intersection_t isec, const OpenVRI
 	else
 	{
 		m_renderer.enable(m_tooltip_text_renderable, false);
+		if (m_tooltip_image_renderable != std::numeric_limits<size_t>::max())
+		{
+			m_renderer.enable(m_tooltip_image_renderable, false);
+		}
 	}
 
 	if (input.trigger.button.released && isec.hit)

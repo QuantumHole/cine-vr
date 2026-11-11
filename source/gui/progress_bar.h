@@ -17,15 +17,22 @@ class ProgressBar : public Panel
 		RenderManager::RenderableId m_background_renderable;
 		RenderManager::RenderableId m_cursor_renderable;
 		RenderManager::RenderableId m_tooltip_text_renderable;
+		RenderManager::RenderableId m_tooltip_image_renderable;
 		size_t m_background_shape_set;
 		size_t m_cursor_shape_set;
 		size_t m_tooltip_text_shape_set;
+		size_t m_tooltip_image_shape_set;
 		size_t m_cursor_texture;
 		size_t m_tooltip_texture;
+		size_t m_preview_texture;
 		size_t m_tooltip_second;
+		std::vector<float> m_preview_timestamps;
+		float m_preview_slice;
 		glm::vec2 m_progress_size;
 		glm::vec2 m_cursor_size;
 		glm::vec2 m_tooltip_size;
+		glm::vec2 m_tooltip_text_size;
+		glm::vec2 m_tooltip_image_size;
 		glm::mat4 m_background_transform;
 		glm::mat4 m_cursor_transform;
 		bool m_background_uses_texture;
@@ -52,7 +59,9 @@ class ProgressBar : public Panel
 			const std::string& imagecursor,
 			const float max,
 			const float pos,
-			const size_t preview);
+			const size_t preview,
+			const size_t preview_volume,
+			const std::vector<float>& preview_timestamps);
 		~ProgressBar(void) override;
 		void set_transform(const glm::mat4& pose) override;
 		void set_max(const float max);

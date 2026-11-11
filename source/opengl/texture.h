@@ -17,8 +17,10 @@ class Texture
 	private:
 		GLuint m_id;
 		GLuint m_slot;
+		GLenum m_target;
 		GLenum m_format;
 		glm::uvec2 m_size;
+		GLuint m_depth;
 
 		void init(const GLuint slot);
 
@@ -27,6 +29,7 @@ class Texture
 
 		GLuint id(void) const;
 		void init_video_target(const glm::uvec2& size, const GLuint slot);
+		void init_data_3d(const std::vector<uint8_t>& data, const glm::uvec3& size, const GLenum format, const GLuint slot);
 		GLuint slot(void) const;
 		const glm::uvec2& size(void) const;
 

@@ -33,6 +33,7 @@ Menu::Menu(void) :
 	m_playable(false),
 	m_current_directory(FileSystem().current_directory()),
 	m_preview_textures(),
+	m_preview_volumes(),
 	m_database("cine-vr"),
 	menu_graphics_extension(".svg")
 {
@@ -148,8 +149,6 @@ size_t Menu::create_list_element(const std::string& text, const size_t level, co
 	{
 		*preview_texture = 0;
 	}
-	const size_t level_offset = LinePanel::line_height / 2;
-	const size_t indent = std::min(level, LinePanel::texture_width / level_offset) * level_offset;
 	std::vector<uint8_t> image(LinePanel::texture_width* LinePanel::line_height* sizeof(uint32_t), 0);
 	const int64_t minimum_stride = background ? static_cast<int64_t>(background->width) * 3 : 0;
 	const bool has_background = background &&
@@ -460,13 +459,32 @@ void Menu::main_menu(void)
 		const std::map<std::string, size_t>::const_iterator preview_iter =
 			m_preview_textures.find(Application::instance().current_file_name());
 		const size_t preview_texture = (preview_iter != m_preview_textures.end()) ? preview_iter->second : 0;
+		const std::string current_file = Application::instance().current_file_name();
+		preview_volume_t& preview_volume = m_preview_volumes[current_file];
+		if ((preview_volume.texture == 0) && (preview_iter != m_preview_textures.end()))
+		{
+			const ThumbnailVolume volume = ThumbnailStore(current_file).get_thumbnail_volume();
+			if (!volume.timestamps.empty())
+			{
+				RenderManager& renderer = RenderManager::instance();
+				preview_volume.texture = renderer.create_texture();
+				preview_volume.timestamps = volume.timestamps;
+				renderer.texture(preview_volume.texture).init_data_3d(
+					volume.pixels,
+					glm::uvec3(volume.size.x, volume.size.y, static_cast<GLuint>(volume.timestamps.size())),
+					GL_RGB,
+					1);
+			}
+		}
 		Panel* p = new ProgressBar(
 			ACTION_PLAY_POSITION,
 			"images/progress-bar" + menu_graphics_extension,
 			"images/progress-cursor" + menu_graphics_extension,
 			duration,
 			position,
-			preview_texture);
+			preview_texture,
+			preview_volume.texture,
+			preview_volume.timestamps);
 		glm::mat4 pose = glm::mat4(1.0f);
 		pose = glm::translate(pose, glm::vec3(0.0f, 0.0f, -5.0f));
 		pose = m_hmd_pose * pose;

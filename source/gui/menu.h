@@ -35,6 +35,13 @@ class Menu
 		bool m_playable;
 		std::string m_current_directory;
 		std::map<std::string, size_t> m_preview_textures;
+		struct preview_volume_t
+		{
+			preview_volume_t(void) : texture(0), timestamps() {}
+			size_t texture;
+			std::vector<float> timestamps;
+		};
+		std::map<std::string, preview_volume_t> m_preview_volumes;
 		SQLiteDB m_database;
 		const std::string menu_graphics_extension;
 
