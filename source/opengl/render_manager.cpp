@@ -192,8 +192,8 @@ size_t RenderManager::create_shape_renderable(const std::vector<Vertex>& vertice
                                               const std::vector<size_t>& textures,
                                               const size_t shader_id,
                                               const size_t instances,
-											  const GLenum type,
-											  const bool draw_all)
+                                              const GLenum type,
+                                              const bool draw_all)
 {
 	if (m_shaders.find(shader_id) == m_shaders.end())
 	{

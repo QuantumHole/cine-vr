@@ -69,9 +69,9 @@ void SimpleButton::set_graphic(const size_t shape_set_id,
 	}
 	const size_t shader_id = Application::instance().shader().id();
 	const size_t new_renderable = m_renderer.create_shape_set_renderable(shape_set_id,
-	                                                                                          textures,
-	                                                                                          shader_id,
-	                                                                                          false);
+	                                                                     textures,
+	                                                                     shader_id,
+	                                                                     false);
 	m_renderer.delete_renderable(m_renderable_id);
 	m_renderable_id = new_renderable;
 	m_shape_set_id = shape_set_id;

@@ -114,6 +114,7 @@ void Panel::clear(void)
 void Panel::text(const std::string& text) const
 {
 	std::vector<uint32_t> image;
+
 	FontRenderer::instance().render_text(text, image);
 
 	const size_t width = image.size() / FontRenderer::font_size;

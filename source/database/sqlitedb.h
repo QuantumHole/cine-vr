@@ -27,6 +27,20 @@ class SQLiteDB
 		 */
 		void run_command(const std::string& command) const;
 
+		/** looks up the current database version.
+		 * @return current database version.
+		 */
+		size_t database_version(void) const;
+
+		/** create initial tables. */
+		void update_database_v1(void) const;
+
+		/** introduce column thumbnail.slices */
+		void update_database_v2(void) const;
+
+		/** update database to the current scheme. */
+		void update_database(void) const;
+
 		/** Get video ID from hash.
 		 * @param hash Video hash.
 		 * @return Video ID.
@@ -61,7 +75,8 @@ class SQLiteDB
 			FORMAT_JPEG,       ///< jpeg compression, intended for regular thumbnails.
 			FORMAT_PNG,        ///< PNG compression, intended for timeline preview images.
 			FORMAT_WEBP        ///< WEBP format, not yet supported.
-		} format_t;
+		}
+		format_t;
 
 		/** Constructor.
 		 * @param name Database name.
@@ -154,7 +169,7 @@ class SQLiteDB
 		                    format_t& format,
 		                    size_t& width,
 		                    size_t& height,
-							size_t& slices,
+		                    size_t& slices,
 		                    std::vector<uint8_t>& data) const;
 
 		/** Store thumbnail information.
@@ -171,7 +186,7 @@ class SQLiteDB
 		                     const format_t format,
 		                     const size_t width,
 		                     const size_t height,
-							 const size_t slices,
+		                     const size_t slices,
 		                     const std::vector<uint8_t>& data) const;
 
 		/** Read all thumbnail timestamps for a given video.

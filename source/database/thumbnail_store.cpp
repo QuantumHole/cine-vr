@@ -152,6 +152,7 @@ Thumbnail ThumbnailStore::get_thumbnail(const float timestamp) const
 		    (height <= static_cast<size_t>(std::numeric_limits<int>::max())))
 		{
 			const size_t stride = width * 3;
+
 			if (data.size() >= stride * height)
 			{
 				thumbnail.width = static_cast<int>(width);
@@ -198,6 +199,7 @@ ThumbnailVolume ThumbnailStore::get_thumbnail_volume(void) const
 	ThumbnailVolume volume;
 	float duration = 0.0f;
 	const size_t video_id = m_database.read_video(m_file_path, duration);
+
 	if (!video_id)
 	{
 		return volume;
@@ -219,11 +221,13 @@ ThumbnailVolume ThumbnailStore::get_thumbnail_volume(void) const
 		size_t slices = 0;
 		std::vector<uint8_t> pixels;
 		m_database.read_thumbnail(video_id, timestamp, format, width, height, slices, pixels);
+
 		if ((format != SQLiteDB::FORMAT_RGB24) || (width == 0) || (height == 0) || (slices == 0) ||
 		    (pixels.size() != width * height * slices * 3))
 		{
 			continue;
 		}
+
 		if (volume.timestamps.empty())
 		{
 			volume.size = glm::uvec2(static_cast<unsigned int>(width), static_cast<unsigned int>(height));

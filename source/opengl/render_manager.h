@@ -126,18 +126,18 @@ class RenderManager
 
 		/** create a renderable from one shape set. */
 		size_t create_shape_set_renderable(const size_t shape_set_id,
-		                                         const std::vector<size_t>& textures,
-		                                         const size_t shader_id,
-		                                         const bool draw_all = true);
+		                                   const std::vector<size_t>& textures,
+		                                   const size_t shader_id,
+		                                   const bool draw_all = true);
 
 		/** create a renderable containing one shape. */
 		size_t create_shape_renderable(const std::vector<Vertex>& vertices,
-		                                     const std::vector<GLuint>& indices,
-		                                     const std::vector<size_t>& textures,
-		                                     const size_t shader_id,
-		                                     const size_t instances = 1,
-	                                     const GLenum type = GL_TRIANGLES,
-	                                     const bool draw_all = true);
+		                               const std::vector<GLuint>& indices,
+		                               const std::vector<size_t>& textures,
+		                               const size_t shader_id,
+		                               const size_t instances = 1,
+		                               const GLenum type = GL_TRIANGLES,
+		                               const bool draw_all = true);
 
 		/** Create a renderable group. Children remain independently addressable. */
 		size_t create_group(const std::vector<size_t>& children, const bool draw_all = true);

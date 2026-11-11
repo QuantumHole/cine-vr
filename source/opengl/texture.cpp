@@ -56,6 +56,7 @@ void Texture::init(const GLenum slot)
 	// glTexParameteri(tex_type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(m_target, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(m_target, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
 	if (m_target == GL_TEXTURE_3D)
 	{
 		glTexParameteri(m_target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -209,6 +210,7 @@ void Texture::init_data_3d(const std::vector<uint8_t>& data, const glm::uvec3& s
 	m_depth = size.z;
 	m_target = GL_TEXTURE_3D;
 	init(slot);
+
 	if ((size.x == 0) || (size.y == 0) || (size.z == 0))
 	{
 		return;

@@ -95,11 +95,12 @@ void Menu::draw(void) const
 size_t Menu::create_thumbnail_label(const std::string& text, const bool align_right, const bool top_half) const
 {
 	std::vector<uint32_t> glyphs;
+
 	FontRenderer::instance().render_text(text, glyphs);
 	const size_t glyph_width = glyphs.size() / FontRenderer::font_size;
 	const size_t visible_width = std::min(glyph_width, LinePanel::texture_width);
 	const size_t texture_width = std::max<size_t>(1, visible_width);
-	std::vector<uint8_t> image(texture_width * FontRenderer::font_size * sizeof(uint32_t), 0);
+	std::vector<uint8_t> image(texture_width * FontRenderer::font_size* sizeof(uint32_t), 0);
 
 	if (visible_width > 0)
 	{
@@ -164,6 +165,7 @@ size_t Menu::create_list_element(const std::string& text, const size_t level, co
 			glm::uvec2(static_cast<GLuint>(background->width), static_cast<GLuint>(background->height)),
 			GL_RGB,
 			0);
+
 		if (preview_texture)
 		{
 			*preview_texture = background_texture;
@@ -274,6 +276,7 @@ void Menu::list_files(LinePanel& panel)
 Thumbnail Menu::load_thumbnail(const std::string& video_file) const
 {
 	ThumbnailStore store(video_file);
+
 	return store.get_thumbnail(-1.0f);
 }
 
@@ -460,9 +463,11 @@ void Menu::main_menu(void)
 		const size_t preview_texture = (preview_iter != m_preview_textures.end()) ? preview_iter->second : 0;
 		const std::string current_file = Application::instance().current_file_name();
 		preview_volume_t& preview_volume = m_preview_volumes[current_file];
+
 		if ((preview_volume.texture == 0) && (preview_iter != m_preview_textures.end()))
 		{
 			const ThumbnailVolume volume = ThumbnailStore(current_file).get_thumbnail_volume();
+
 			if (!volume.timestamps.empty())
 			{
 				RenderManager& renderer = RenderManager::instance();

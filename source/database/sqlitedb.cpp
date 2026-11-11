@@ -28,52 +28,7 @@ SQLiteDB::SQLiteDB(const std::string& name) :
 		throw std::runtime_error(std::string("Error open DB ") + sqlite3_errmsg(m_db));
 	}
 
-	const std::string table_camera = "CREATE TABLE IF NOT EXISTS camera("
-	                                 "id          INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
-	                                 "position_x  REAL NOT NULL,"
-	                                 "position_y  REAL NOT NULL,"
-	                                 "position_z  REAL NOT NULL,"
-	                                 "rotation_x  REAL NOT NULL,"
-	                                 "rotation_y  REAL NOT NULL,"
-	                                 "rotation_z  REAL NOT NULL,"
-	                                 "rotation_w  REAL NOT NULL,"
-	                                 "cursor_size REAL NOT NULL"
-	                                 ")";
-	run_command(table_camera);
-
-	const std::string table_video = "CREATE TABLE IF NOT EXISTS video("
-	                                "id       INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-	                                "hash     CHAR(64)        NOT NULL," // length of SHA256 hash *2 (bin->hex)
-	                                "duration REAL            NOT NULL,"
-	                                "name     TEXT            NOT NULL"
-	                                " );";
-	run_command(table_video);
-
-	const std::string table_settings = "CREATE TABLE IF NOT EXISTS settings("
-	                                   "video      INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
-	                                   "projection INT  NOT NULL,"
-	                                   "tiling     INT  NOT NULL,"
-	                                   "stretch    BOOL NOT NULL,"
-	                                   "angle      REAL NOT NULL,"
-	                                   "zoom       REAL NOT NULL,"
-	                                   "FOREIGN KEY(video) REFERENCES video(id)"
-	                                   ")";
-	run_command(table_settings);
-
-	const std::string table_thumbnail = "CREATE TABLE IF NOT EXISTS thumbnail("
-	                                    "video     INT  NOT NULL,"
-	                                    "time      REAL NOT NULL,"
-	                                    "format    INT  NOT NULL,"
-	                                    "width     INT  NOT NULL,"
-	                                    "height    INT  NOT NULL,"
-	                                    "sections  INT  NOT NULL,"
-	                                    "thumbnail BLOB NOT NULL,"
-	                                    "FOREIGN KEY(video) REFERENCES video(id)"
-	                                    ")";
-	run_command(table_thumbnail);
-
-	const std::string index_thumbnail = "CREATE UNIQUE INDEX IF NOT EXISTS idx_thumbnail ON thumbnail (video, time)";
-	run_command(index_thumbnail);
+	update_database();
 }
 
 SQLiteDB::~SQLiteDB(void)
@@ -124,6 +79,142 @@ void SQLiteDB::run_command(const std::string& command) const
 		std::string message = messageError;
 		sqlite3_free(messageError);
 		throw std::runtime_error(std::string("Error executing command: ") + message);
+	}
+}
+
+size_t SQLiteDB::database_version(void) const
+{
+	const std::string q = "PRAGMA user_version";
+
+	sqlite3_stmt* stmt;
+	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("invalid SQL statement: " + q);
+	}
+
+	if (sqlite3_bind_parameter_count(stmt) != 0)
+	{
+		throw std::runtime_error("parameter count mismatch");
+	}
+
+	size_t version = 0;
+	bool done = false;
+	while (!done)
+	{
+		status = sqlite3_step(stmt);
+		switch (status)
+		{
+			case SQLITE_ROW:
+				version = static_cast<size_t>(sqlite3_column_int(stmt, 0));
+				break;
+
+			case SQLITE_DONE:
+				done = true;
+				break;
+
+			case SQLITE_BUSY:
+				// repeat query step
+				break;
+
+			default:
+				throw std::runtime_error("invalid query result (" + std::to_string(__LINE__) + "): " + std::to_string(status));
+		}
+	}
+
+	sqlite3_finalize(stmt);
+	return version;
+}
+
+void SQLiteDB::update_database_v1(void) const
+{
+	const std::string table_camera = "CREATE TABLE IF NOT EXISTS camera("
+	                                 "id          INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
+	                                 "position_x  REAL NOT NULL,"
+	                                 "position_y  REAL NOT NULL,"
+	                                 "position_z  REAL NOT NULL,"
+	                                 "rotation_x  REAL NOT NULL,"
+	                                 "rotation_y  REAL NOT NULL,"
+	                                 "rotation_z  REAL NOT NULL,"
+	                                 "rotation_w  REAL NOT NULL,"
+	                                 "cursor_size REAL NOT NULL"
+	                                 ")";
+
+	run_command(table_camera);
+
+	const std::string table_video = "CREATE TABLE IF NOT EXISTS video("
+	                                "id       INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+	                                "hash     CHAR(64)        NOT NULL," // length of SHA256 hash *2 (bin->hex)
+	                                "duration REAL            NOT NULL,"
+	                                "name     TEXT            NOT NULL"
+	                                " );";
+	run_command(table_video);
+
+	const std::string table_settings = "CREATE TABLE IF NOT EXISTS settings("
+	                                   "video      INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
+	                                   "projection INT  NOT NULL,"
+	                                   "tiling     INT  NOT NULL,"
+	                                   "stretch    BOOL NOT NULL,"
+	                                   "angle      REAL NOT NULL,"
+	                                   "zoom       REAL NOT NULL,"
+	                                   "FOREIGN KEY(video) REFERENCES video(id)"
+	                                   ")";
+	run_command(table_settings);
+
+	const std::string table_thumbnail = "CREATE TABLE IF NOT EXISTS thumbnail("
+	                                    "video     INT  NOT NULL,"
+	                                    "time      REAL NOT NULL,"
+	                                    "format    INT  NOT NULL,"
+	                                    "width     INT  NOT NULL,"
+	                                    "height    INT  NOT NULL,"
+	                                    "thumbnail BLOB NOT NULL,"
+	                                    "FOREIGN KEY(video) REFERENCES video(id)"
+	                                    ")";
+	run_command(table_thumbnail);
+
+	const std::string index_thumbnail = "CREATE UNIQUE INDEX IF NOT EXISTS idx_thumbnail ON thumbnail (video, time)";
+	run_command(index_thumbnail);
+
+	run_command("PRAGMA user_version = 1");
+}
+
+void SQLiteDB::update_database_v2(void) const
+{
+	const std::string add_slices = "alter table thumbnail add column slices int not null default 1";
+	run_command(add_slices);
+	run_command("PRAGMA user_version = 2");
+}
+
+void SQLiteDB::update_database(void) const
+{
+	const size_t version = database_version();
+
+	if (version > 2)
+	{
+		throw std::runtime_error("Database version is newer than this application supports");
+	}
+
+	try
+	{
+		run_command("BEGIN EXCLUSIVE");
+
+		if (version < 1)
+		{
+			update_database_v1();
+		}
+
+		if (version < 2)
+		{
+			update_database_v2();
+		}
+
+		run_command("COMMIT");
+	}
+	catch (...)
+	{
+		sqlite3_exec(m_db, "ROLLBACK", nullptr, nullptr, nullptr);
+		throw;
 	}
 }
 
@@ -610,7 +701,7 @@ void SQLiteDB::read_thumbnail(const size_t video_id,
                               format_t& format,
                               size_t& width,
                               size_t& height,
-							  size_t& slices,
+                              size_t& slices,
                               std::vector<uint8_t>& data) const
 {
 	const std::string q = "SELECT format,width,height,slices,thumbnail FROM thumbnail WHERE video = ?1 AND ABS(time - $2) < 0.1";
@@ -684,7 +775,7 @@ void SQLiteDB::store_thumbnail(const size_t video_id,
                                const format_t format,
                                const size_t width,
                                const size_t height,
-							   const size_t slices,
+                               const size_t slices,
                                const std::vector<uint8_t>& data) const
 {
 	const std::string q = "INSERT OR REPLACE INTO thumbnail (video, time, format, width, height, slices, thumbnail) values (?1, ?2, ?3, ?4, ?5, ?6, ?7)";

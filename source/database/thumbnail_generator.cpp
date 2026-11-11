@@ -165,8 +165,8 @@ void ThumbnailGenerator::process_frame(void)
 	// respect sample aspect ratio for non-square pixels
 	const AVRational sar =
 		m_frame->sample_aspect_ratio.num > 0
-			? m_frame->sample_aspect_ratio
-			: m_stream->sample_aspect_ratio;
+		    ? m_frame->sample_aspect_ratio
+		    : m_stream->sample_aspect_ratio;
 
 	const int width = std::max(
 		1,

@@ -44,7 +44,6 @@ class ProgressBar : public Panel
 		void set_cursor_position(void);
 
 	public:
-
 		/** constructor.
 		 * @param action the action ID reported when the progress bar is clicked.
 		 * @param imagebar file name of the default progress bar texture.
