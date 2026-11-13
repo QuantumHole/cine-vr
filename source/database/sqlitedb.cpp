@@ -184,6 +184,7 @@ void SQLiteDB::update_database_v1(void) const
 void SQLiteDB::update_database_v2(void) const
 {
 	const std::string add_slices = "alter table thumbnail add column slices int not null default 1";
+
 	run_command(add_slices);
 	run_command("PRAGMA user_version = 2");
 }
@@ -232,7 +233,7 @@ void SQLiteDB::update_database_v3(void) const
 
 	for (const size_t video : video_ids)
 	{
-std::cout << "converting thumbnails for video " << video << std::endl;
+		std::cout << "converting thumbnails for video " << video << std::endl;
 
 		// load thumbnail timestamps, ignore global preview strips.
 		const std::string q = "SELECT time FROM thumbnail WHERE video = ?1 AND time >= 0.0";
@@ -292,7 +293,7 @@ std::cout << "converting thumbnails for video " << video << std::endl;
 			read_thumbnail(video, timestamp, format, width, height, slices, pixels);
 
 			if ((format != SQLiteDB::FORMAT_RGB24) || (width == 0) || (height == 0) || (slices != 1) ||
-				(pixels.size() != width * height * slices * 3))
+			    (pixels.size() != width * height * slices * 3))
 			{
 				continue;
 			}

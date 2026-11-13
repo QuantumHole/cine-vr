@@ -23,6 +23,12 @@ static void* get_proc_address(void* ctx __attribute__((unused)), const char* nam
 Player::Player(void) :
 	m_framebuffer(0),
 	m_video_texture_id(0),
+	m_video_textures{0, 0},
+	m_texture_sizes{glm::uvec2(0, 0), glm::uvec2(0, 0)},
+	m_display_texture_index(0),
+	m_pending_texture_index(-1),
+	m_render_fence(nullptr),
+	m_texture_read_fences{nullptr, nullptr},
 	m_playtime(0.0),
 	m_duration(0.0),
 	m_title(""),
@@ -34,6 +40,7 @@ Player::Player(void) :
 	m_wakeup_mutex(),
 	m_wakeup_cv(),
 	m_window(nullptr),
+	m_render_window(nullptr),
 	m_context(mpv_create()),
 	m_render(nullptr),
 	m_initialized(false)
@@ -56,41 +63,93 @@ void Player::thread_starter(Player* player)
 
 void Player::render_thread(void)
 {
-	glfwMakeContextCurrent(glfwGetCurrentContext());
+	glfwMakeContextCurrent(m_render_window);
 
 	while (m_thread_running.load())
 	{
+		int target_index = 0;
+		glm::uvec2 target_size(0, 0);
+		GLsync read_fence = nullptr;
 		{
 			std::unique_lock<std::mutex> lk(m_wakeup_mutex);
 			m_wakeup_cv.wait(lk, [this]{
-				return m_wakeup.load() || !m_thread_running.load();
+				return (m_wakeup.load() && (m_pending_texture_index < 0)) || !m_thread_running.load();
 			});
+
+			if (!m_thread_running.load())
+			{
+				break;
+			}
+
 			m_wakeup.store(false);
+			target_index = 1 - m_display_texture_index;
+			target_size = m_size;
+			read_fence = m_texture_read_fences[target_index];
+			m_texture_read_fences[target_index] = nullptr;
 		}
 
-		if (!m_thread_running.load())
+		if (read_fence)
 		{
-			break;
+			glWaitSync(read_fence, 0, GL_TIMEOUT_IGNORED);
+			glDeleteSync(read_fence);
 		}
 
-		if (mpv_render_context_update(m_render) & MPV_RENDER_UPDATE_FRAME)
+		if ((target_size.x > 0) && (target_size.y > 0))
 		{
-			mpv_opengl_fbo mpv_fbo{
-				static_cast<int>(m_framebuffer),
-				static_cast<int>(m_size.x),
-				static_cast<int>(m_size.y),
-				0
-			};
-			mpv_render_param params_fbo[] = {
-				{MPV_RENDER_PARAM_OPENGL_FBO, &mpv_fbo},
-				{MPV_RENDER_PARAM_INVALID, nullptr}
-			};
+			if (m_framebuffer == 0)
+			{
+				glGenFramebuffers(1, &m_framebuffer);
+			}
 
-			glDisable(GL_CULL_FACE);
-			mpv_render_context_render(m_render, params_fbo);
-			glEnable(GL_CULL_FACE);
+			if ((m_texture_sizes[target_index].x != target_size.x) ||
+			    (m_texture_sizes[target_index].y != target_size.y))
+			{
+				glBindTexture(GL_TEXTURE_2D, m_video_textures[target_index]);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+				             static_cast<GLsizei>(target_size.x), static_cast<GLsizei>(target_size.y),
+				             0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+				m_texture_sizes[target_index] = target_size;
+			}
+
+			glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+			                       m_video_textures[target_index], 0);
+
+			if ((glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) &&
+			    (mpv_render_context_update(m_render) & MPV_RENDER_UPDATE_FRAME))
+			{
+				mpv_opengl_fbo mpv_fbo{
+					static_cast<int>(m_framebuffer),
+					static_cast<int>(target_size.x),
+					static_cast<int>(target_size.y),
+					0
+				};
+				mpv_render_param params_fbo[] = {
+					{MPV_RENDER_PARAM_OPENGL_FBO, &mpv_fbo},
+					{MPV_RENDER_PARAM_INVALID, nullptr}
+				};
+
+				// culling needs to be be disabled or only a black rectangle is rendered
+				// glDisable(GL_CULL_FACE);
+				mpv_render_context_render(m_render, params_fbo);
+				// glEnable(GL_CULL_FACE);
+
+				GLsync render_fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+				glFlush();
+				{
+					std::lock_guard<std::mutex> lk(m_wakeup_mutex);
+					m_pending_texture_index = target_index;
+					m_render_fence = render_fence;
+				}
+			}
 		}
 	}
+
+	glDeleteFramebuffers(1, &m_framebuffer);
+	m_framebuffer = 0;
+	glfwMakeContextCurrent(nullptr);
 }
 
 void Player::start_render_thread(void)
@@ -136,36 +195,51 @@ void Player::on_render_update(void* ctx)
 
 	if (self)
 	{
+		std::lock_guard<std::mutex> lk(self->m_wakeup_mutex);
 		self->m_wakeup.store(true);
 		self->m_wakeup_cv.notify_one();
 	}
 }
 
-void Player::render_frame(void)
+void Player::begin_frame(void)
 {
-	// glfwMakeContextCurrent(glfwGetCurrentContext());
-	glfwMakeContextCurrent(m_window);
+	std::lock_guard<std::mutex> lk(m_wakeup_mutex);
 
-	if ((mpv_render_context_update(m_render) & MPV_RENDER_UPDATE_FRAME))
+	if ((m_pending_texture_index >= 0) && m_render_fence)
 	{
-		mpv_opengl_fbo mpv_fbo = {
-			static_cast<int>(m_framebuffer),
-			static_cast<int>(m_size.x),
-			static_cast<int>(m_size.y),
-			0
-		};
+		const GLenum status = glClientWaitSync(m_render_fence, 0, 0);
 
-		mpv_render_param params_fbo[] = {
-			{MPV_RENDER_PARAM_OPENGL_FBO, &mpv_fbo},
-			{MPV_RENDER_PARAM_INVALID, nullptr}
-		};
+		if ((status == GL_ALREADY_SIGNALED) || (status == GL_CONDITION_SATISFIED))
+		{
+			m_display_texture_index = m_pending_texture_index;
+			m_pending_texture_index = -1;
+			glDeleteSync(m_render_fence);
+			m_render_fence = nullptr;
+			RenderManager::instance().texture(m_video_texture_id).set_video_target_id(
+				m_video_textures[m_display_texture_index], m_size);
+			m_wakeup_cv.notify_one();
+		}
+	}
+}
 
-		glDisable(GL_CULL_FACE);          // culling needs to be be disabled or only a black rectangle is rendered
-		mpv_render_context_render(m_render, params_fbo);
-		glEnable(GL_CULL_FACE);
+void Player::end_frame(void)
+{
+	std::lock_guard<std::mutex> lk(m_wakeup_mutex);
+
+	if (!m_video_textures[m_display_texture_index])
+	{
+		return;
 	}
 
-	m_wakeup.store(false);
+	GLsync fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+	glFlush();
+	GLsync old_fence = m_texture_read_fences[m_display_texture_index];
+	m_texture_read_fences[m_display_texture_index] = fence;
+
+	if (old_fence)
+	{
+		glDeleteSync(old_fence);
+	}
 }
 
 void Player::handle_events(void)
@@ -222,40 +296,38 @@ void Player::handle_events(void)
 				int64_t height = 0;
 				mpv_get_property(m_context, "height", MPV_FORMAT_INT64, &height);
 
-				m_size.x = static_cast<GLuint>(width);
-				m_size.y = static_cast<GLuint>(height);
+				{
+					std::lock_guard<std::mutex> lk(m_wakeup_mutex);
+					m_size.x = static_cast<GLuint>(width);
+					m_size.y = static_cast<GLuint>(height);
+					m_wakeup.store(true);
+				}
 				std::cout << "player video reconfiguration: " << m_size.x << " x " << m_size.y << std::endl;
 
 				if (width && height)
 				{
-					// glfwMakeContextCurrent(glfwGetCurrentContext());
-					glfwMakeContextCurrent(m_window);
-
-					// Framebuffer for Video Target - Video Texture
-					if (m_framebuffer == 0)
-					{
-						glGenFramebuffers(1, &m_framebuffer);
-					}
-					glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
-					// create a color attachment texture
-					Texture& video_texture = RenderManager::instance().texture(m_video_texture_id);
-					video_texture.init_video_target(m_size, 0);
-					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, video_texture.id(), 0);
-
-					if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-					{
-						std::cout << "failed creating framebuffer" << std::endl;
-					}
 					Application::instance().projection().set_aspect(static_cast<float>(width) / static_cast<float>(height));
 					Application::instance().update_projection();
 				}
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				m_wakeup_cv.notify_one();
 			}
 			break;
 			case MPV_EVENT_PLAYBACK_RESTART:
 				break;
+			case MPV_EVENT_SET_PROPERTY_REPLY:
+
+				if (event->error < 0)
+				{
+					std::cerr << "mpv pause property update failed: "
+					          << mpv_error_string(event->error) << std::endl;
+				}
+				break;
+			case MPV_EVENT_LOG_MESSAGE:
+			{
+				mpv_event_log_message* msg = static_cast<mpv_event_log_message*>(event->data);
+				std::cerr << "mpv [" << msg->level << "] " << msg->prefix << ": " << msg->text;
+			}
+			break;
 			case MPV_EVENT_PROPERTY_CHANGE:
 			{
 				mpv_event_property* prop = reinterpret_cast<mpv_event_property*>(event->data);
@@ -295,12 +367,6 @@ void Player::handle_events(void)
 // case MPV_EVENT_SHUTDOWN:
 // m_quit = true;
 // break;
-// case MPV_EVENT_LOG_MESSAGE:
-// {
-// mpv_event_log_message* msg = static_cast<mpv_event_log_message*>(event->data);
-// printf("[%s] %s: %s", msg->prefix, msg->level, msg->text);
-// }
-// break;
 			case MPV_EVENT_IDLE:
 			case MPV_EVENT_NONE:
 				more_events = false;
@@ -309,11 +375,6 @@ void Player::handle_events(void)
 				std::cout << "unhandled MPV event: " << event->event_id << std::endl;
 				break;
 		}
-	}
-
-	if (m_wakeup.load())
-	{
-		render_frame();
 	}
 }
 
@@ -335,6 +396,7 @@ void Player::open_file(const std::string& file_name, GLFWwindow* window, const s
 {
 	m_window = window;
 	m_video_texture_id = video_texture_id;
+	glfwMakeContextCurrent(m_window);
 
 	if (!m_context)
 	{
@@ -348,7 +410,19 @@ void Player::open_file(const std::string& file_name, GLFWwindow* window, const s
 
 	if (!m_initialized)
 	{
-		set_option("vd-lavc-dr", "yes");
+		Texture& video_texture = RenderManager::instance().texture(m_video_texture_id);
+		video_texture.init_video_target(glm::uvec2(1, 1), 0);
+		m_video_textures[0] = video_texture.id();
+		glGenTextures(1, &m_video_textures[1]);
+		glBindTexture(GL_TEXTURE_2D, m_video_textures[1]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		m_display_texture_index = 0;
+		m_pending_texture_index = -1;
+
+		set_option("vd-lavc-dr", "no");  // no playback for some videos with vd-lavc-dr enabled
 		set_option("vo", "libmpv");
 		set_option("hwdec", "auto");
 		set_option("profile", "gpu-hq");
@@ -371,7 +445,6 @@ void Player::open_file(const std::string& file_name, GLFWwindow* window, const s
 			{MPV_RENDER_PARAM_API_TYPE, const_cast<char*>(MPV_RENDER_API_TYPE_OPENGL)},
 			{MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &opengl_init_params},
 			{MPV_RENDER_PARAM_ADVANCED_CONTROL, &advanced_control},
-			{MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, nullptr},
 			{MPV_RENDER_PARAM_INVALID, nullptr}
 		};
 
@@ -383,13 +456,28 @@ void Player::open_file(const std::string& file_name, GLFWwindow* window, const s
 			throw std::runtime_error("Error: mpv_render_context_create failed");
 		}
 
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		m_render_window = glfwCreateWindow(1, 1, "Cine-VR render", nullptr, m_window);
+		glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+
+		if (!m_render_window)
+		{
+			mpv_render_context_free(m_render);
+			m_render = nullptr;
+			mpv_terminate_destroy(m_context);
+			m_context = nullptr;
+			throw std::runtime_error("failed creating shared render context");
+		}
+
 		mpv_render_context_set_update_callback(m_render, on_render_update, this);
 
 		mpv_observe_property(m_context, 0, "duration", MPV_FORMAT_DOUBLE);
 		mpv_observe_property(m_context, 0, "time-pos", MPV_FORMAT_DOUBLE);
 		mpv_observe_property(m_context, 0, "estimated-vf-fps", MPV_FORMAT_DOUBLE);
 		mpv_observe_property(m_context, 0, "media-title", MPV_FORMAT_NONE);
+		mpv_request_log_messages(m_context, "info");
 		m_initialized = true;
+		start_render_thread();
 	}
 
 	std::vector<const char*> cmd = {"loadfile", file_name.c_str(), "replace", nullptr};
@@ -404,11 +492,15 @@ void Player::open_file(const std::string& file_name, GLFWwindow* window, const s
 
 void Player::close(void)
 {
+	if (m_render)
+	{
+		mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
+	}
+
 	stop_render_thread();
 
 	if (m_render)
 	{
-		mpv_render_context_set_update_callback(m_render, nullptr, nullptr);
 		mpv_render_context_free(m_render);
 		m_render = nullptr;
 	}
@@ -419,10 +511,43 @@ void Player::close(void)
 		m_context = nullptr;
 	}
 
+	if (m_render_window)
+	{
+		glfwDestroyWindow(m_render_window);
+		m_render_window = nullptr;
+	}
+
+	if (m_video_textures[0] || m_video_textures[1])
+	{
+		glfwMakeContextCurrent(m_window);
+		for (GLsync& fence : m_texture_read_fences)
+		{
+			if (fence)
+			{
+				glDeleteSync(fence);
+				fence = nullptr;
+			}
+		}
+
+		if (m_render_fence)
+		{
+			glDeleteSync(m_render_fence);
+			m_render_fence = nullptr;
+		}
+		glDeleteTextures(2, m_video_textures);
+		RenderManager::instance().texture(m_video_texture_id).set_video_target_id(0, glm::uvec2(0, 0));
+		m_video_textures[0] = 0;
+		m_video_textures[1] = 0;
+	}
+
 	m_initialized = false;
 	m_playing = false;
 	m_framebuffer = 0;
 	m_size = glm::uvec2(0, 0);
+	m_texture_sizes[0] = glm::uvec2(0, 0);
+	m_texture_sizes[1] = glm::uvec2(0, 0);
+	m_display_texture_index = 0;
+	m_pending_texture_index = -1;
 }
 
 void Player::play(void)
@@ -433,7 +558,13 @@ void Player::play(void)
 	}
 
 	int pause_value = 0;
-	mpv_set_property(m_context, "pause", MPV_FORMAT_FLAG, &pause_value);
+	const int status = mpv_set_property_async(m_context, 1, "pause", MPV_FORMAT_FLAG, &pause_value);
+
+	if (status < 0)
+	{
+		std::cerr << "failed requesting playback: " << mpv_error_string(status) << std::endl;
+		return;
+	}
 	m_playing = true;
 }
 
@@ -445,7 +576,13 @@ void Player::pause(void)
 	}
 
 	int pause_value = 1;
-	mpv_set_property(m_context, "pause", MPV_FORMAT_FLAG, &pause_value);
+	const int status = mpv_set_property_async(m_context, 2, "pause", MPV_FORMAT_FLAG, &pause_value);
+
+	if (status < 0)
+	{
+		std::cerr << "failed requesting pause: " << mpv_error_string(status) << std::endl;
+		return;
+	}
 	m_playing = false;
 }
 

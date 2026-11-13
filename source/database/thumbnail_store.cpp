@@ -214,7 +214,7 @@ ThumbnailVolume ThumbnailStore::get_thumbnail_volume(void) const
 	m_database.read_thumbnail(video_id, -2.0, format, width, height, slices, pixels);
 
 	if ((format != SQLiteDB::FORMAT_RGB24) || (width == 0) || (height == 0) || (slices == 0) ||
-		(pixels.size() != width * height * slices * 3))
+	    (pixels.size() != width * height * slices * 3))
 	{
 		return volume;
 	}

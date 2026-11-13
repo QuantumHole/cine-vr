@@ -29,6 +29,7 @@ class Texture
 
 		GLuint id(void) const;
 		void init_video_target(const glm::uvec2& size, const GLuint slot);
+		void set_video_target_id(const GLuint id, const glm::uvec2& size);
 		void init_data_3d(const std::vector<uint8_t>& data, const glm::uvec3& size, const GLenum format, const GLuint slot);
 		GLuint slot(void) const;
 		const glm::uvec2& size(void) const;

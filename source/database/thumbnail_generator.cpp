@@ -106,9 +106,9 @@ ThumbnailGenerator::ThumbnailGenerator(const std::string& file_path) :
 	m_stepsize = time_step(m_duration);
 	m_next_thumbnail_pts = m_start_pts;
 	std::cout << file_path << ": Duration: "
-			  << (static_cast<double>(m_duration) / 1e6) << " s, Interval: "
-			  << (static_cast<double>(m_stepsize) / 1e6) << " s"
-			  << std::endl;
+	          << (static_cast<double>(m_duration) / 1e6) << " s, Interval: "
+	          << (static_cast<double>(m_stepsize) / 1e6) << " s"
+	          << std::endl;
 }
 
 double ThumbnailGenerator::duration(void) const
@@ -175,9 +175,9 @@ void ThumbnailGenerator::process_frame(void)
 	const double max_aspect = 2.0 * 21.0 / 9.0;
 	const int width =
 		std::max(1, static_cast<int>(std::lround(std::min(max_aspect,
-			static_cast<double>(m_frame->width) * pixel_aspect *
-			static_cast<double>(m_thumbnail_height) / static_cast<double>(m_frame->height)
-		))));
+		                                                  static_cast<double>(m_frame->width) * pixel_aspect *
+		                                                  static_cast<double>(m_thumbnail_height) / static_cast<double>(m_frame->height)
+		                                                  ))));
 
 	// update scaling context
 	m_sws = sws_getCachedContext(

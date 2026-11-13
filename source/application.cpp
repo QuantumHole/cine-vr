@@ -549,6 +549,7 @@ int Application::run(void)
 			std::cout << "action: trigger: " << input_state.trigger.value << std::endl;
 		}
 
+		g_player.begin_frame();
 		g_player.handle_events();
 
 		/* restore transparency */
@@ -659,6 +660,7 @@ int Application::run(void)
 
 		// Let compositor run
 		g_vr.handoff();
+		g_player.end_frame();
 	}
 
 	// Cleanup

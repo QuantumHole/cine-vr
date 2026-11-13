@@ -169,6 +169,14 @@ void Texture::init_video_target(const glm::uvec2& size, const GLuint slot)
 	             0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 }
 
+void Texture::set_video_target_id(const GLuint id, const glm::uvec2& size)
+{
+	m_id = id;
+	m_size = size;
+	m_target = GL_TEXTURE_2D;
+	m_format = GL_RGBA;
+}
+
 void Texture::init_data(const std::vector<uint8_t>& data, const glm::uvec2& size, const GLenum format, const GLuint slot)
 {
 	if (m_id)

@@ -223,7 +223,7 @@ void ProgressBar::init_tooltip(void)
 	m_tooltip_size = (m_tooltip_image_size.x > 0.0f) ? m_tooltip_image_size : m_tooltip_text_size;
 	const std::vector<GLuint> indices = {0, 1, 2, 0, 3, 1};
 	const size_t shader_id = Application::instance().shader().id();
-	std::vector<uint8_t> pixels(text_width * FontRenderer::font_size * sizeof(uint32_t), 0);
+	std::vector<uint8_t> pixels(text_width * FontRenderer::font_size* sizeof(uint32_t), 0);
 	for (size_t pixel = 0; pixel < text_width * FontRenderer::font_size; pixel++)
 	{
 		pixels[pixel * 4] = 24;
@@ -280,16 +280,16 @@ void ProgressBar::update_tooltip(const float position)
 		const unsigned int seconds = static_cast<unsigned int>(total_seconds % 60);
 		std::ostringstream text;
 		text << std::setfill('0')
-			 << std::setw(2) << hours << ":"
+		     << std::setw(2) << hours << ":"
 		     << std::setw(2) << minutes << ":"
-			 << std::setw(2) << seconds;
+		     << std::setw(2) << seconds;
 
 		std::vector<uint32_t> glyphs;
 		FontRenderer::instance().render_text(text.str(), glyphs);
 		const size_t glyph_width = glyphs.size() / FontRenderer::font_size;
 		const size_t visible_width = std::min<size_t>(glyph_width, text_width);
-		std::vector<uint8_t> pixels(text_width * FontRenderer::font_size * sizeof(uint32_t), 0);
-		for (size_t pixel = 0; pixel < pixels.size(); pixel+=4)
+		std::vector<uint8_t> pixels(text_width * FontRenderer::font_size* sizeof(uint32_t), 0);
+		for (size_t pixel = 0; pixel < pixels.size(); pixel += 4)
 		{
 			pixels[pixel + 0] = 24;
 			pixels[pixel + 1] = 24;
