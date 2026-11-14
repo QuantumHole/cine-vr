@@ -9,7 +9,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <iostream>
+#include <thread>
 
 static std::string ffmpegError(int error)
 {
@@ -25,7 +25,6 @@ ThumbnailGenerator::ThumbnailGenerator(const std::string& file_path) :
 	m_duration(0),
 	m_stepsize(0),
 	m_thumbnails(),
-	m_sws(nullptr),
 	m_start_pts(0),
 	m_file_format(nullptr),
 	m_stream_format(nullptr),
@@ -80,6 +79,10 @@ ThumbnailGenerator::ThumbnailGenerator(const std::string& file_path) :
 		throw std::runtime_error(ffmpegError(ret));
 	}
 
+	const unsigned int availableThreads = std::thread::hardware_concurrency();
+	m_codec->thread_count = static_cast<int>((availableThreads == 0) ? 2 : availableThreads);
+	m_codec->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
+
 	ret = avcodec_open2(m_codec, decoder, nullptr);
 
 	if (ret < 0)
@@ -104,11 +107,7 @@ ThumbnailGenerator::ThumbnailGenerator(const std::string& file_path) :
 	m_start_pts = (m_stream->start_time != AV_NOPTS_VALUE) ? m_stream->start_time : 0;
 	m_duration = (m_stream_format->duration == AV_NOPTS_VALUE) ? 0 : m_stream_format->duration;
 	m_stepsize = time_step(m_duration);
-	m_next_thumbnail_pts = m_start_pts;
-	std::cout << file_path << ": Duration: "
-	          << (static_cast<double>(m_duration) / 1e6) << " s, Interval: "
-	          << (static_cast<double>(m_stepsize) / 1e6) << " s"
-	          << std::endl;
+	m_next_thumbnail_pts = 0;
 }
 
 double ThumbnailGenerator::duration(void) const
@@ -162,50 +161,62 @@ void ThumbnailGenerator::process_frame(void)
 		return;
 	}
 
-	// calculate thumbnail size
+	const int64_t timestampMs = av_rescale_q(pts - m_start_pts, m_stream->time_base, AVRational{1, 1000});
+	Thumbnail thumbnail = scale_frame(m_frame, timestampMs);
+	m_thumbnails.push_back(std::move(thumbnail));
+
+	// determine next thumbnail timestamp
+	do
+	{
+		m_next_thumbnail_pts += m_stepsize;
+	}
+	while (m_next_thumbnail_pts <= elapsedUs);
+}
+
+Thumbnail ThumbnailGenerator::scale_frame(const AVFrame* frame, const int64_t timestamp_ms) const
+{
 	// respect sample aspect ratio for non-square pixels
 	const AVRational sar =
-		(m_frame->sample_aspect_ratio.num > 0)
-		    ? m_frame->sample_aspect_ratio
+		(frame->sample_aspect_ratio.num > 0)
+		    ? frame->sample_aspect_ratio
 		    : ((m_stream->sample_aspect_ratio.num > 0) ? m_stream->sample_aspect_ratio : AVRational{1, 1});
 	const double pixel_aspect = av_q2d(sar);
 
 	// squeeze thumbnails for videos with bigger aspect ratio.
-	// avoids excessively large thumbnail strips.
 	const double max_aspect = 2.0 * 21.0 / 9.0;
 	const int width =
-		std::max(1, static_cast<int>(std::lround(std::min(max_aspect,
-		                                                  static_cast<double>(m_frame->width) * pixel_aspect *
-		                                                  static_cast<double>(m_thumbnail_height) / static_cast<double>(m_frame->height)
-		                                                  ))));
+		std::max(1, static_cast<int>(std::lround(static_cast<double>(m_thumbnail_height) * std::min(max_aspect,
+		                                                                                            pixel_aspect *
+		                                                                                            static_cast<double>(frame->width) / static_cast<double>(frame->height)
+		                                                                                            ))));
 
-	// update scaling context
-	m_sws = sws_getCachedContext(
-		m_sws,
-		m_frame->width,
-		m_frame->height,
-		static_cast<AVPixelFormat>(m_frame->format),
-		width,
-		static_cast<int>(m_thumbnail_height),
-		AV_PIX_FMT_RGB24,
-		SWS_POINT,    // SWS_FAST_BILINEAR, SWS_BILINEAR
-		nullptr,
-		nullptr,
-		nullptr
+	std::unique_ptr<SwsContext, decltype(& sws_freeContext)> sws(
+		sws_getContext(
+			frame->width,
+			frame->height,
+			static_cast<AVPixelFormat>(frame->format),
+			width,
+			static_cast<int>(m_thumbnail_height),
+			AV_PIX_FMT_RGB24,
+			SWS_POINT,
+			nullptr,
+			nullptr,
+			nullptr
+			),
+		&sws_freeContext
 		);
 
-	if (!m_sws)
+	if (!sws)
 	{
 		throw std::runtime_error("Cannot create scaling context");
 	}
 
-	// create thumbnail
 	Thumbnail thumbnail;
 
 	thumbnail.width = width;
 	thumbnail.height = static_cast<int>(m_thumbnail_height);
 	thumbnail.stride = width * 3;
-	thumbnail.timestampMs = av_rescale_q(pts - m_start_pts, m_stream->time_base, AVRational{1, 1000});
+	thumbnail.timestampMs = timestamp_ms;
 	thumbnail.pixels.resize(static_cast<size_t>(thumbnail.stride) * m_thumbnail_height);
 
 	uint8_t* dstData[4] = {
@@ -219,11 +230,11 @@ void ThumbnailGenerator::process_frame(void)
 
 	// scale and convert to RGB24
 	int scaledHeight = sws_scale(
-		m_sws,
-		m_frame->data,
-		m_frame->linesize,
+		sws.get(),
+		frame->data,
+		frame->linesize,
 		0,
-		m_frame->height,
+		frame->height,
 		dstData,
 		dstLinesize
 		);
@@ -233,14 +244,7 @@ void ThumbnailGenerator::process_frame(void)
 		throw std::runtime_error("Thumbnail scaling failed");
 	}
 
-	m_thumbnails.push_back(std::move(thumbnail));
-
-	// determine next thumbnail timestamp
-	do
-	{
-		m_next_thumbnail_pts += m_stepsize;
-	}
-	while (m_next_thumbnail_pts <= elapsedUs);
+	return thumbnail;
 }
 
 int ThumbnailGenerator::receiveFrames(void)
@@ -268,28 +272,66 @@ int ThumbnailGenerator::receiveFrames(void)
 std::vector<Thumbnail> ThumbnailGenerator::generate(void)
 {
 	int status;
+	const bool seekBetweenThumbnails = m_stepsize >= 4 * AV_TIME_BASE;
 
-	while ((status = av_read_frame(m_stream_format, m_packet)) >= 0)
+	while (true)
 	{
-		if (m_packet->stream_index == m_video_stream_index)
+		if (seekBetweenThumbnails && !m_thumbnails.empty())
 		{
-			int ret = avcodec_send_packet(m_codec, m_packet);
-
-			if (ret < 0)
+			if (m_next_thumbnail_pts >= m_duration)
 			{
-				av_packet_unref(m_packet);
-				throw std::runtime_error("Packet submission failed: " + ffmpegError(ret));
+				break;
 			}
 
-			receiveFrames();
+			const int64_t targetPts = m_start_pts + av_rescale_q(m_next_thumbnail_pts, AV_TIME_BASE_Q, m_stream->time_base);
+			const int seekStatus = av_seek_frame(m_stream_format, m_video_stream_index, targetPts, AVSEEK_FLAG_BACKWARD);
+
+			if (seekStatus < 0)
+			{
+				throw std::runtime_error("Video seeking failed: " + ffmpegError(seekStatus));
+			}
+
+			avcodec_flush_buffers(m_codec);
 		}
 
-		av_packet_unref(m_packet);
-	}
+		const size_t previousThumbnailCount = m_thumbnails.size();
+		bool generatedThumbnail = false;
 
-	if (status != AVERROR_EOF)
-	{
-		throw std::runtime_error("Video reading failed: " + ffmpegError(status));
+		while ((status = av_read_frame(m_stream_format, m_packet)) >= 0)
+		{
+			if (m_packet->stream_index == m_video_stream_index)
+			{
+				int ret = avcodec_send_packet(m_codec, m_packet);
+
+				if (ret < 0)
+				{
+					av_packet_unref(m_packet);
+					throw std::runtime_error("Packet submission failed: " + ffmpegError(ret));
+				}
+
+				receiveFrames();
+			}
+
+			av_packet_unref(m_packet);
+
+			if (seekBetweenThumbnails && (m_thumbnails.size() > previousThumbnailCount))
+			{
+				generatedThumbnail = true;
+				break;
+			}
+		}
+
+		if (generatedThumbnail)
+		{
+			continue;
+		}
+
+		if (status != AVERROR_EOF)
+		{
+			throw std::runtime_error("Video reading failed: " + ffmpegError(status));
+		}
+
+		break;
 	}
 
 	status = avcodec_send_packet(m_codec, nullptr);
@@ -301,7 +343,6 @@ std::vector<Thumbnail> ThumbnailGenerator::generate(void)
 
 	receiveFrames();
 
-	sws_freeContext(m_sws);
 	av_packet_free(&m_packet);
 	av_frame_free(&m_frame);
 	avcodec_free_context(&m_codec);

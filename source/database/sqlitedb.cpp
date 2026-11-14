@@ -767,7 +767,7 @@ void SQLiteDB::read_settings(const size_t video_id,
 	projection = 0;
 	tiling = 0;
 	stretch = false;
-	angle = 0.0f;
+	angle = 90.0f;   // default value of 0.0f shrinks video to an invisible point
 	zoom = 0.0f;
 	switch_eyes = false;
 	mono = false;

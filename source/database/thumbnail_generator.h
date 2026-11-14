@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <memory>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -51,7 +50,6 @@ class ThumbnailGenerator
 		int64_t m_duration;                  ///< duration of the video in microseconds
 		int64_t m_stepsize;                  ///< step size for thumbnail generation in microseconds
 		std::vector<Thumbnail> m_thumbnails; ///< vector to store generated thumbnails
-		SwsContext* m_sws;                   ///< scaling context for converting frames to thumbnails
 		int64_t m_start_pts;                 ///< start presentation timestamp of the video stream in microseconds
 		AVFormatContext* m_file_format;      ///< format context for the video file
 		AVFormatContext* m_stream_format;    ///< format context for the video stream
@@ -80,6 +78,12 @@ class ThumbnailGenerator
 
 		/** processes a video frame and generates a thumbnail. */
 		void process_frame(void);
+
+		/** scales one retained frame into a thumbnail.
+		 * @param frame decoded frame.
+		 * @param timestamp_ms frame time in milliseconds.
+		 */
+		Thumbnail scale_frame(const AVFrame* frame, int64_t timestamp_ms) const;
 
 		/** receives decoded video frames and generates thumbnails.
 		 * @return 0 if all frames have been processed, AVERROR(EAGAIN) if more packets are needed, or an error code
