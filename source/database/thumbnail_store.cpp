@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "thumbnail_store.h"
+#include "application.h"
 
 #include <iostream>
 #include <mutex>
@@ -80,7 +81,7 @@ static void generate_thumbnails(const std::string& video_file, size_t video_id)
 		const std::vector<Thumbnail> thumbnails = generator.generate();
 
 		std::cout << "received " << thumbnails.size() << " thumbnails for " << video_file << std::endl;
-		SQLiteDB database("cine-vr");
+		const SQLiteDB& database = Application::instance().database();
 
 		if (video_id == 0)
 		{
@@ -124,8 +125,7 @@ static void generate_thumbnails(const std::string& video_file, size_t video_id)
 }
 
 ThumbnailStore::ThumbnailStore(const std::string& file_path) :
-	m_file_path(file_path),
-	m_database("cine-vr")
+	m_file_path(file_path)
 {
 }
 
@@ -135,17 +135,19 @@ Thumbnail ThumbnailStore::get_thumbnail(const float timestamp) const
 
 	try
 	{
+		const SQLiteDB& database = Application::instance().database();
+
 		float duration = 0.0f;
 		SQLiteDB::format_t format = SQLiteDB::FORMAT_RGB24;
 		size_t width = 0;
 		size_t height = 0;
 		size_t slices = 0;
 		std::vector<uint8_t> data;
-		const size_t video_id = m_database.read_video(m_file_path, duration);
+		const size_t video_id = database.read_video(m_file_path, duration);
 
 		if (video_id)
 		{
-			m_database.read_thumbnail(video_id, timestamp, format, width, height, slices, data);
+			database.read_thumbnail(video_id, timestamp, format, width, height, slices, data);
 		}
 
 		if (!data.empty() && (format == SQLiteDB::FORMAT_RGB24) && (width > 0) && (height > 0) &&
@@ -199,7 +201,8 @@ ThumbnailVolume ThumbnailStore::get_thumbnail_volume(void) const
 {
 	ThumbnailVolume volume;
 	float duration = 0.0f;
-	const size_t video_id = m_database.read_video(m_file_path, duration);
+	const SQLiteDB& database = Application::instance().database();
+	const size_t video_id = database.read_video(m_file_path, duration);
 
 	if (!video_id)
 	{
@@ -211,7 +214,7 @@ ThumbnailVolume ThumbnailStore::get_thumbnail_volume(void) const
 	size_t height = 0;
 	size_t slices = 0;
 	std::vector<uint8_t> pixels;
-	m_database.read_thumbnail(video_id, -2.0, format, width, height, slices, pixels);
+	database.read_thumbnail(video_id, -2.0, format, width, height, slices, pixels);
 
 	if ((format != SQLiteDB::FORMAT_RGB24) || (width == 0) || (height == 0) || (slices == 0) ||
 	    (pixels.size() != width * height * slices * 3))

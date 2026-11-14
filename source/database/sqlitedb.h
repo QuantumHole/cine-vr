@@ -41,6 +41,9 @@ class SQLiteDB
 		/** merge all thumbnails of each video. */
 		void update_database_v3(void) const;
 
+		/** add settings switch_eyes and mono. */
+		void update_database_v4(void) const;
+
 		/** update database to the current scheme. */
 		void update_database(void) const;
 
@@ -136,13 +139,17 @@ class SQLiteDB
 		 * @param stretch Stretch mode.
 		 * @param angle Angle.
 		 * @param zoom Zoom level.
+		 * @param switch_eyes switch eyes.
+		 * @param mono force monoscopic display
 		 */
 		void read_settings(const size_t video_id,
 		                   size_t& projection,
 		                   size_t& tiling,
 		                   bool& stretch,
 		                   float& angle,
-		                   float& zoom) const;
+		                   float& zoom,
+		                   bool& switch_eyes,
+		                   bool& mono) const;
 
 		/** Store video settings.
 		 * @param video_id Video ID.
@@ -151,13 +158,17 @@ class SQLiteDB
 		 * @param stretch Stretch mode.
 		 * @param angle Angle.
 		 * @param zoom Zoom level.
+		 * @param switch_eyes switch eyes.
+		 * @param mono force monoscopic display
 		 */
 		void store_settings(const size_t video_id,
 		                    const size_t projection,
 		                    const size_t tiling,
 		                    const bool stretch,
 		                    const float angle,
-		                    const float zoom) const;
+		                    const float zoom,
+		                    const bool switch_eyes,
+		                    const bool mono) const;
 
 		/** Read thumbnail information.
 		 * @param video_id Video ID.

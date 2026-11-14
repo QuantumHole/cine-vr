@@ -13,6 +13,7 @@
 #include <fstream>
 #include <set>
 #include <algorithm>
+#include <functional>
 #include <openssl/sha.h>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -355,33 +356,52 @@ void SQLiteDB::update_database_v3(void) const
 	run_command("PRAGMA user_version = 3");
 }
 
+void SQLiteDB::update_database_v4(void) const
+{
+	const std::string add_switch = "alter table settings add column switch_eyes bool not null default false";
+	const std::string add_mono = "alter table settings add column mono bool not null default false";
+
+	run_command(add_switch);
+	run_command(add_mono);
+	run_command("PRAGMA user_version = 4");
+}
+
 void SQLiteDB::update_database(void) const
 {
-	const size_t max_version = 3;
 	const size_t version = database_version();
 
-	if (version > max_version)
+	std::vector<std::function<void(void)> > updates = {
+		[this]() {
+			update_database_v1();
+		},
+		[this]() {
+			update_database_v2();
+		},
+		[this]() {
+			update_database_v3();
+		},
+		[this]() {
+			update_database_v4();
+		}
+	};
+
+	if (version > updates.size())
 	{
 		throw std::runtime_error("Database version is newer than this application supports");
 	}
 
 	try
 	{
+		size_t i = 0;
 		run_command("BEGIN EXCLUSIVE");
 
-		if (version < 1)
+		while (i < updates.size())
 		{
-			update_database_v1();
-		}
-
-		if (version < 2)
-		{
-			update_database_v2();
-		}
-
-		if (version < 3)
-		{
-			update_database_v3();
+			if (version < i + 1)
+			{
+				updates[i]();
+			}
+			i++;
 		}
 
 		run_command("COMMIT");
@@ -735,15 +755,24 @@ size_t SQLiteDB::store_window(const std::string& name) const
 	return id;
 }
 
-void SQLiteDB::read_settings(const size_t video_id, size_t& projection, size_t& tiling, bool& stretch, float& angle, float& zoom) const
+void SQLiteDB::read_settings(const size_t video_id,
+                             size_t& projection,
+                             size_t& tiling,
+                             bool& stretch,
+                             float& angle,
+                             float& zoom,
+                             bool& switch_eyes,
+                             bool& mono) const
 {
 	projection = 0;
 	tiling = 0;
 	stretch = false;
 	angle = 0.0f;
 	zoom = 0.0f;
+	switch_eyes = false;
+	mono = false;
 
-	const std::string q = "SELECT projection,tiling,stretch,angle,zoom FROM settings WHERE video = ?1";
+	const std::string q = "SELECT projection,tiling,stretch,angle,zoom,switch_eyes,mono FROM settings WHERE video = ?1";
 
 	sqlite3_stmt* stmt;
 	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
@@ -772,11 +801,13 @@ void SQLiteDB::read_settings(const size_t video_id, size_t& projection, size_t& 
 		switch (status)
 		{
 			case SQLITE_ROW:
-				projection = static_cast<size_t>(sqlite3_column_int(stmt, 0));
-				tiling     = static_cast<size_t>(sqlite3_column_int(stmt, 1));
-				stretch    = static_cast<size_t>(sqlite3_column_int(stmt, 2));
-				angle      = static_cast<float>(sqlite3_column_double(stmt, 3));
-				zoom       = static_cast<float>(sqlite3_column_double(stmt, 4));
+				projection  = static_cast<size_t>(sqlite3_column_int(stmt, 0));
+				tiling      = static_cast<size_t>(sqlite3_column_int(stmt, 1));
+				stretch     = static_cast<bool>(sqlite3_column_int(stmt, 2));
+				angle       = static_cast<float>(sqlite3_column_double(stmt, 3));
+				zoom        = static_cast<float>(sqlite3_column_double(stmt, 4));
+				switch_eyes = static_cast<bool>(sqlite3_column_int(stmt, 5));
+				mono        = static_cast<bool>(sqlite3_column_int(stmt, 6));
 				break;
 			case SQLITE_DONE:
 				done = true;
@@ -798,9 +829,13 @@ void SQLiteDB::store_settings(const size_t video_id,
                               const size_t tiling,
                               const bool stretch,
                               const float angle,
-                              const float zoom) const
+                              const float zoom,
+                              const bool switch_eyes,
+                              const bool mono) const
 {
-	const std::string q = "INSERT OR REPLACE INTO settings (video, projection, tiling, stretch, angle, zoom) values(?1, ?2, ?3, ?4, ?5, ?6)";
+	const std::string q = "INSERT OR REPLACE INTO "
+	                      "settings (video, projection, tiling, stretch, angle, zoom, switch_eyes, mono) "
+	                      "values(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)";
 
 	sqlite3_stmt* stmt;
 	int status = sqlite3_prepare_v2(m_db, q.c_str(), static_cast<int>(q.size()), &stmt, NULL);
@@ -810,7 +845,7 @@ void SQLiteDB::store_settings(const size_t video_id,
 		throw std::runtime_error("invalid SQL statement: " + q);
 	}
 
-	if (sqlite3_bind_parameter_count(stmt) != 6)
+	if (sqlite3_bind_parameter_count(stmt) != 8)
 	{
 		throw std::runtime_error("parameter count mismatch");
 	}
@@ -851,6 +886,20 @@ void SQLiteDB::store_settings(const size_t video_id,
 	}
 
 	status = sqlite3_bind_double(stmt, 6, static_cast<double>(zoom));
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_int(stmt, 7, switch_eyes);
+
+	if (status != SQLITE_OK)
+	{
+		throw std::runtime_error("failed binding parameter");
+	}
+
+	status = sqlite3_bind_int(stmt, 8, mono);
 
 	if (status != SQLITE_OK)
 	{

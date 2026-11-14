@@ -5,7 +5,6 @@
 #ifndef THUMBNAIL_STORE_H
 #define THUMBNAIL_STORE_H
 
-#include "sqlitedb.h"
 #include "thumbnail_generator.h"
 
 #include <glm/glm.hpp>
@@ -29,7 +28,6 @@ class ThumbnailStore
 {
 	private:
 		const std::string m_file_path;   ///< path to the current video file
-		SQLiteDB m_database;             ///< SQLite database instance
 
 	public:
 		explicit ThumbnailStore(const std::string& file_path);

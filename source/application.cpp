@@ -13,6 +13,8 @@ Application* Application::m_instance = nullptr;
 glm::uvec2 Application::g_window_size(800, 600);
 
 Application::Application(void) :
+	m_app_name("cine-vr"),
+	m_database(m_app_name),
 	g_Running(true),
 	g_window(nullptr),
 	g_vr(),
@@ -52,6 +54,16 @@ Application::~Application(void)
 		delete m_instance;
 		m_instance = nullptr;
 	}
+}
+
+const std::string& Application::app_name(void) const
+{
+	return m_app_name;
+}
+
+const SQLiteDB& Application::database(void) const
+{
+	return m_database;
 }
 
 void Application::framebuffer_size_callback(GLFWwindow* window __attribute__((unused)), int width, int height)
@@ -311,6 +323,32 @@ void Application::player_open_file(const std::string& file_name)
 		g_menu.set_playable(true);
 		g_source = SOURCE_VIDEO;
 
+		/** load video projection settings. */
+		float duration = 0.0f;
+		const size_t video_id = m_database.read_video(file_name, duration);
+
+		if ((video_id > 0) && (duration >= 0.0f))
+		{
+			size_t projection = 0;
+			size_t tiling = 0;
+			bool stretch = false;
+			float angle = 0.0f;
+			float zoom = 0.0f;
+			bool switch_eyes = false;
+			bool mono = false;
+			m_database.read_settings(video_id, projection, tiling, stretch, angle, zoom, switch_eyes, mono);
+
+			g_projection.set_projection(static_cast<Projection::video_projection_t>(projection));
+			g_projection.set_tiling(static_cast<Projection::video_tiling_t>(tiling));
+			g_projection.set_angle(angle); /* angle given in radians */
+			g_projection.set_zoom(zoom);
+			g_projection.set_stretch(stretch);
+			g_projection.set_switch_eyes(switch_eyes);
+			g_projection.set_mono(mono);
+
+			update_projection();
+		}
+
 		if (g_scene_ready)
 		{
 			RenderManager::instance().set_textures(g_scene_renderable, std::vector<size_t>(1, g_video_texture));
@@ -360,6 +398,23 @@ void Application::update_projection(void)
 	else if (g_source == SOURCE_VIDEO)
 	{
 		textures.push_back(g_video_texture);
+
+		/** load video projection settings. */
+		float duration = 0.0f;
+		const size_t video_id = m_database.read_video(g_current_file_name, duration);
+
+		if ((video_id > 0) && (duration >= 0.0f))
+		{
+			std::cout << "store settings for video ID " << video_id << " - " << g_current_file_name << std::endl;
+			const size_t projection = g_projection.projection();
+			const size_t tiling     = g_projection.tiling();
+			const float angle       = g_projection.angle();
+			const float zoom        = g_projection.zoom();
+			const bool stretch      = g_projection.stretch();
+			const bool switch_eyes  = g_projection.switch_eyes();
+			const bool mono         = g_projection.mono();
+			m_database.store_settings(video_id, projection, tiling, stretch, angle, zoom, switch_eyes, mono);
+		}
 	}
 	const size_t new_renderable =
 		renderer.create_shape_set_renderable(new_shape_set, textures, g_scene_shader);

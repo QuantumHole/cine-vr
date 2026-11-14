@@ -8,7 +8,6 @@
 #include "line_panel.h"
 #include "util/openvr_interface.h"
 #include "font_renderer.h"
-#include "database/sqlitedb.h"
 #include "database/thumbnail_generator.h"
 #include <map>
 
@@ -48,7 +47,6 @@ class Menu
 			float duration;
 		};
 		std::map<std::string, preview_volume_t> m_preview_volumes;
-		SQLiteDB m_database;
 		const std::string menu_graphics_extension;
 
 		void create_button_panel(const std::vector<action_t>& actions);

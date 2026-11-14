@@ -34,7 +34,6 @@ Menu::Menu(void) :
 	m_current_directory(FileSystem().current_directory()),
 	m_preview_textures(),
 	m_preview_volumes(),
-	m_database("cine-vr"),
 	menu_graphics_extension(".svg")
 {
 }
@@ -231,6 +230,7 @@ void Menu::list_files(LinePanel& panel)
 	panel.clear_lines();
 	m_preview_textures.clear();
 
+	const SQLiteDB& database = Application::instance().database();
 	ListElement element;
 	for (std::set<std::string>::const_iterator iter = entries.begin(); iter != entries.end(); iter++)
 	{
@@ -247,7 +247,7 @@ void Menu::list_files(LinePanel& panel)
 			if ((thumbnail.width > 0) && (thumbnail.height > 0) && !thumbnail.pixels.empty())
 			{
 				float duration = 0.0f;
-				m_database.read_video(full, duration);
+				database.read_video(full, duration);
 				const unsigned int total_seconds = static_cast<unsigned int>(std::max(0.0f, duration));
 				const unsigned int hours = total_seconds / 3600;
 				const unsigned int minutes = (total_seconds / 60) % 60;

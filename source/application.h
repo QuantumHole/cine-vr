@@ -16,6 +16,7 @@
 #include "gui/graphics_svg.h"
 #include "gui/projection.h"
 #include "player/player.h"
+#include "database/sqlitedb.h"
 
 #include <GLFW/glfw3.h>
 
@@ -35,6 +36,8 @@ class Application
 
 		static Application* m_instance;         ///< singleton instance of the application
 
+		const std::string m_app_name;           ///< application name
+		const SQLiteDB m_database;              ///< application database.
 		bool g_Running;                         ///< indicates if the application is running
 		GLFWwindow* g_window;                   ///< GLFW window
 		OpenVRInterface g_vr;                   ///< OpenVR interface functions
@@ -85,6 +88,11 @@ class Application
 		/** destructor. */
 		~Application(void);
 
+		/** application name:
+		 * @return application name.
+		 */
+		const std::string& app_name(void) const;
+
 		/** runs the application. */
 		int run(void);
 
@@ -121,6 +129,15 @@ class Application
 		 * @return reference to the player
 		 */
 		Player& player(void);
+
+		/** returns a reference to the application database.
+		 * @return reference to the application database.
+		 */
+		const SQLiteDB& database(void) const;
+
+		/** currently playing/open file name.
+		 * @return current file name.
+		 */
 		const std::string& current_file_name(void) const;
 
 		/** returns a reference to the projection.
