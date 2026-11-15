@@ -350,23 +350,24 @@ void Player::handle_events(void)
 				}
 				else if (name == "media-title")
 				{
-					const char* data = nullptr;
+					char* data = nullptr;
 
-					if (mpv_get_property(m_context, prop->name, MPV_FORMAT_STRING, &data) < 0)
+					if (mpv_get_property(m_context, prop->name, MPV_FORMAT_STRING, &data) >= 0)
 					{
+						m_title = data ? data : "";
 					}
-					m_title = data;
+					mpv_free(data);
 				}
 				else
 				{
-					std::cout << "property change: " << prop->name << std::endl;
-					std::cout << "property format: " << prop->format << std::endl;
+					// std::cout << "property change: " << prop->name << std::endl;
+					// std::cout << "property format: " << prop->format << std::endl;
 				}
 			}
 			break;
-// case MPV_EVENT_SHUTDOWN:
-// m_quit = true;
-// break;
+			// case MPV_EVENT_SHUTDOWN:
+			// m_quit = true;
+			// break;
 			case MPV_EVENT_IDLE:
 			case MPV_EVENT_NONE:
 				more_events = false;

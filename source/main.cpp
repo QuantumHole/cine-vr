@@ -7,6 +7,8 @@
 int main(void)
 {
 	Application& app = Application::instance();
+	const int status = app.run();
 
-	return app.run();
+	delete &app;
+	return status;
 }

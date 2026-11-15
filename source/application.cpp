@@ -49,9 +49,8 @@ Application& Application::instance(void)
 
 Application::~Application(void)
 {
-	if (m_instance)
+	if (m_instance == this)
 	{
-		delete m_instance;
 		m_instance = nullptr;
 	}
 }
@@ -726,6 +725,7 @@ int Application::run(void)
 	g_menu.clear();
 	g_vector.reset();
 	renderer.clear();
+	delete &renderer;
 	for (Framebuffer& framebuffer : g_framebuffer)
 	{
 		framebuffer.remove();
@@ -733,6 +733,8 @@ int Application::run(void)
 	glfwDestroyWindow(g_window);
 	g_window = nullptr;
 	glfwTerminate();
+
+	delete &FontRenderer::instance();
 
 	return 0;
 }

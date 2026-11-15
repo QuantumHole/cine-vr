@@ -27,11 +27,13 @@ void Framebuffer::remove(void)
 		glDeleteFramebuffers(1, &m_framebuffer_id);
 		m_framebuffer_id = 0;
 	}
+
 	if (m_texture_id != 0)
 	{
 		glDeleteTextures(1, &m_texture_id);
 		m_texture_id = 0;
 	}
+
 	if (m_depthbuffer_id != 0)
 	{
 		glDeleteRenderbuffers(1, &m_depthbuffer_id);

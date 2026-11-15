@@ -139,7 +139,7 @@ FontRenderer::FontRenderer(void) :
 	m_library(nullptr),
 	m_face(nullptr)
 {
-    FcInit();
+	FcInit();
 	FT_Error status = FT_Init_FreeType(&m_library);              /* initialize library */
 
 	if (status)
@@ -162,7 +162,7 @@ FontRenderer::~FontRenderer(void)
 		m_library = nullptr;
 	}
 
-    FcFini();
+	FcFini();
 }
 
 FontRenderer& FontRenderer::instance(void)
@@ -176,31 +176,32 @@ FontRenderer& FontRenderer::instance(void)
 
 std::string FontRenderer::find_font(const std::string& fontname) const
 {
-    FcPattern* pattern = FcPatternCreate();
+	FcPattern* pattern = FcPatternCreate();
 
 	// may be called multiple times
-    FcPatternAddString(pattern, FC_FAMILY, reinterpret_cast<const FcChar8*>(fontname.c_str()));
+	FcPatternAddString(pattern, FC_FAMILY, reinterpret_cast<const FcChar8*>(fontname.c_str()));
 
 	FcConfigSubstitute(nullptr, pattern, FcMatchPattern);
-    FcDefaultSubstitute(pattern);
+	FcDefaultSubstitute(pattern);
 
-    FcResult result;
-    FcPattern* match = FcFontMatch(nullptr, pattern, &result);
+	FcResult result;
+	FcPattern* match = FcFontMatch(nullptr, pattern, &result);
 
 	std::string filename;
-    if (match)
-    {
-        FcChar8* family = nullptr;
-        FcChar8* file = nullptr;
 
-        FcPatternGetString(match, FC_FAMILY, 0, &family);
-        FcPatternGetString(match, FC_FILE, 0, &file);
+	if (match)
+	{
+		FcChar8* family = nullptr;
+		FcChar8* file = nullptr;
+
+		FcPatternGetString(match, FC_FAMILY, 0, &family);
+		FcPatternGetString(match, FC_FILE, 0, &file);
 
 		filename = reinterpret_cast<char*>(file);
-        FcPatternDestroy(match);
-    }
+		FcPatternDestroy(match);
+	}
 
-    FcPatternDestroy(pattern);
+	FcPatternDestroy(pattern);
 	return filename;
 }
 
