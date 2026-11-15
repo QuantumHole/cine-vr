@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 PROJECT_ROOT := .
-DEPENDENCIES = "glfw3 >= 3.4 openvr libpng libjpeg freetype2 mpv gl libavformat libavcodec libavutil libswscale libcrypto sqlite3"
+DEPENDENCIES = "glfw3 >= 3.4 openvr libpng libjpeg freetype2 mpv gl libavformat libavcodec libavutil libswscale libcrypto sqlite3 fontconfig"
 
 include common/cplusplus.mk
 include common/license.mk

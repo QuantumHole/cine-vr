@@ -27,18 +27,19 @@ Users can configure some display options via the OpenVR controller.
 * [libavformat libavcodec libavutil libswscale](https://ffmpeg.org) thumbnail generation
 * [libsqlite3](https://sqlite.org) thumbnail and configuration storage
 * [libcrypto](https://docs.openssl.org/master/man7/ossl-guide-libcrypto-introduction/) calculation of hash values
+* [fontconfig](https://www.freedesktop.org/wiki/Software/fontconfig) dynamic access to and selection of installed fonts
 
 ## Build Dependencies
 
-* [gcc](https://gcc.gnu.org) or [clang](https://clang.llvm.org)
-* [GNU make](https://www.gnu.org/software/make)
-* [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config)
-* [SDL3](https://wiki.libsdl.org/SDL3/FrontPage)
+* [gcc](https://gcc.gnu.org) or [clang](https://clang.llvm.org) C++ compiler
+* [GNU make](https://www.gnu.org/software/make) build configuration
+* [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config) automatic configuration of compiler and linker flags
+* [SDL3](https://wiki.libsdl.org/SDL3/FrontPage) optional desktop window library
 
 ## Lint Dependencies
 
-* [uncrustify](https://github.com/uncrustify/uncrustify)
-* [reuse](https://reuse.software)
+* [uncrustify](https://github.com/uncrustify/uncrustify) source code formatter
+* [reuse](https://reuse.software) software license management tool
 
 # Building
 

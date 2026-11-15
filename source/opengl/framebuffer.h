@@ -18,8 +18,12 @@ class Framebuffer
 
 	public:
 		Framebuffer(void);
+		~Framebuffer(void);
+		Framebuffer(const Framebuffer&) = delete;
+		Framebuffer& operator=(const Framebuffer&) = delete;
 
 		void init(const glm::uvec2& size);
+		void remove(void);
 		GLuint id(void) const;
 		GLuint texture(void) const;
 		const glm::uvec2& size(void) const;

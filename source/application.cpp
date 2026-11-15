@@ -489,7 +489,9 @@ int Application::run(void)
 	catch (const std::exception& error)
 	{
 		std::cerr << "OpenVR initialization failed: " << error.what() << std::endl;
+		g_vr.shutdown();
 		glfwDestroyWindow(g_window);
+		g_window = nullptr;
 		glfwTerminate();
 		return -1;
 	}
@@ -506,7 +508,7 @@ int Application::run(void)
 	}
 
 	// load font for Renderer initially
-	FontRenderer::instance().load_font("/usr/share/fonts/TTF/OpenSans-Regular.ttf");
+	FontRenderer::instance().load_font("OpenSans");
 
 	// create shaders & geometry
 	RenderManager& renderer = RenderManager::instance();
@@ -719,10 +721,18 @@ int Application::run(void)
 	}
 
 	// Cleanup
-	g_menu.clear();
 	g_player.close();
+	g_vr.shutdown();
+	g_menu.clear();
 	g_vector.reset();
 	renderer.clear();
+	for (Framebuffer& framebuffer : g_framebuffer)
+	{
+		framebuffer.remove();
+	}
+	glfwDestroyWindow(g_window);
+	g_window = nullptr;
 	glfwTerminate();
+
 	return 0;
 }

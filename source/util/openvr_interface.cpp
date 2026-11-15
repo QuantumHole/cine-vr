@@ -51,10 +51,19 @@ OpenVRInterface::OpenVRInterface(void) :
 
 OpenVRInterface::~OpenVRInterface(void)
 {
+	shutdown();
+}
+
+void OpenVRInterface::shutdown(void)
+{
 	if (m_initialized)
 	{
 		vr::VR_Shutdown();
+		m_initialized = false;
 	}
+	m_system = nullptr;
+	m_input = nullptr;
+	m_compositor = nullptr;
 }
 
 void OpenVRInterface::initActionHandle(const input_action_t input, const std::string& path)

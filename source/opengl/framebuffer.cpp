@@ -15,8 +15,33 @@ Framebuffer::Framebuffer(void) :
 {
 }
 
+Framebuffer::~Framebuffer(void)
+{
+	remove();
+}
+
+void Framebuffer::remove(void)
+{
+	if (m_framebuffer_id != 0)
+	{
+		glDeleteFramebuffers(1, &m_framebuffer_id);
+		m_framebuffer_id = 0;
+	}
+	if (m_texture_id != 0)
+	{
+		glDeleteTextures(1, &m_texture_id);
+		m_texture_id = 0;
+	}
+	if (m_depthbuffer_id != 0)
+	{
+		glDeleteRenderbuffers(1, &m_depthbuffer_id);
+		m_depthbuffer_id = 0;
+	}
+}
+
 void Framebuffer::init(const glm::uvec2& size)
 {
+	remove();
 	m_size = size;
 	glGenFramebuffers(1, &m_framebuffer_id);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer_id);

@@ -70,6 +70,7 @@ class OpenVRInterface
 		~OpenVRInterface(void);
 
 		void init(void);
+		void shutdown(void);
 		glm::uvec2 render_target_size(void) const;
 		void read_poses(void);
 		std::set<vr::TrackedDeviceIndex_t> devices(void) const;
