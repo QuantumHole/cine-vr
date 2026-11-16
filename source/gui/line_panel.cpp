@@ -12,6 +12,7 @@
 static const glm::vec2 shape_size(3.0f, 5.0f);
 static const glm::vec4 panel_color(0.5f, 0.4f, 0.2f, 0.8f);
 static const glm::vec4 selection_color(0.5f * panel_color);
+static const glm::vec4 marked_color(0.5f, 1.0f, 0.5f, 0.35f);
 static const size_t max_lines = 15;
 const size_t LinePanel::line_height = 30;
 const size_t LinePanel::texture_width = static_cast<size_t>(max_lines * LinePanel::line_height * shape_size.x / shape_size.y);
@@ -21,8 +22,11 @@ LinePanel::LinePanel(const action_t action, const std::string& title) :
 	m_title(title),
 	m_lines(),
 	m_active_line(0),
+	m_marked_line(0),
+	m_has_marked_line(false),
 	m_title_bar(ACTION_NONE),
-	m_selection_bar()
+	m_selection_bar(),
+	m_marked_bar()
 {
 	init_area(shape_size, panel_color, glm::uvec2(1, 1));   // needs at least one pixel to be drawn
 
@@ -30,13 +34,15 @@ LinePanel::LinePanel(const action_t action, const std::string& title) :
 	m_title_bar.init_area(title_size, panel_color, glm::uvec2(texture_width, line_height));
 	m_title_bar.text(m_title);
 
-	init_text_bar(m_selection_bar);
+	init_text_bar(m_selection_bar, selection_color);
+	init_text_bar(m_marked_bar, marked_color);
 	set_view_size(glm::uvec2(texture_width, line_height * max_lines));
 }
 
 LinePanel::~LinePanel(void)
 {
 	m_selection_bar.remove();
+	m_marked_bar.remove();
 	RenderManager& renderer = RenderManager::instance();
 	for (const line_entry_t& entry : m_lines)
 	{
@@ -59,6 +65,8 @@ void LinePanel::clear_lines(void)
 {
 	m_lines.clear();
 	m_active_line = 0;
+	m_marked_line = 0;
+	m_has_marked_line = false;
 	reset_scroll();
 }
 
@@ -71,13 +79,13 @@ const std::string LinePanel::get_selection(void) const
 	return "";
 }
 
-void LinePanel::init_text_bar(Shape& bar)
+void LinePanel::init_text_bar(Shape& bar, const glm::vec4& color)
 {
 	const std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3( 0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3( 0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), selection_color, glm::vec2(1.0f, 1.0f)),
+		Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(0.0f, 1.0f)),
+		Vertex(glm::vec3( 0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(1.0f, 0.0f)),
+		Vertex(glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(0.0f, 0.0f)),
+		Vertex(glm::vec3( 0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), color, glm::vec2(1.0f, 1.0f)),
 	};
 
 	const std::vector<GLuint> indices = {
@@ -124,6 +132,29 @@ void LinePanel::draw(void) const
 
 	Application::instance().shader().activate();
 
+	if (m_has_marked_line && (m_marked_line < m_lines.size()))
+	{
+		const size_t row_top = m_marked_line * line_height;
+		const size_t row_bottom = row_top + line_height;
+		const size_t visible_end = std::min(content_height, offset + view_height);
+
+		if ((row_top < visible_end) && (row_bottom > offset))
+		{
+			const size_t visible_top = std::max(row_top, offset);
+			const size_t visible_bottom = std::min(row_bottom, visible_end);
+			const float visible_fraction = static_cast<float>(visible_bottom - visible_top) /
+			                               static_cast<float>(line_height);
+			const float visible_center = 0.5f * static_cast<float>(visible_top + visible_bottom - 2 * offset);
+			const float row_height = shape_size.y / static_cast<float>(max_lines);
+			const float pixel_height = shape_size.y / static_cast<float>(view_height);
+			const float y = 0.5f * shape_size.y - visible_center * pixel_height;
+			glm::mat4 transform = glm::translate(pose(), glm::vec3(0.0f, y, 0.015f));
+			transform = glm::scale(transform, glm::vec3(shape_size.x, row_height * visible_fraction, 1.0f));
+			m_marked_bar.set_transform(transform);
+			m_marked_bar.draw();
+		}
+	}
+
 	if (m_active_line < m_lines.size())
 	{
 		const size_t row_top = m_active_line * line_height;
@@ -168,7 +199,7 @@ bool LinePanel::update_on_interaction(const intersection_t isec, const OpenVRInt
 	return input.trigger.button.released && isec.hit;
 }
 
-void LinePanel::add_line(const size_t renderable, const std::string& content)
+void LinePanel::add_line(const size_t renderable, const std::string& content, const bool marked)
 {
 	const line_entry_t entry = {
 		renderable,
@@ -176,6 +207,11 @@ void LinePanel::add_line(const size_t renderable, const std::string& content)
 	};
 
 	m_lines.push_back(entry);
+	if (marked)
+	{
+		m_marked_line = m_lines.size() - 1;
+		m_has_marked_line = true;
+	}
 	m_active_line = m_lines.size();    // no active selected line
 }
 

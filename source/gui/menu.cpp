@@ -78,6 +78,8 @@ void Menu::draw(void) const
 		case MENU_PROJECTION:
 		case MENU_SETTINGS:
 		case MENU_FILE_MANAGER:
+		case MENU_SELECT_AUDIO:
+		case MENU_SELECT_SUBTITLE:
 			for (std::map<action_t, Panel*>::const_iterator iter = m_panel.begin(); iter != m_panel.end(); ++iter)
 			{
 				iter->second->draw();
@@ -574,12 +576,97 @@ void Menu::settings_menu(void)
 
 void Menu::select_audio_menu(void)
 {
+	m_submenu = MENU_SELECT_AUDIO;
+	for (std::map<action_t, Panel*>::const_iterator iter = m_panel.begin(); iter != m_panel.end(); ++iter)
+	{
+		delete iter->second;
+	}
+	m_panel.clear();
 
+	LinePanel* panel = new LinePanel(ACTION_SELECT_AUDIO, "Audio tracks");
+	glm::mat4 pose = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f));
+	pose = m_hmd_pose * pose;
+	panel->set_transform(pose);
+
+	ListElement element;
+	const std::vector<Player::track_t> tracks = Application::instance().player().audio_tracks();
+	for (std::vector<Player::track_t>::const_iterator iter = tracks.begin(); iter != tracks.end(); ++iter)
+	{
+		std::string label = iter->title;
+		if (label.empty())
+		{
+			label = iter->language;
+		}
+		else if (!iter->language.empty())
+		{
+			label += " (" + iter->language + ")";
+		}
+		if (label.empty())
+		{
+			label = "Track " + std::to_string(iter->id);
+		}
+		panel->add_line(element.create_list_element(label, 0), std::to_string(iter->id), iter->selected);
+	}
+	if (tracks.empty())
+	{
+		panel->add_line(element.create_list_element("No audio tracks available", 0), "");
+	}
+	panel->render_lines();
+	m_panel[ACTION_SELECT_AUDIO] = panel;
+
+	pose = glm::translate(glm::mat4(1.0f), glm::vec3(-2.2f, 0.0f, -5.0f));
+	pose = m_hmd_pose * pose;
+	Panel* back = new SimpleButton(ACTION_BACK, "images/back" + menu_graphics_extension);
+	back->set_transform(pose);
+	m_panel[ACTION_BACK] = back;
 }
 
 void Menu::select_subtitle_menu(void)
 {
+	m_submenu = MENU_SELECT_SUBTITLE;
+	for (std::map<action_t, Panel*>::const_iterator iter = m_panel.begin(); iter != m_panel.end(); ++iter)
+	{
+		delete iter->second;
+	}
+	m_panel.clear();
 
+	LinePanel* panel = new LinePanel(ACTION_SELECT_SUBTITLE, "Subtitle tracks");
+	glm::mat4 pose = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f));
+	pose = m_hmd_pose * pose;
+	panel->set_transform(pose);
+
+	ListElement element;
+	const std::vector<Player::track_t> tracks = Application::instance().player().subtitle_tracks();
+	const bool has_selected_track = std::find_if(tracks.begin(), tracks.end(), [](const Player::track_t& track)
+	{
+		return track.selected;
+	}) != tracks.end();
+	panel->add_line(element.create_list_element("No subtitles", 0), "-1", !has_selected_track);
+	for (std::vector<Player::track_t>::const_iterator iter = tracks.begin(); iter != tracks.end(); ++iter)
+	{
+		std::string label = iter->title;
+		if (label.empty())
+		{
+			label = iter->language;
+		}
+		else if (!iter->language.empty())
+		{
+			label += " (" + iter->language + ")";
+		}
+		if (label.empty())
+		{
+			label = "Track " + std::to_string(iter->id);
+		}
+		panel->add_line(element.create_list_element(label, 0), std::to_string(iter->id), iter->selected);
+	}
+	panel->render_lines();
+	m_panel[ACTION_SELECT_SUBTITLE] = panel;
+
+	pose = glm::translate(glm::mat4(1.0f), glm::vec3(-2.2f, 0.0f, -5.0f));
+	pose = m_hmd_pose * pose;
+	Panel* back = new SimpleButton(ACTION_BACK, "images/back" + menu_graphics_extension);
+	back->set_transform(pose);
+	m_panel[ACTION_BACK] = back;
 }
 
 void Menu::handle_button_action(const action_t action)
@@ -713,10 +800,34 @@ void Menu::handle_button_action(const action_t action)
 			settings_menu();
 			break;
 		case ACTION_SELECT_AUDIO:
-			select_audio_menu();
+			if (m_submenu == MENU_SELECT_AUDIO)
+			{
+				const std::string selection = dynamic_cast<LinePanel*>(m_panel.find(action)->second)->get_selection();
+				if (!selection.empty())
+				{
+					Application::instance().player().set_audio_track(std::stoll(selection));
+					main_menu();
+				}
+			}
+			else
+			{
+				select_audio_menu();
+			}
 			break;
 		case ACTION_SELECT_SUBTITLE:
-			select_subtitle_menu();
+			if (m_submenu == MENU_SELECT_SUBTITLE)
+			{
+				const std::string selection = dynamic_cast<LinePanel*>(m_panel.find(action)->second)->get_selection();
+				if (!selection.empty())
+				{
+					Application::instance().player().set_subtitle_track(std::stoll(selection));
+					main_menu();
+				}
+			}
+			else
+			{
+				select_subtitle_menu();
+			}
 			break;
 		case ACTION_TILE_CUBE_MONO:
 

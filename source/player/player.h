@@ -8,15 +8,26 @@
 #include <mpv/client.h>
 #include <glm/glm.hpp>
 #include <GL/gl.h>
+#include <cstdint>
 #include <string>
 #include <thread>
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
 #include <GLFW/glfw3.h>
+#include <vector>
 
 class Player
 {
+	public:
+		struct track_t
+		{
+			int64_t id;
+			std::string title;
+			std::string language;
+			bool selected;
+		};
+
 	private:
 		GLuint m_framebuffer;
 		size_t m_video_texture_id;
@@ -55,6 +66,7 @@ class Player
 		void stop_render_thread(void);
 
 		void set_option(const std::string& key, const std::string& value) const;
+		std::vector<track_t> tracks_by_type(const std::string& type) const;
 
 	public:
 		explicit Player(void);
@@ -73,6 +85,10 @@ class Player
 		float duration(void) const;
 		float playtime(void) const;
 		float volume(void) const;
+		std::vector<track_t> audio_tracks(void) const;
+		std::vector<track_t> subtitle_tracks(void) const;
+		void set_audio_track(const int64_t id);
+		void set_subtitle_track(const int64_t id);
 		void handle_events(void);
 
 		void bind(void) const;

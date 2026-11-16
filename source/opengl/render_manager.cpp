@@ -318,7 +318,7 @@ void RenderManager::set_shape_set_transform(const size_t set, const glm::mat4& m
 void RenderManager::clear(void)
 {
 	m_shapes.clear();
-	for (auto& texture_entry : m_textures)
+	for (const std::pair<const size_t, std::unique_ptr<Texture> >& texture_entry : m_textures)
 	{
 		texture_entry.second->remove();
 	}

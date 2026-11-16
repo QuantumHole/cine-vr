@@ -13,6 +13,32 @@
 #include <mpv/render_gl.h>
 #include <GLFW/glfw3.h>
 
+static const mpv_node* find_node(const mpv_node& node, const std::string& key)
+{
+	if ((node.format != MPV_FORMAT_NODE_MAP) || !node.u.list)
+	{
+		return nullptr;
+	}
+
+	for (int i = 0; i < node.u.list->num; i++)
+	{
+		if (key == node.u.list->keys[i])
+		{
+			return &node.u.list->values[i];
+		}
+	}
+	return nullptr;
+}
+
+static std::string node_string(const mpv_node* node)
+{
+	if (node && (node->format == MPV_FORMAT_STRING) && node->u.string)
+	{
+		return node->u.string;
+	}
+	return "";
+}
+
 // Returns the address of the specified function (name) for the given context (ctx)
 static void* get_proc_address(void* ctx __attribute__((unused)), const char* name)
 {
@@ -648,6 +674,87 @@ float Player::volume(void) const
 	mpv_get_property(m_context, "ao-volume", MPV_FORMAT_DOUBLE, &vol);
 
 	return static_cast<float>(vol);
+}
+
+std::vector<Player::track_t> Player::tracks_by_type(const std::string& type) const
+{
+	std::vector<track_t> result;
+	if (!m_context)
+	{
+		return result;
+	}
+
+	mpv_node track_list = {};
+	if ((mpv_get_property(m_context, "track-list", MPV_FORMAT_NODE, &track_list) < 0) ||
+	    (track_list.format != MPV_FORMAT_NODE_ARRAY) || !track_list.u.list)
+	{
+		mpv_free_node_contents(&track_list);
+		return result;
+	}
+
+	for (int i = 0; i < track_list.u.list->num; i++)
+	{
+		const mpv_node& entry = track_list.u.list->values[i];
+		if (node_string(find_node(entry, "type")) != type)
+		{
+			continue;
+		}
+
+		const mpv_node* id = find_node(entry, "id");
+		if (!id || (id->format != MPV_FORMAT_INT64))
+		{
+			continue;
+		}
+
+		const mpv_node* selected = find_node(entry, "selected");
+		result.push_back({
+			id->u.int64,
+			node_string(find_node(entry, "title")),
+			node_string(find_node(entry, "lang")),
+			selected && (selected->format == MPV_FORMAT_FLAG) && (selected->u.flag != 0)
+		});
+	}
+
+	mpv_free_node_contents(&track_list);
+	return result;
+}
+
+std::vector<Player::track_t> Player::audio_tracks(void) const
+{
+	return tracks_by_type("audio");
+}
+
+std::vector<Player::track_t> Player::subtitle_tracks(void) const
+{
+	return tracks_by_type("sub");
+}
+
+void Player::set_audio_track(const int64_t id)
+{
+	if (!m_context)
+	{
+		return;
+	}
+	const std::string value = std::to_string(id);
+	const int status = mpv_set_property_string(m_context, "aid", value.c_str());
+	if (status < 0)
+	{
+		throw std::runtime_error(std::string("mpv API error: ") + mpv_error_string(status));
+	}
+}
+
+void Player::set_subtitle_track(const int64_t id)
+{
+	if (!m_context)
+	{
+		return;
+	}
+	const std::string value = (id < 0) ? "no" : std::to_string(id);
+	const int status = mpv_set_property_string(m_context, "sid", value.c_str());
+	if (status < 0)
+	{
+		throw std::runtime_error(std::string("mpv API error: ") + mpv_error_string(status));
+	}
 }
 
 void Player::set_volume(const float vol)
