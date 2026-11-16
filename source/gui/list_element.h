@@ -18,11 +18,13 @@ class ListElement
 		explicit ListElement(void);
 
 		size_t create_thumbnail_label(const std::string& text, const bool align_right, const bool top_half) const;
-		size_t create_text_element(const std::string& text, const size_t indent_level);
-		size_t create_video_element(
-			const std::string& title,
-			const std::string& subtitle,
-			const Thumbnail& background) const;
+		size_t create_text_element(const std::string& text, const size_t indent_level) const;
+		size_t create_list_element(
+			const std::string& text,
+			const size_t indent_level = 0,
+			const Thumbnail* background = nullptr,
+			const std::string& duration = "",
+			size_t* preview_texture = nullptr) const;
 };
 
 #endif

@@ -9,6 +9,9 @@
 #include "opengl/render_manager.h"
 #include "application.h"
 
+#include <algorithm>
+#include <cstdint>
+
 ListElement::ListElement(void)
 {
 }
@@ -64,7 +67,7 @@ size_t ListElement::create_thumbnail_label(const std::string& text, const bool a
 		false);
 }
 
-size_t ListElement::create_text_element(const std::string& text, const size_t indent_level)
+size_t ListElement::create_text_element(const std::string& text, const size_t indent_level) const
 {
 	const size_t level_offset = LinePanel::line_height / 2;
 	const size_t indent = std::min(indent_level, LinePanel::texture_width / level_offset) * level_offset;
@@ -113,19 +116,41 @@ size_t ListElement::create_text_element(const std::string& text, const size_t in
 	return renderable;
 }
 
-size_t ListElement::create_video_element(
-	const std::string& title,
-	const std::string& subtitle,
-	const Thumbnail& background) const
+size_t ListElement::create_list_element(
+	const std::string& text,
+	const size_t indent_level,
+	const Thumbnail* background,
+	const std::string& duration,
+	size_t* preview_texture) const
 {
-	std::vector<uint8_t> image(LinePanel::texture_width* LinePanel::line_height* sizeof(uint32_t), 0);
+	if (preview_texture)
+	{
+		*preview_texture = 0;
+	}
+
+	const int64_t minimum_stride = background ? static_cast<int64_t>(background->width) * 3 : 0;
+	const bool has_background = background &&
+	                            (background->width > 0) && (background->height > 0) &&
+	                            (static_cast<int64_t>(background->stride) == minimum_stride) &&
+	                            (background->pixels.size() >= static_cast<size_t>(background->stride) *
+	                             static_cast<size_t>(background->height));
+
+	if (!has_background)
+	{
+		return create_text_element(text, indent_level);
+	}
 
 	RenderManager& renderer = RenderManager::instance();
 	const size_t background_texture = renderer.add_texture(
-		background.pixels,
-		glm::uvec2(static_cast<GLuint>(background.width), static_cast<GLuint>(background.height)),
+		background->pixels,
+		glm::uvec2(static_cast<GLuint>(background->width), static_cast<GLuint>(background->height)),
 		GL_RGB,
 		0);
+	if (preview_texture)
+	{
+		*preview_texture = background_texture;
+	}
+
 	const std::vector<Vertex> background_vertices = {
 		Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
 		Vertex(glm::vec3( 0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
@@ -137,9 +162,12 @@ size_t ListElement::create_video_element(
 		background_vertices,
 		background_indices,
 		std::vector<size_t>(1, background_texture),
-		Application::instance().shader().id());
-	const size_t title_renderable = create_thumbnail_label(title, false, true);
-	const size_t subtitle_renderable = create_thumbnail_label(subtitle, true, false);
+		Application::instance().shader().id(),
+		1,
+		GL_TRIANGLES,
+		false);
+	const size_t title_renderable = create_thumbnail_label(text, false, true);
+	const size_t subtitle_renderable = create_thumbnail_label(duration, true, false);
 
 	return renderer.create_group({background_renderable, title_renderable, subtitle_renderable}, false);
 }

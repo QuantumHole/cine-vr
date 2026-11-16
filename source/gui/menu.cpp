@@ -91,111 +91,10 @@ void Menu::draw(void) const
 	}
 }
 
-size_t Menu::create_thumbnail_label(const std::string& text, const bool align_right, const bool top_half) const
-{
-	std::vector<uint32_t> glyphs;
-
-	FontRenderer::instance().render_text(text, glyphs);
-	const size_t glyph_width = glyphs.size() / FontRenderer::font_size;
-	const size_t visible_width = std::min(glyph_width, LinePanel::texture_width);
-	const size_t texture_width = std::max<size_t>(1, visible_width);
-	std::vector<uint8_t> image(texture_width * FontRenderer::font_size* sizeof(uint32_t), 0);
-
-	if (visible_width > 0)
-	{
-		const uint8_t* glyph_data = reinterpret_cast<const uint8_t*>(glyphs.data());
-		for (size_t row = 0; row < FontRenderer::font_size; row++)
-		{
-			const size_t source_offset = row * glyph_width * sizeof(uint32_t);
-			const size_t target_offset = row * texture_width * sizeof(uint32_t);
-			std::copy(glyph_data + source_offset,
-			          glyph_data + source_offset + visible_width * sizeof(uint32_t),
-			          image.begin() + static_cast<std::ptrdiff_t>(target_offset));
-		}
-	}
-
-	RenderManager& renderer = RenderManager::instance();
-	const size_t texture = renderer.add_texture(
-		image,
-		glm::uvec2(static_cast<GLuint>(texture_width), static_cast<GLuint>(FontRenderer::font_size)),
-		GL_RGBA,
-		0);
-	const float top = top_half ? 0.5f : 0.0f;
-	const float bottom = top_half ? 0.0f : -0.5f;
-	const float display_width = 0.5f * static_cast<float>(visible_width) / static_cast<float>(LinePanel::texture_width);
-	const float left = align_right ? 0.5f - display_width : -0.5f;
-	const float right = left + display_width;
-	const std::vector<Vertex> vertices = {
-		Vertex(glm::vec3(left,  bottom, 0.001f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
-		Vertex(glm::vec3(right, top,    0.001f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
-		Vertex(glm::vec3(left,  top,    0.001f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 0.0f)),
-		Vertex(glm::vec3(right, bottom, 0.001f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
-	};
-	const std::vector<GLuint> indices = {0, 1, 2, 0, 3, 1};
-	return renderer.create_shape_renderable(
-		vertices,
-		indices,
-		std::vector<size_t>(1, texture),
-		Application::instance().shader().id(),
-		1,
-		GL_TRIANGLES,
-		false);
-}
-
-size_t Menu::create_list_element(const std::string& text, const size_t level, const Thumbnail* background, const std::string& duration, size_t* preview_texture) const
-{
-	if (preview_texture)
-	{
-		*preview_texture = 0;
-	}
-
-	const int64_t minimum_stride = background ? static_cast<int64_t>(background->width) * 3 : 0;
-	const bool has_background = background &&
-	                            (background->width > 0) && (background->height > 0) &&
-	                            (static_cast<int64_t>(background->stride) == minimum_stride) &&
-	                            (background->pixels.size() >= static_cast<size_t>(background->stride) *
-	                             static_cast<size_t>(background->height));
-
-	if (has_background)
-	{
-		RenderManager& renderer = RenderManager::instance();
-		const size_t background_texture = renderer.add_texture(
-			background->pixels,
-			glm::uvec2(static_cast<GLuint>(background->width), static_cast<GLuint>(background->height)),
-			GL_RGB,
-			0);
-
-		if (preview_texture)
-		{
-			*preview_texture = background_texture;
-		}
-		const std::vector<Vertex> background_vertices = {
-			Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 1.0f)),
-			Vertex(glm::vec3( 0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 0.0f)),
-			Vertex(glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(0.0f, 0.0f)),
-			Vertex(glm::vec3( 0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec4(0.0f), glm::vec2(1.0f, 1.0f)),
-		};
-		const std::vector<GLuint> background_indices = {0, 1, 2, 0, 3, 1};
-		const size_t background_renderable = renderer.create_shape_renderable(
-			background_vertices,
-			background_indices,
-			std::vector<size_t>(1, background_texture),
-			Application::instance().shader().id(),
-			1,
-			GL_TRIANGLES,
-			false);
-		const size_t name_renderable = create_thumbnail_label(text, false, true);
-		const size_t duration_renderable = create_thumbnail_label(duration, true, false);
-		return renderer.create_group({background_renderable, name_renderable, duration_renderable}, false);
-	}
-
-	ListElement element;
-	return element.create_text_element(text, level);
-}
-
 void Menu::list_directories(LinePanel& panel) const
 {
 	FileSystem fs;
+	ListElement element;
 	std::vector<std::string> entries = fs.split_path(m_current_directory);
 
 	panel.clear_lines();
@@ -205,7 +104,7 @@ void Menu::list_directories(LinePanel& panel) const
 	{
 		const std::string full = fs.join_path(entries.begin(), iter + 1);
 
-		const size_t renderable = create_list_element(iter->empty() ? full : (*iter), i);
+		const size_t renderable = element.create_list_element(iter->empty() ? full : (*iter), i);
 		panel.add_line(renderable, full);
 		i++;
 	}
@@ -216,7 +115,7 @@ void Menu::list_directories(LinePanel& panel) const
 	{
 		entries[entries.size() - 1] = *iter;
 		const std::string full = fs.join_path(entries.begin(), entries.end());
-		const size_t renderable = create_list_element(*iter, i);
+		const size_t renderable = element.create_list_element(*iter, i);
 		panel.add_line(renderable, full);
 	}
 	panel.render_lines();
@@ -255,17 +154,20 @@ void Menu::list_files(LinePanel& panel)
 				std::ostringstream duration_text;
 				duration_text << std::setfill('0') << std::setw(2) << hours << ":"
 				              << std::setw(2) << minutes << ":" << std::setw(2) << seconds;
-				renderable = create_list_element(*iter, 0, &thumbnail, duration_text.str(), &preview_texture);
-				m_preview_textures[full] = preview_texture;
+				renderable = element.create_list_element(*iter, 0, &thumbnail, duration_text.str(), &preview_texture);
+				if (preview_texture > 0)
+				{
+					m_preview_textures[full] = preview_texture;
+				}
 			}
 			else
 			{
-				renderable = create_list_element(*iter, 0);
+				renderable = element.create_list_element(*iter, 0);
 			}
 		}
 		else
 		{
-			renderable = create_list_element(*iter, 0);
+			renderable = element.create_list_element(*iter, 0);
 		}
 
 		panel.add_line(renderable, full);
@@ -388,6 +290,12 @@ void Menu::create_button_panel(const std::vector<action_t>& actions)
 				case ACTION_PROJECT_SPHERE:
 					b = new SimpleButton(ACTION_PROJECT_SPHERE, "images/sphere" + menu_graphics_extension);
 					break;
+				case ACTION_SELECT_AUDIO:
+					b = new SimpleButton(ACTION_SELECT_AUDIO, "images/select-audio" + menu_graphics_extension);
+					break;
+				case ACTION_SELECT_SUBTITLE:
+					b = new SimpleButton(ACTION_SELECT_SUBTITLE, "images/select-subtitle" + menu_graphics_extension);
+					break;
 				case ACTION_SETTINGS:
 					b = new SimpleButton(ACTION_SETTINGS, "images/settings" + menu_graphics_extension);
 					break;
@@ -451,6 +359,8 @@ void Menu::main_menu(void)
 			ACTION_PLAY_FORWARD,
 			ACTION_PLAY_NEXT,
 			ACTION_VOLUME,
+			ACTION_SELECT_AUDIO,
+			ACTION_SELECT_SUBTITLE,
 			ACTION_SETTINGS,
 			ACTION_FILE_OPEN,
 			ACTION_POWER
@@ -662,6 +572,16 @@ void Menu::settings_menu(void)
 	});
 }
 
+void Menu::select_audio_menu(void)
+{
+
+}
+
+void Menu::select_subtitle_menu(void)
+{
+
+}
+
 void Menu::handle_button_action(const action_t action)
 {
 	Application& app = Application::instance();
@@ -791,6 +711,12 @@ void Menu::handle_button_action(const action_t action)
 			break;
 		case ACTION_SETTINGS:
 			settings_menu();
+			break;
+		case ACTION_SELECT_AUDIO:
+			select_audio_menu();
+			break;
+		case ACTION_SELECT_SUBTITLE:
+			select_subtitle_menu();
 			break;
 		case ACTION_TILE_CUBE_MONO:
 

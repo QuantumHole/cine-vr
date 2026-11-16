@@ -51,8 +51,6 @@ class Menu
 
 		void create_button_panel(const std::vector<action_t>& actions);
 		void create_points(void);
-		size_t create_thumbnail_label(const std::string& text, const bool align_right, const bool top_half) const;
-		size_t create_list_element(const std::string& text, const size_t level = 0, const Thumbnail* background = nullptr, const std::string& duration = "", size_t* preview_texture = nullptr) const;
 		void list_directories(LinePanel& panel) const;
 		void list_files(LinePanel& panel);
 		Thumbnail load_thumbnail(const std::string& video_file) const;
@@ -61,6 +59,8 @@ class Menu
 		void tiling_menu(void);
 		void projection_menu(void);
 		void settings_menu(void);
+		void select_audio_menu(void);
+		void select_subtitle_menu(void);
 		void file_menu(void);
 		void handle_button_action(const action_t action);
 
