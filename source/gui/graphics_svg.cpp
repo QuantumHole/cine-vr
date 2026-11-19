@@ -7,6 +7,7 @@
 #include "util/file_system.h"
 #include "util/node_xml.h"
 #include "util/node_css.h"
+#include "util/resource_manager.h"
 #include <algorithm>
 #include <iostream>
 #include <string.h>
@@ -3118,9 +3119,22 @@ GraphicsSVG::GraphicsSVG(const std::string& file_name) :
 	// fix locale settings for numerical parsing
 	setlocale(LC_ALL | ~LC_NUMERIC, "");
 
-	// read file content
-	FileSystem fs;
-	const std::string content = fs.read_file(file_name);
+	// try loading file from linked resources or from file system.
+	std::string content;
+	try
+	{
+		const ResourceManager& rm = ResourceManager::instance();
+		const std::vector<uint8_t>& data = rm.get(file_name);
+		if (!data.empty())
+		{
+			content = std::string(data.begin(), data.end());
+		}
+	}
+	catch (const std::invalid_argument&)
+	{
+		FileSystem fs;
+		content = fs.read_file(file_name);
+	}
 
 	NodeXML xml;
 	xml.parse(content);

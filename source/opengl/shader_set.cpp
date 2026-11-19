@@ -15,6 +15,7 @@
 #include <stdexcept>
 #include <sstream>
 #include "shader_set.h"
+#include "util/resource_manager.h"
 
 ShaderSet::ShaderSet(void) :
 	m_program_id(0)
@@ -157,18 +158,28 @@ size_t ShaderSet::load_shader_from_file(const std::string& fname, const GLenum s
 	// Open file
 	GLuint shaderID = 0;
 
+	const ResourceManager& rm = ResourceManager::instance();
+	const std::vector<uint8_t>& data = rm.get(fname);
+
 	std::string shaderString;
-	std::ifstream sourceFile(fname);
-
-	// Source file loaded
-	if (!sourceFile.is_open())
+	if (!data.empty())
 	{
-		std::cout << "Unable to open file " << fname << std::endl;
-		return shaderID;
+		shaderString = std::string(data.begin(), data.end());
 	}
+	else
+	{
+		std::ifstream sourceFile(fname);
 
-	// Get shader source
-	shaderString.assign((std::istreambuf_iterator< char >(sourceFile)), std::istreambuf_iterator< char >());
+		// Source file loaded
+		if (!sourceFile.is_open())
+		{
+			std::cout << "Unable to open file " << fname << std::endl;
+			return shaderID;
+		}
+
+		// Get shader source
+		shaderString.assign((std::istreambuf_iterator< char >(sourceFile)), std::istreambuf_iterator< char >());
+	}
 
 	// Create shader ID
 	shaderID = glCreateShader(shaderType);

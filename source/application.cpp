@@ -4,6 +4,7 @@
 
 #include "application.h"
 #include "util/file_system.h"
+#include "util/resource_manager.h"
 
 #include <iostream>
 
@@ -735,6 +736,7 @@ int Application::run(void)
 	glfwTerminate();
 
 	delete &FontRenderer::instance();
+	delete &ResourceManager::instance();
 
 	return 0;
 }

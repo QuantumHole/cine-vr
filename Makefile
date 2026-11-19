@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 PROJECT_ROOT := .
-DEPENDENCIES = "glfw3 >= 3.4 openvr libpng libjpeg freetype2 mpv gl libavformat libavcodec libavutil libswscale libcrypto sqlite3 fontconfig"
+DEPENDENCIES := "glfw3 >= 3.4 openvr libpng libjpeg freetype2 mpv gl libavformat libavcodec libavutil libswscale libcrypto sqlite3 fontconfig"
 
 include common/cplusplus.mk
 include common/license.mk
 include common/makefile.mk
 include common/doxygen.mk
 
-TARGET = cine-vr
+TARGET := cine-vr
 
-OBJECTS = \
+OBJECTS := \
 	$(BUILD_DIR)/main.o \
 	$(BUILD_DIR)/application.o \
 	$(BUILD_DIR)/shader_set.o \
@@ -50,12 +50,36 @@ OBJECTS = \
 	$(BUILD_DIR)/thumbnail_generator.o \
 	$(BUILD_DIR)/thumbnail_store.o \
 	$(BUILD_DIR)/list_element.o \
+	$(BUILD_DIR)/resource_manager.o \
+
+OBJCOPY := objcopy
+RESOURCES := $(shell find images shaders -type f -and \( -name '*.glsl' -or -name '*.svg' \))
+RESOURCES_INC := build/resources.inc
+RESOURCES_MAP_INC := build/resources_map.inc
+RESOURCE_OBJECTS := $(patsubst %,$(BUILD_DIR)/%.o,$(RESOURCES))
 
 all: $(TARGET)
 
-$(TARGET): $(OBJECTS)
+$(TARGET): $(OBJECTS) $(RESOURCE_OBJECTS)
 	@echo "[$(LD)] $@"
 	@$(CXX) $(LDFLAGS) -o $@ $^ -s $(LDLIBS)
+
+$(RESOURCES_INC) $(RESOURCES_MAP_INC): $(RESOURCE_OBJECTS)
+
+$(BUILD_DIR)/%.o: % 
+	@mkdir -p $(dir $@)
+	@$(OBJCOPY) \
+	    -I binary \
+	    -O elf64-x86-64 \
+	    -B i386:x86-64 \
+	    --rename-section .data=.rodata,alloc,load,readonly,data,contents \
+	    $< $@
+	@SYMBOL=$$(echo '$<' | sed 's/[/. -]/_/g'); \
+	    echo "extern \"C\" const char _binary_$${SYMBOL}_start[];" >> $(RESOURCES_INC); \
+	    echo "extern \"C\" const char _binary_$${SYMBOL}_end[];" >> $(RESOURCES_INC); \
+	    echo "add(\"$*\", _binary_$${SYMBOL}_start, _binary_$${SYMBOL}_end);" >> $(RESOURCES_MAP_INC);
+
+$(BUILD_DIR)/resource_manager.o: $(RESOURCES_INC) $(RESOURCES_MAP_INC) source/util/resource_manager.h source/util/resource_manager.cpp
 
 lint:
 	$(MAKE) format
