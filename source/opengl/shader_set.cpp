@@ -162,6 +162,7 @@ size_t ShaderSet::load_shader_from_file(const std::string& fname, const GLenum s
 	const std::vector<uint8_t>& data = rm.get(fname);
 
 	std::string shaderString;
+
 	if (!data.empty())
 	{
 		shaderString = std::string(data.begin(), data.end());

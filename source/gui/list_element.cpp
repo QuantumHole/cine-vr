@@ -146,6 +146,7 @@ size_t ListElement::create_list_element(
 		glm::uvec2(static_cast<GLuint>(background->width), static_cast<GLuint>(background->height)),
 		GL_RGB,
 		0);
+
 	if (preview_texture)
 	{
 		*preview_texture = background_texture;

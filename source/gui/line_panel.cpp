@@ -207,6 +207,7 @@ void LinePanel::add_line(const size_t renderable, const std::string& content, co
 	};
 
 	m_lines.push_back(entry);
+
 	if (marked)
 	{
 		m_marked_line = m_lines.size() - 1;

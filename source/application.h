@@ -38,27 +38,27 @@ class Application
 
 		const std::string m_app_name;           ///< application name
 		const SQLiteDB m_database;              ///< application database.
-		bool g_Running;                         ///< indicates if the application is running
-		GLFWwindow* g_window;                   ///< GLFW window
-		OpenVRInterface g_vr;                   ///< OpenVR interface functions
-		size_t g_scene_shader;                  ///< ID of the current shader set for the scene
-		size_t g_image_texture;                 ///< ID of the displayed image
-		size_t g_video_texture;                 ///< ID of the displayed video
-		size_t g_scene_shape_set;               ///< ID of the shape set for the scene
-		size_t g_scene_renderable;   ///< ID of the renderable compound for the scene
-		bool g_scene_ready;                     ///< indicates if the scene is ready
-		std::map<vr::TrackedDeviceIndex_t, Controller> g_controller;   ///< map of OpenVR controllers
-		std::vector<Framebuffer> g_framebuffer; ///< vector of framebuffers for each eye
-		Menu g_menu;                            ///< menu for user interaction
-		Projection g_projection;                ///< projection settings for the scene
-		std::unique_ptr<GraphicsSVG> g_vector;  ///< currently displayed vector graphic
-		glm::vec3 g_hmd_reference_pos;          ///< reference position of the HMD
-		glm::quat g_hmd_reference_rot;          ///< reference rotation of the HMD
-		std::string g_current_file_name;        ///< name of the currently displayed file
-		const float g_jump_step;                ///< jump step size for player controls
-		source_t g_source;                      ///< type of the currently displayed content
-		Player g_player;                        ///< player for video playback
-		static glm::uvec2 g_window_size;               ///< size of the application window
+		bool m_Running;                         ///< indicates if the application is running
+		GLFWwindow* m_window;                   ///< GLFW window
+		OpenVRInterface m_vr;                   ///< OpenVR interface functions
+		size_t m_scene_shader;                  ///< ID of the current shader set for the scene
+		size_t m_image_texture;                 ///< ID of the displayed image
+		size_t m_video_texture;                 ///< ID of the displayed video
+		size_t m_scene_shape_set;               ///< ID of the shape set for the scene
+		size_t m_scene_renderable;   ///< ID of the renderable compound for the scene
+		bool m_scene_ready;                     ///< indicates if the scene is ready
+		std::map<vr::TrackedDeviceIndex_t, Controller> m_controller;   ///< map of OpenVR controllers
+		std::vector<Framebuffer> m_framebuffer; ///< vector of framebuffers for each eye
+		Menu m_menu;                            ///< menu for user interaction
+		Projection m_projection;                ///< projection settings for the scene
+		std::unique_ptr<GraphicsSVG> m_vector;  ///< currently displayed vector graphic
+		glm::vec3 m_hmd_reference_pos;          ///< reference position of the HMD
+		glm::quat m_hmd_reference_rot;          ///< reference rotation of the HMD
+		std::string m_current_file_name;        ///< name of the currently displayed file
+		const float m_jump_step;                ///< jump step size for player controls
+		source_t m_source;                      ///< type of the currently displayed content
+		Player m_player;                        ///< player for video playback
+		static glm::uvec2 m_window_size;               ///< size of the application window
 
 		static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
@@ -71,6 +71,10 @@ class Application
 		/** private assignment operator. */
 		Application& operator=(const Application&) = delete;
 
+		/** load camera pose from database. */
+		void init_camera_pose(void);
+
+		/** define new default camera pose. */
 		void reset_reference(void);
 
 		std::string make_absolute(const std::string& relative);

@@ -11,31 +11,31 @@
 typedef EnumIterator<vr::Hmd_Eye, vr::Eye_Left, vr::Eye_Right> Eyes;
 
 Application* Application::m_instance = nullptr;
-glm::uvec2 Application::g_window_size(800, 600);
+glm::uvec2 Application::m_window_size(800, 600);
 
 Application::Application(void) :
 	m_app_name("cine-vr"),
 	m_database(m_app_name),
-	g_Running(true),
-	g_window(nullptr),
-	g_vr(),
-	g_scene_shader(0),
-	g_image_texture(0),
-	g_video_texture(0),
-	g_scene_shape_set(0),
-	g_scene_renderable(0),
-	g_scene_ready(false),
-	g_controller(),
-	g_framebuffer(Eyes::size()),
-	g_menu(),
-	g_projection(),
-	g_vector(nullptr),
-	g_hmd_reference_pos(),
-	g_hmd_reference_rot(),
-	g_current_file_name(""),
-	g_jump_step(10.0f),      // seconds
-	g_source(SOURCE_NONE),
-	g_player()
+	m_Running(true),
+	m_window(nullptr),
+	m_vr(),
+	m_scene_shader(0),
+	m_image_texture(0),
+	m_video_texture(0),
+	m_scene_shape_set(0),
+	m_scene_renderable(0),
+	m_scene_ready(false),
+	m_controller(),
+	m_framebuffer(Eyes::size()),
+	m_menu(),
+	m_projection(),
+	m_vector(nullptr),
+	m_hmd_reference_pos(),
+	m_hmd_reference_rot(),
+	m_current_file_name(""),
+	m_jump_step(10.0f),      // seconds
+	m_source(SOURCE_NONE),
+	m_player()
 {
 }
 
@@ -68,15 +68,25 @@ const SQLiteDB& Application::database(void) const
 
 void Application::framebuffer_size_callback(GLFWwindow* window __attribute__((unused)), int width, int height)
 {
-	g_window_size = glm::uvec2(width, height);
+	m_window_size = glm::uvec2(width, height);
+}
+
+void Application::init_camera_pose(void)
+{
+	float cursor_size;   // not yet implemented.
+
+	m_database.read_camera(m_hmd_reference_pos, m_hmd_reference_rot, cursor_size);
 }
 
 void Application::reset_reference(void)
 {
-	glm::mat4 hmd_pose = g_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
+	glm::mat4 hmd_pose = m_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
 
-	g_hmd_reference_pos = hmd_pose * glm::vec4(0, 0, 0, 1);
-	g_hmd_reference_rot = glm::quat_cast(hmd_pose);
+	m_hmd_reference_pos = hmd_pose * glm::vec4(0, 0, 0, 1);
+	m_hmd_reference_rot = glm::quat_cast(hmd_pose);
+
+	const float cursor_size = 0.0f;   // not yet implemented.
+	m_database.store_camera(m_hmd_reference_pos, m_hmd_reference_rot, cursor_size);
 }
 
 std::string Application::make_absolute(const std::string& relative)
@@ -93,7 +103,7 @@ std::string Application::make_absolute(const std::string& relative)
 std::string Application::file_step(const int32_t step)
 {
 	FileSystem fs;
-	std::vector<std::string> path = fs.split_path(g_current_file_name);
+	std::vector<std::string> path = fs.split_path(m_current_file_name);
 	const std::string current_dir = fs.join_path(path.begin(), path.end() - 1);
 	const std::string current_file = path[path.size() - 1];
 	std::set<std::string> files = fs.file_names(current_dir);
@@ -101,12 +111,12 @@ std::string Application::file_step(const int32_t step)
 
 	if (iter == files.end())
 	{
-		return g_current_file_name;
+		return m_current_file_name;
 	}
 
 	if ((step < 0) && (iter == files.begin()))
 	{
-		return g_current_file_name;
+		return m_current_file_name;
 	}
 
 	if (step > 0)
@@ -120,7 +130,7 @@ std::string Application::file_step(const int32_t step)
 
 	if (iter == files.end())
 	{
-		return g_current_file_name;
+		return m_current_file_name;
 	}
 
 	path[path.size() - 1] = *iter;
@@ -133,11 +143,11 @@ void Application::setup_shader(const ShaderSet& shader, const vr::Hmd_Eye eye)
 	glm::vec2 offset;
 	glm::vec2 scale;
 
-	if (g_projection.mono() ||
-	    (!g_projection.switch_eyes() && (eye == vr::Eye_Left)) ||
-	    (g_projection.switch_eyes() && (eye == vr::Eye_Right)))
+	if (m_projection.mono() ||
+	    (!m_projection.switch_eyes() && (eye == vr::Eye_Left)) ||
+	    (m_projection.switch_eyes() && (eye == vr::Eye_Right)))
 	{
-		switch (g_projection.tiling())
+		switch (m_projection.tiling())
 		{
 			case Projection::TILE_LEFT_RIGHT:
 			case Projection::TILE_CUBE_MAP_STEREO:
@@ -157,10 +167,10 @@ void Application::setup_shader(const ShaderSet& shader, const vr::Hmd_Eye eye)
 				throw std::runtime_error("invalid projection");
 		}
 	}
-	else if ((g_projection.switch_eyes() && (eye == vr::Eye_Left)) ||
-	         (!g_projection.switch_eyes() && (eye == vr::Eye_Right)))
+	else if ((m_projection.switch_eyes() && (eye == vr::Eye_Left)) ||
+	         (!m_projection.switch_eyes() && (eye == vr::Eye_Right)))
 	{
-		switch (g_projection.tiling())
+		switch (m_projection.tiling())
 		{
 			case Projection::TILE_LEFT_RIGHT:
 			case Projection::TILE_CUBE_MAP_STEREO:
@@ -188,8 +198,8 @@ void Application::setup_shader(const ShaderSet& shader, const vr::Hmd_Eye eye)
 	}
 
 	// compute view/proj
-	const glm::mat4 proj = g_vr.projection(eye);
-	const glm::mat4 view = g_vr.view(eye);
+	const glm::mat4 proj = m_vr.projection(eye);
+	const glm::mat4 view = m_vr.view(eye);
 
 	shader.activate();
 	shader.set_uniform("projview", proj * view);
@@ -202,55 +212,55 @@ void Application::setup_hmd(const glm::mat4& hmdPose)
 {
 	glm::mat4 reference;
 
-	if (g_projection.follow_hmd())
+	if (m_projection.follow_hmd())
 	{
 		glm::vec4 hmd_position = hmdPose * glm::vec4(0, 0, 0, 1);
 		reference = glm::translate(glm::mat4(1.0f), glm::vec3(hmd_position));
 	}
 	else
 	{
-		reference = translate(glm::mat4(1.0f), g_hmd_reference_pos);
+		reference = translate(glm::mat4(1.0f), m_hmd_reference_pos);
 	}
-	reference *= mat4_cast(g_hmd_reference_rot);
+	reference *= mat4_cast(m_hmd_reference_rot);
 
-	if (g_scene_ready)
+	if (m_scene_ready)
 	{
-		RenderManager::instance().set_transform(g_scene_shape_set, 0, reference);
+		RenderManager::instance().set_transform(m_scene_shape_set, 0, reference);
 	}
 
-	if (g_vector)
+	if (m_vector)
 	{
 		const glm::mat4 svg_transform = reference *
 		                                glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -10.0f)) *
 		                                glm::scale(glm::mat4(1.0f), glm::vec3(5.0f));
-		g_vector->set_transform(svg_transform);
+		m_vector->set_transform(svg_transform);
 	}
 }
 
 void Application::quit(void)
 {
-	g_player.close();
-	g_Running = false;
+	m_player.close();
+	m_Running = false;
 }
 
 void Application::player_backward(void)
 {
-	g_player.jump(-g_jump_step);
+	m_player.jump(-m_jump_step);
 }
 
 void Application::player_forward(void)
 {
-	g_player.jump(g_jump_step);
+	m_player.jump(m_jump_step);
 }
 
 void Application::player_pause(void)
 {
-	g_player.pause();
+	m_player.pause();
 }
 
 void Application::player_play(void)
 {
-	g_player.play();
+	m_player.play();
 }
 
 void Application::player_previous(void)
@@ -274,21 +284,19 @@ void Application::player_open_file(const std::string& file_name)
 
 	if (fs.is_image(ext))
 	{
-		// g_player.stop();
-		// g_player.close();
-		Texture& image = RenderManager::instance().texture(g_image_texture);
+		Texture& image = RenderManager::instance().texture(m_image_texture);
 		const glm::uvec2 image_size = image.init_image_file(file_name, 0);
 		const float aspect = static_cast<float>(image_size.x) / static_cast<float>(image_size.y);
 		image.unbind();
-		g_projection.set_aspect(aspect);
-		g_source = SOURCE_IMAGE;
+		m_projection.set_aspect(aspect);
+		m_source = SOURCE_IMAGE;
 		update_projection();
-		g_menu.set_playable(false);
+		m_menu.set_playable(false);
 
-		if (g_scene_ready)
+		if (m_scene_ready)
 		{
-			RenderManager::instance().set_textures(g_scene_renderable, std::vector<size_t>(1, g_image_texture));
-			RenderManager::instance().enable(g_scene_renderable, true);
+			RenderManager::instance().set_textures(m_scene_renderable, std::vector<size_t>(1, m_image_texture));
+			RenderManager::instance().enable(m_scene_renderable, true);
 		}
 	}
 	else if (fs.is_vector(ext))
@@ -304,24 +312,24 @@ void Application::player_open_file(const std::string& file_name)
 			return;
 		}
 
-		if (g_source == SOURCE_VIDEO)
+		if (m_source == SOURCE_VIDEO)
 		{
-			g_player.close();
+			m_player.close();
 		}
-		g_vector.swap(svg);
-		g_menu.set_playable(false);
-		g_source = SOURCE_VECTOR;
+		m_vector.swap(svg);
+		m_menu.set_playable(false);
+		m_source = SOURCE_VECTOR;
 
-		if (g_scene_ready)
+		if (m_scene_ready)
 		{
-			RenderManager::instance().enable(g_scene_renderable, false);
+			RenderManager::instance().enable(m_scene_renderable, false);
 		}
 	}
 	else if (fs.is_video(ext))
 	{
-		g_player.open_file(file_name, g_window, g_video_texture);
-		g_menu.set_playable(true);
-		g_source = SOURCE_VIDEO;
+		m_player.open_file(file_name, m_window, m_video_texture);
+		m_menu.set_playable(true);
+		m_source = SOURCE_VIDEO;
 
 		/** load video projection settings. */
 		float duration = 0.0f;
@@ -338,24 +346,24 @@ void Application::player_open_file(const std::string& file_name)
 			bool mono = false;
 			m_database.read_settings(video_id, projection, tiling, stretch, angle, zoom, switch_eyes, mono);
 
-			g_projection.set_projection(static_cast<Projection::video_projection_t>(projection));
-			g_projection.set_tiling(static_cast<Projection::video_tiling_t>(tiling));
-			g_projection.set_angle(angle); /* angle given in radians */
-			g_projection.set_zoom(zoom);
-			g_projection.set_stretch(stretch);
-			g_projection.set_switch_eyes(switch_eyes);
-			g_projection.set_mono(mono);
+			m_projection.set_projection(static_cast<Projection::video_projection_t>(projection));
+			m_projection.set_tiling(static_cast<Projection::video_tiling_t>(tiling));
+			m_projection.set_angle(angle); /* angle given in radians */
+			m_projection.set_zoom(zoom);
+			m_projection.set_stretch(stretch);
+			m_projection.set_switch_eyes(switch_eyes);
+			m_projection.set_mono(mono);
 
 			update_projection();
 		}
 
-		if (g_scene_ready)
+		if (m_scene_ready)
 		{
-			RenderManager::instance().set_textures(g_scene_renderable, std::vector<size_t>(1, g_video_texture));
-			RenderManager::instance().enable(g_scene_renderable, true);
+			RenderManager::instance().set_textures(m_scene_renderable, std::vector<size_t>(1, m_video_texture));
+			RenderManager::instance().enable(m_scene_renderable, true);
 		}
 	}
-	g_current_file_name = file_name;
+	m_current_file_name = file_name;
 }
 
 void Application::player_show_desktop(void)
@@ -364,68 +372,68 @@ void Application::player_show_desktop(void)
 
 Player& Application::player(void)
 {
-	return g_player;
+	return m_player;
 }
 
 const std::string& Application::current_file_name(void) const
 {
-	return g_current_file_name;
+	return m_current_file_name;
 }
 
 Projection& Application::projection(void)
 {
-	return g_projection;
+	return m_projection;
 }
 
 ShaderSet& Application::shader(void)
 {
-	return RenderManager::instance().shader(g_scene_shader);
+	return RenderManager::instance().shader(m_scene_shader);
 }
 
 void Application::update_projection(void)
 {
-	std::pair<std::vector<Vertex>, std::vector<GLuint> > proj = g_projection.setup_projection();
+	std::pair<std::vector<Vertex>, std::vector<GLuint> > proj = m_projection.setup_projection();
 	RenderManager& renderer = RenderManager::instance();
 	const size_t new_shape_set = renderer.create_shape_set();
 
 	renderer.add_shape(new_shape_set, proj.first, proj.second);
 	std::vector<size_t> textures;
 
-	if (g_source == SOURCE_IMAGE)
+	if (m_source == SOURCE_IMAGE)
 	{
-		textures.push_back(g_image_texture);
+		textures.push_back(m_image_texture);
 	}
-	else if (g_source == SOURCE_VIDEO)
+	else if (m_source == SOURCE_VIDEO)
 	{
-		textures.push_back(g_video_texture);
+		textures.push_back(m_video_texture);
 
 		/** load video projection settings. */
 		float duration = 0.0f;
-		const size_t video_id = m_database.read_video(g_current_file_name, duration);
+		const size_t video_id = m_database.read_video(m_current_file_name, duration);
 
 		if ((video_id > 0) && (duration >= 0.0f))
 		{
-			std::cout << "store settings for video ID " << video_id << " - " << g_current_file_name << std::endl;
-			const size_t projection = g_projection.projection();
-			const size_t tiling     = g_projection.tiling();
-			const float angle       = g_projection.angle();
-			const float zoom        = g_projection.zoom();
-			const bool stretch      = g_projection.stretch();
-			const bool switch_eyes  = g_projection.switch_eyes();
-			const bool mono         = g_projection.mono();
+			std::cout << "store settings for video ID " << video_id << " - " << m_current_file_name << std::endl;
+			const size_t projection = m_projection.projection();
+			const size_t tiling     = m_projection.tiling();
+			const float angle       = m_projection.angle();
+			const float zoom        = m_projection.zoom();
+			const bool stretch      = m_projection.stretch();
+			const bool switch_eyes  = m_projection.switch_eyes();
+			const bool mono         = m_projection.mono();
 			m_database.store_settings(video_id, projection, tiling, stretch, angle, zoom, switch_eyes, mono);
 		}
 	}
 	const size_t new_renderable =
-		renderer.create_shape_set_renderable(new_shape_set, textures, g_scene_shader);
+		renderer.create_shape_set_renderable(new_shape_set, textures, m_scene_shader);
 
-	if (g_scene_ready)
+	if (m_scene_ready)
 	{
-		renderer.delete_renderable(g_scene_renderable);
+		renderer.delete_renderable(m_scene_renderable);
 	}
-	g_scene_shape_set = new_shape_set;
-	g_scene_renderable = new_renderable;
-	g_scene_ready = true;
+	m_scene_shape_set = new_shape_set;
+	m_scene_renderable = new_renderable;
+	m_scene_ready = true;
 }
 
 int Application::run(void)
@@ -470,39 +478,39 @@ int Application::run(void)
 	          << std::endl;
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	g_window = glfwCreateWindow(static_cast<int>(g_window_size.x), static_cast<int>(g_window_size.y), "Cine-VR", NULL, NULL);
+	m_window = glfwCreateWindow(static_cast<int>(m_window_size.x), static_cast<int>(m_window_size.y), "Cine-VR", NULL, NULL);
 
-	if (!g_window)
+	if (!m_window)
 	{
 		std::cerr << "Failed to create window" << std::endl;
 		glfwTerminate();
 		return -1;
 	}
-	glfwMakeContextCurrent(g_window);
-	glfwSetFramebufferSizeCallback(g_window, framebuffer_size_callback);
+	glfwMakeContextCurrent(m_window);
+	glfwSetFramebufferSizeCallback(m_window, framebuffer_size_callback);
 
 	// Initialize OpenVR
 	try
 	{
-		g_vr.init();
+		m_vr.init();
 	}
 	catch (const std::exception& error)
 	{
 		std::cerr << "OpenVR initialization failed: " << error.what() << std::endl;
-		g_vr.shutdown();
-		glfwDestroyWindow(g_window);
-		g_window = nullptr;
+		m_vr.shutdown();
+		glfwDestroyWindow(m_window);
+		m_window = nullptr;
 		glfwTerminate();
 		return -1;
 	}
-	glm::uvec2 render_size = g_vr.render_target_size();
+	glm::uvec2 render_size = m_vr.render_target_size();
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	for (std::vector<Framebuffer>::iterator iter = g_framebuffer.begin(); iter != g_framebuffer.end(); ++iter)
+	for (std::vector<Framebuffer>::iterator iter = m_framebuffer.begin(); iter != m_framebuffer.end(); ++iter)
 	{
 		iter->init(render_size);
 	}
@@ -512,48 +520,48 @@ int Application::run(void)
 
 	// create shaders & geometry
 	RenderManager& renderer = RenderManager::instance();
-	g_scene_shader = renderer.add_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
-	g_image_texture = renderer.create_texture();
-	g_video_texture = renderer.create_texture();
-	ShaderSet& scene_shader = renderer.shader(g_scene_shader);
+	m_scene_shader = renderer.add_shaders("shaders/scene.vertex.glsl", "shaders/scene.fragment.glsl");
+	m_image_texture = renderer.create_texture();
+	m_video_texture = renderer.create_texture();
+	ShaderSet& scene_shader = renderer.shader(m_scene_shader);
 	scene_shader.set_uniform("background", false);
 	scene_shader.set_uniform("greyscale", false);
 
-	g_menu.init();
+	m_menu.init();
 
-	reset_reference();
-	g_projection.set_stretch(true);
+	init_camera_pose();
+	m_projection.set_stretch(true);
 
 	player_open_file(make_absolute(initial_file_name));
 
 	// main loop
-	while (g_Running)
+	while (m_Running)
 	{
 		glfwPollEvents();
 
-		if (glfwWindowShouldClose(g_window))
+		if (glfwWindowShouldClose(m_window))
 		{
-			g_Running = false;
+			m_Running = false;
 			break;
 		}
 
 		// read user inputs
-		g_vr.update();
-		g_vr.read_poses();
+		m_vr.update();
+		m_vr.read_poses();
 
-		const OpenVRInterface::input_state_t& input_state = g_vr.read_input();
+		const OpenVRInterface::input_state_t& input_state = m_vr.read_input();
 		float length = glm::length(input_state.pad.position);
 
-		if (!g_menu.active() && (length > 0.5f))
+		if (!m_menu.active() && (length > 0.5f))
 		{
-			if ((g_source == SOURCE_VIDEO) &&
+			if ((m_source == SOURCE_VIDEO) &&
 			    (input_state.pad.button.released) &&
 			    (fabsf(input_state.pad.position.x) > fabsf(input_state.pad.position.y)))
 			{
 				const int sign = static_cast<int>(input_state.pad.position.x / fabsf(input_state.pad.position.x));
-				g_player.jump(static_cast<float>(sign) * g_jump_step);
+				m_player.jump(static_cast<float>(sign) * m_jump_step);
 			}
-			else if ((g_source == SOURCE_IMAGE) ||
+			else if ((m_source == SOURCE_IMAGE) ||
 			         (fabsf(input_state.pad.position.x) < fabsf(input_state.pad.position.y)))
 			{
 				const glm::vec2 step = input_state.pad.position * 0.01f / length;
@@ -564,7 +572,7 @@ int Application::run(void)
 				const glm::quat rotx(cx, 0.0f, sx, 0.0f);
 				const glm::quat roty(cy, -sy, 0.0f, 0.0f);
 
-				g_hmd_reference_rot = rotx * g_hmd_reference_rot * roty;
+				m_hmd_reference_rot = rotx * m_hmd_reference_rot * roty;
 			}
 		}
 
@@ -585,20 +593,20 @@ int Application::run(void)
 
 		if (input_state.grip.released)
 		{
-			if (g_player.is_playing())
+			if (m_player.is_playing())
 			{
-				g_player.pause();
+				m_player.pause();
 			}
 			else
 			{
-				g_player.play();
+				m_player.play();
 			}
 		}
 
 		if (input_state.trigger.button.released)
 		{
-			g_vr.haptic(OpenVRInterface::HAPTIC_LEFT);
-			g_vr.haptic(OpenVRInterface::HAPTIC_RIGHT);
+			m_vr.haptic(OpenVRInterface::HAPTIC_LEFT);
+			m_vr.haptic(OpenVRInterface::HAPTIC_RIGHT);
 		}
 
 		if (glm::length(input_state.trigger.value) > 0.0f)
@@ -606,41 +614,41 @@ int Application::run(void)
 			std::cout << "action: trigger: " << input_state.trigger.value << std::endl;
 		}
 
-		g_player.begin_frame();
-		g_player.handle_events();
+		m_player.begin_frame();
+		m_player.handle_events();
 
 		/* restore transparency */
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		const glm::mat4 hmdPose = g_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
-		std::set<vr::TrackedDeviceIndex_t> devices = g_vr.devices();
+		const glm::mat4 hmdPose = m_vr.pose(vr::k_unTrackedDeviceIndex_Hmd);
+		std::set<vr::TrackedDeviceIndex_t> devices = m_vr.devices();
 		for (std::set<vr::TrackedDeviceIndex_t>::const_iterator dev = devices.begin(); dev != devices.end(); ++dev)
 		{
-			vr::ETrackedDeviceClass devClass = g_vr.device_class(*dev);
+			vr::ETrackedDeviceClass devClass = m_vr.device_class(*dev);
 
 			if ((devClass != vr::TrackedDeviceClass_Controller) && (devClass != vr::TrackedDeviceClass_GenericTracker))
 			{
 				continue;
 			}
 
-			std::map<vr::TrackedDeviceIndex_t, Controller>::iterator control = g_controller.find(*dev);
+			std::map<vr::TrackedDeviceIndex_t, Controller>::iterator control = m_controller.find(*dev);
 
-			if (control == g_controller.end())
+			if (control == m_controller.end())
 			{
 				std::pair<const vr::TrackedDeviceIndex_t, Controller> p(*dev, Controller());
-				control = g_controller.insert(p).first;
+				control = m_controller.insert(p).first;
 
-				const std::string name = g_vr.name(*dev);
+				const std::string name = m_vr.name(*dev);
 				control->second.init(name);
 			}
 
-			const glm::mat4 devPose = g_vr.pose(*dev);
+			const glm::mat4 devPose = m_vr.pose(*dev);
 			control->second.set_transform(devPose);
 
 			// check menu interaction
 			// TODO: check for trigger of correct controller
-			g_menu.checkMenuInteraction(devPose, hmdPose, input_state);
+			m_menu.checkMenuInteraction(devPose, hmdPose, input_state);
 		}
 
 		setup_hmd(hmdPose);
@@ -648,7 +656,7 @@ int Application::run(void)
 		// For each eye: render scene to texture
 		for (vr::Hmd_Eye eye : Eyes())
 		{
-			Framebuffer& fb = g_framebuffer[eye];
+			Framebuffer& fb = m_framebuffer[eye];
 			fb.bind(GL_FRAMEBUFFER);
 			glViewport(0, 0, static_cast<GLsizei>(fb.size().x), static_cast<GLsizei>(fb.size().y));
 			glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
@@ -656,7 +664,7 @@ int Application::run(void)
 			glPointSize(8.0f);
 
 			setup_shader(scene_shader, eye);
-			switch (g_source)
+			switch (m_source)
 			{
 				case SOURCE_IMAGE:
 					renderer.draw();
@@ -666,27 +674,27 @@ int Application::run(void)
 					break;
 				case SOURCE_VECTOR:
 
-					if (g_vector)
+					if (m_vector)
 					{
-						g_vector->draw();
+						m_vector->draw();
 					}
 					break;
 				default:
 					break;
 			}
 
-			if (g_menu.active())
+			if (m_menu.active())
 			{
 				/* reset to monoscopic mode for menu */
 				scene_shader.set_uniform("texture_offset", glm::vec2(0.0f, 0.0f));
 				scene_shader.set_uniform("texture_scale",  glm::vec2(1.0f, 1.0f));
 
-				g_menu.draw();
+				m_menu.draw();
 
 				// For each controller: render simple ray and do intersection with rectangle
 				// OpenVR object definitions are compatible with the Vertex structure
 				// Therefore, it can be rendered with the same shader
-				for (std::map<vr::TrackedDeviceIndex_t, Controller>::const_iterator iter = g_controller.begin(); iter != g_controller.end(); ++iter)
+				for (std::map<vr::TrackedDeviceIndex_t, Controller>::const_iterator iter = m_controller.begin(); iter != m_controller.end(); ++iter)
 				{
 					iter->second.draw();
 				}
@@ -699,40 +707,40 @@ int Application::run(void)
 		// Submit textures to compositor
 		for (vr::Hmd_Eye eye : Eyes())
 		{
-			g_vr.submit(eye, g_framebuffer[eye].texture());
+			m_vr.submit(eye, m_framebuffer[eye].texture());
 		}
 
 		// blit left eye RT to GLFW window for debug
 		int w;
 		int h;
-		glfwGetFramebufferSize(g_window, &w, &h);
+		glfwGetFramebufferSize(m_window, &w, &h);
 		glViewport(0, 0, w, h);
-		Framebuffer& fb = *g_framebuffer.begin();
+		Framebuffer& fb = *m_framebuffer.begin();
 		fb.bind(GL_READ_FRAMEBUFFER);
 		fb.unbind(GL_DRAW_FRAMEBUFFER);
 		glBlitFramebuffer(0, 0, static_cast<GLint>(fb.size().x), static_cast<GLint>(fb.size().y), 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		fb.unbind(GL_READ_FRAMEBUFFER);
 
-		glfwSwapBuffers(g_window);
+		glfwSwapBuffers(m_window);
 
 		// Let compositor run
-		g_vr.handoff();
-		g_player.end_frame();
+		m_vr.handoff();
+		m_player.end_frame();
 	}
 
 	// Cleanup
-	g_player.close();
-	g_vr.shutdown();
-	g_menu.clear();
-	g_vector.reset();
+	m_player.close();
+	m_vr.shutdown();
+	m_menu.clear();
+	m_vector.reset();
 	renderer.clear();
 	delete &renderer;
-	for (Framebuffer& framebuffer : g_framebuffer)
+	for (Framebuffer& framebuffer : m_framebuffer)
 	{
 		framebuffer.remove();
 	}
-	glfwDestroyWindow(g_window);
-	g_window = nullptr;
+	glfwDestroyWindow(m_window);
+	m_window = nullptr;
 	glfwTerminate();
 
 	delete &FontRenderer::instance();

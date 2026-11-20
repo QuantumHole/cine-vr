@@ -157,6 +157,7 @@ void Menu::list_files(LinePanel& panel)
 				duration_text << std::setfill('0') << std::setw(2) << hours << ":"
 				              << std::setw(2) << minutes << ":" << std::setw(2) << seconds;
 				renderable = element.create_list_element(*iter, 0, &thumbnail, duration_text.str(), &preview_texture);
+
 				if (preview_texture > 0)
 				{
 					m_preview_textures[full] = preview_texture;
@@ -593,6 +594,7 @@ void Menu::select_audio_menu(void)
 	for (std::vector<Player::track_t>::const_iterator iter = tracks.begin(); iter != tracks.end(); ++iter)
 	{
 		std::string label = iter->title;
+
 		if (label.empty())
 		{
 			label = iter->language;
@@ -601,12 +603,14 @@ void Menu::select_audio_menu(void)
 		{
 			label += " (" + iter->language + ")";
 		}
+
 		if (label.empty())
 		{
 			label = "Track " + std::to_string(iter->id);
 		}
 		panel->add_line(element.create_list_element(label, 0), std::to_string(iter->id), iter->selected);
 	}
+
 	if (tracks.empty())
 	{
 		panel->add_line(element.create_list_element("No audio tracks available", 0), "");
@@ -645,6 +649,7 @@ void Menu::select_subtitle_menu(void)
 	for (std::vector<Player::track_t>::const_iterator iter = tracks.begin(); iter != tracks.end(); ++iter)
 	{
 		std::string label = iter->title;
+
 		if (label.empty())
 		{
 			label = iter->language;
@@ -653,6 +658,7 @@ void Menu::select_subtitle_menu(void)
 		{
 			label += " (" + iter->language + ")";
 		}
+
 		if (label.empty())
 		{
 			label = "Track " + std::to_string(iter->id);
@@ -800,9 +806,11 @@ void Menu::handle_button_action(const action_t action)
 			settings_menu();
 			break;
 		case ACTION_SELECT_AUDIO:
+
 			if (m_submenu == MENU_SELECT_AUDIO)
 			{
 				const std::string selection = dynamic_cast<LinePanel*>(m_panel.find(action)->second)->get_selection();
+
 				if (!selection.empty())
 				{
 					Application::instance().player().set_audio_track(std::stoll(selection));
@@ -815,9 +823,11 @@ void Menu::handle_button_action(const action_t action)
 			}
 			break;
 		case ACTION_SELECT_SUBTITLE:
+
 			if (m_submenu == MENU_SELECT_SUBTITLE)
 			{
 				const std::string selection = dynamic_cast<LinePanel*>(m_panel.find(action)->second)->get_selection();
+
 				if (!selection.empty())
 				{
 					Application::instance().player().set_subtitle_track(std::stoll(selection));

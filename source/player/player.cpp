@@ -679,12 +679,14 @@ float Player::volume(void) const
 std::vector<Player::track_t> Player::tracks_by_type(const std::string& type) const
 {
 	std::vector<track_t> result;
+
 	if (!m_context)
 	{
 		return result;
 	}
 
 	mpv_node track_list = {};
+
 	if ((mpv_get_property(m_context, "track-list", MPV_FORMAT_NODE, &track_list) < 0) ||
 	    (track_list.format != MPV_FORMAT_NODE_ARRAY) || !track_list.u.list)
 	{
@@ -695,12 +697,14 @@ std::vector<Player::track_t> Player::tracks_by_type(const std::string& type) con
 	for (int i = 0; i < track_list.u.list->num; i++)
 	{
 		const mpv_node& entry = track_list.u.list->values[i];
+
 		if (node_string(find_node(entry, "type")) != type)
 		{
 			continue;
 		}
 
 		const mpv_node* id = find_node(entry, "id");
+
 		if (!id || (id->format != MPV_FORMAT_INT64))
 		{
 			continue;
@@ -737,6 +741,7 @@ void Player::set_audio_track(const int64_t id)
 	}
 	const std::string value = std::to_string(id);
 	const int status = mpv_set_property_string(m_context, "aid", value.c_str());
+
 	if (status < 0)
 	{
 		throw std::runtime_error(std::string("mpv API error: ") + mpv_error_string(status));
@@ -751,6 +756,7 @@ void Player::set_subtitle_track(const int64_t id)
 	}
 	const std::string value = (id < 0) ? "no" : std::to_string(id);
 	const int status = mpv_set_property_string(m_context, "sid", value.c_str());
+
 	if (status < 0)
 	{
 		throw std::runtime_error(std::string("mpv API error: ") + mpv_error_string(status));

@@ -3125,6 +3125,7 @@ GraphicsSVG::GraphicsSVG(const std::string& file_name) :
 	{
 		const ResourceManager& rm = ResourceManager::instance();
 		const std::vector<uint8_t>& data = rm.get(file_name);
+
 		if (!data.empty())
 		{
 			content = std::string(data.begin(), data.end());
