@@ -57,7 +57,17 @@ class RenderManager
 		 * @return ID of the shape set. This is the index into the ShapeSet vector.
 		 */
 		size_t create_shape_set(void);
+
+		/** loads an SVG graphics and stores it as a renderable ShapeSet.
+		 * @param file_name file name of the SVG file.
+		 * @return renderable ID.
+		 */
 		size_t load_svg(const std::string& file_name);
+
+		/** retrieves the ShapeSet with the given ID.
+		 * @param id ShapeSet ID.
+		 * @return reference to the ShapeSet.
+		 */
 		ShapeSet& shape_set(const size_t id);
 
 		/** create a new shape.
@@ -85,9 +95,22 @@ class RenderManager
 		                   const glm::uvec2& size,
 		                   const GLenum format,
 		                   const GLuint slot);
-		/** create an empty manager-owned texture. */
+
+		/** create an empty texture.
+		 * @return texture ID.
+		 */
 		size_t create_texture(void);
+
+		/** retrieve texture with given ID.
+		 * @param id texture ID.
+		 * @return texture.
+		 */
 		Texture& texture(const size_t id);
+
+		/** retrieve constant texture with given ID.
+		 * @param id texture ID.
+		 * @return constant texture.
+		 */
 		const Texture& texture(const size_t id) const;
 
 		/** create a set of vertex, fragment, and (optional) geometry shaders.
@@ -111,6 +134,11 @@ class RenderManager
 		 * @return reference to the shader.
 		 */
 		const ShaderSet& shader(const size_t id) const;
+
+		/** get constant shader with ID.
+		 * @param id shader program ID.
+		 * @return reference to the constant shader.
+		 */
 		ShaderSet& shader(const size_t id);
 
 		/** create compound.

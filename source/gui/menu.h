@@ -14,16 +14,17 @@
 class Menu
 {
 	private:
+		/** list of available menus. */
 		typedef enum
 		{
-			MENU_NONE,
-			MENU_MAIN,
-			MENU_TILING,
-			MENU_PROJECTION,
-			MENU_SETTINGS,
-			MENU_FILE_MANAGER,
-			MENU_SELECT_AUDIO,
-			MENU_SELECT_SUBTITLE
+			MENU_NONE,             ///< no menu
+			MENU_MAIN,             ///< main menu with player buttons
+			MENU_TILING,           ///< tiling selection
+			MENU_PROJECTION,       ///< projection selection
+			MENU_SETTINGS,         ///< video settings menu
+			MENU_FILE_MANAGER,     ///< file manager
+			MENU_SELECT_AUDIO,     ///< audio track selection
+			MENU_SELECT_SUBTITLE   ///< subtitle track selection
 		}
 		menu_t;
 
