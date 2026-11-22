@@ -44,8 +44,23 @@ class SQLiteDB
 		/** add settings switch_eyes and mono. */
 		void update_database_v4(void) const;
 
+		/** add table for screens. */
+		void update_database_v5(void) const;
+
 		/** update database to the current scheme. */
 		void update_database(void) const;
+
+		/** prepare a statement and check its number of parameters.
+		 * @param statement SQL statement.
+		 * @param num_params number of parameters in statement.
+		 * @return prepared SQL statement.
+		 */
+		sqlite3_stmt* prepare_statement(const std::string& statement, const size_t num_params) const;
+
+		/** run statement without restult.
+		 * @param statement SQL statement.
+		 */
+		void run_statement(sqlite3_stmt* statement) const;
 
 		/** Get video ID from hash.
 		 * @param hash Video hash.
@@ -202,6 +217,28 @@ class SQLiteDB
 		                     const size_t height,
 		                     const size_t slices,
 		                     const std::vector<uint8_t>& data) const;
+
+		/** load screen definition.
+		 * @param name screen name.
+		 * @param position center of the screen.
+		 * @param rotation orientation of the screen.
+		 * @param size screen size.
+		 */
+		void load_screen(const std::string& name,
+		                 glm::vec3& position,
+		                 glm::quat& rotation,
+		                 glm::vec2& size) const;
+
+		/** save screen definition.
+		 * @param name screen name.
+		 * @param position center of the screen.
+		 * @param rotation orientation of the screen.
+		 * @param size screen size.
+		 */
+		void store_screen(const std::string& name,
+		                  const glm::vec3& position,
+		                  const glm::quat& rotation,
+		                  const glm::vec2& size) const;
 };
 
 #endif
