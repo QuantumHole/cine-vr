@@ -243,9 +243,12 @@ glm::vec2 Projection::unit_scale(void) const
 std::pair<std::vector<Vertex>, std::vector<GLuint> > Projection::setup_projection_flat(void) const
 {
 	const float aspect = (m_stretch ? 1.0f : 0.5f) * m_aspect;
-	const float width = tanf(0.25f * m_angle) * radius;
-	const float height = width / aspect;
 	const float screen_distance = radius + m_zoom;
+	const float half_arc = 0.5f * m_angle;
+	const float max_half_view_angle = (170.0f / 360.0f) * glm::pi<float>();
+	const float half_view_angle = std::min(std::max(atan2f(radius * sinf(half_arc), radius * cosf(half_arc) + m_zoom), 0.0f), max_half_view_angle);
+	const float width = tanf(half_view_angle) * screen_distance;
+	const float height = width / aspect;
 
 	// 0--1 1
 	// | / /|
