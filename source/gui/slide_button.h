@@ -5,6 +5,7 @@
 #ifndef SLIDE_BUTTON_H
 #define SLIDE_BUTTON_H
 
+#include <chrono>
 #include "opengl/shape.h"
 #include "opengl/texture.h"
 #include "action.h"
@@ -26,7 +27,9 @@ class SlideButton : public SimpleButton
 		const float m_slide_max;          // maximum slidebar value
 		const float m_slide_step;         // optional increment for slide values
 		float m_slide_pos;                // current slidebar value
+		float m_slide_reported;           // last value reported to the menu
 		float m_slide_last;               // original slidebar value
+		std::chrono::steady_clock::time_point m_last_report_time;
 		Shape m_slidebar;                 // slidebar shape when this button is slideable
 
 		void init_slidebar(void);

@@ -7,6 +7,7 @@
 #include <cmath>
 
 static const float slide_height = 5.0f;
+static const float slide_value_epsilon = 1e-5f;
 
 static float quantize_slide_value(const float value, const float min, const float max, const float step)
 {
@@ -25,7 +26,9 @@ SlideButton::SlideButton(const action_t action, const std::string& image_name, c
 	m_slide_max(max),
 	m_slide_step(step),
 	m_slide_pos(quantize_slide_value(value, min, max, step)),
+	m_slide_reported(m_slide_pos),
 	m_slide_last(m_slide_pos),
+	m_last_report_time(),
 	m_slidebar()
 {
 	init_slidebar();
@@ -81,6 +84,8 @@ bool SlideButton::update_on_interaction(const Panel::intersection_t isec, const 
 	{
 		set_graphic_pose(Panel::pose());
 		m_active = false;
+		m_slide_reported = m_slide_pos;
+		return true;
 	}
 	else if (input.trigger.button.pressed && m_active)
 	{
@@ -94,15 +99,26 @@ bool SlideButton::update_on_interaction(const Panel::intersection_t isec, const 
 		const float global_y = std::min(std::max(y, y0), y1);
 		y = (global_y - y0) / (y1 - y0);                   // relative position on slide bar
 
-		m_slide_pos = quantize_slide_value(m_slide_min + y * (m_slide_max - m_slide_min), m_slide_min, m_slide_max, m_slide_step);
-		const float snapped_frac = (m_slide_pos - m_slide_min) / (m_slide_max - m_slide_min);
-		const float snapped_global_y = y0 + snapped_frac * (y1 - y0);
+		const float slide_pos = quantize_slide_value(m_slide_min + y * (m_slide_max - m_slide_min), m_slide_min, m_slide_max, m_slide_step);
+		if (fabsf(slide_pos - m_slide_pos) > slide_value_epsilon)
+		{
+			m_slide_pos = slide_pos;
+			const float snapped_frac = (m_slide_pos - m_slide_min) / (m_slide_max - m_slide_min);
+			const float snapped_global_y = y0 + snapped_frac * (y1 - y0);
 
-		// move button icon to cursor position
-		glm::mat4 shifted_pose = glm::translate(Panel::pose(), glm::vec3(0.0f, snapped_global_y, 0.0f));
-		set_graphic_pose(shifted_pose);
+			glm::mat4 shifted_pose = glm::translate(Panel::pose(), glm::vec3(0.0f, snapped_global_y, 0.0f));
+			set_graphic_pose(shifted_pose);
+		}
 
-		return true;
+		const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+		if (fabsf(m_slide_pos - m_slide_reported) > slide_value_epsilon && now - m_last_report_time >= std::chrono::milliseconds(100))
+		{
+			m_slide_reported = m_slide_pos;
+			m_last_report_time = now;
+			return true;
+		}
+
+		return false;
 	}
 
 	return input.trigger.button.released && isec.hit;
