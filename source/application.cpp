@@ -206,6 +206,25 @@ void Application::setup_shader(const ShaderSet& shader, const vr::Hmd_Eye eye)
 	shader.set_uniform("diffuse0", 0);
 	shader.set_uniform("texture_offset", offset);
 	shader.set_uniform("texture_scale", scale);
+	if (m_projection.tiling() == Projection::TILE_CUBE_MAP_STEREO)
+	{
+		const bool primary_eye = m_projection.mono() ||
+		                         (!m_projection.switch_eyes() && (eye == vr::Eye_Left)) ||
+		                         (m_projection.switch_eyes() && (eye == vr::Eye_Right));
+		shader.set_uniform("preview_offset", glm::vec2(0.0f, primary_eye ? 0.0f : 0.5f));
+		shader.set_uniform("preview_scale", glm::vec2(1.0f, 0.5f));
+	}
+	else if ((m_projection.tiling() == Projection::TILE_LEFT_RIGHT) ||
+	         (m_projection.tiling() == Projection::TILE_TOP_BOTTOM))
+	{
+		shader.set_uniform("preview_offset", offset);
+		shader.set_uniform("preview_scale", scale);
+	}
+	else
+	{
+		shader.set_uniform("preview_offset", glm::vec2(0.0f, 0.0f));
+		shader.set_uniform("preview_scale", glm::vec2(1.0f, 1.0f));
+	}
 }
 
 void Application::setup_hmd(const glm::mat4& hmdPose)

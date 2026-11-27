@@ -218,7 +218,20 @@ void ProgressBar::init_tooltip(void)
 
 	if (m_preview_texture > 0)
 	{
-		m_tooltip_image_size = 0.003f * glm::vec2(static_cast<float>(m_preview_size.x), static_cast<float>(m_preview_size.y));
+		glm::vec2 preview_scale(1.0f, 1.0f);
+		switch (Application::instance().projection().tiling())
+		{
+			case Projection::TILE_LEFT_RIGHT:
+				preview_scale.x = 0.5f;
+				break;
+			case Projection::TILE_TOP_BOTTOM:
+			case Projection::TILE_CUBE_MAP_STEREO:
+				preview_scale.y = 0.5f;
+				break;
+			default:
+				break;
+		}
+		m_tooltip_image_size = 0.003f * glm::vec2(static_cast<float>(m_preview_size.x), static_cast<float>(m_preview_size.y)) * preview_scale;
 	}
 	m_tooltip_size = (m_tooltip_image_size.x > 0.0f) ? m_tooltip_image_size : m_tooltip_text_size;
 	const std::vector<GLuint> indices = {0, 1, 2, 0, 3, 1};
