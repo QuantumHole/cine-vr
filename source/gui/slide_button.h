@@ -13,7 +13,7 @@
 class SlideButton : public SimpleButton
 {
 	public:
-		explicit SlideButton(const action_t action, const std::string& image_name, const float min, const float max, const float value);
+		explicit SlideButton(const action_t action, const std::string& image_name, const float min, const float max, const float value, const float step = 0.0f);
 		~SlideButton(void) override;
 
 		float slide_value(void) const;
@@ -24,6 +24,7 @@ class SlideButton : public SimpleButton
 		bool m_active;                    // flag for ongoing interactions or visible slidebar
 		const float m_slide_min;          // minimum slidebar value
 		const float m_slide_max;          // maximum slidebar value
+		const float m_slide_step;         // optional increment for slide values
 		float m_slide_pos;                // current slidebar value
 		float m_slide_last;               // original slidebar value
 		Shape m_slidebar;                 // slidebar shape when this button is slideable

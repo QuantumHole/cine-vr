@@ -4,16 +4,28 @@
 
 #include "slide_button.h"
 #include "application.h"
+#include <cmath>
 
 static const float slide_height = 5.0f;
 
-SlideButton::SlideButton(const action_t action, const std::string& image_name, const float min, const float max, const float value) :
+static float quantize_slide_value(const float value, const float min, const float max, const float step)
+{
+	const float clamped_value = std::min(std::max(value, min), max);
+	if (step <= 0.0f)
+	{
+		return clamped_value;
+	}
+	return std::min(std::max(min + roundf((clamped_value - min) / step) * step, min), max);
+}
+
+SlideButton::SlideButton(const action_t action, const std::string& image_name, const float min, const float max, const float value, const float step) :
 	SimpleButton(action, image_name),
 	m_active(false),
 	m_slide_min(min),
 	m_slide_max(max),
-	m_slide_pos(value),
-	m_slide_last(value),
+	m_slide_step(step),
+	m_slide_pos(quantize_slide_value(value, min, max, step)),
+	m_slide_last(m_slide_pos),
 	m_slidebar()
 {
 	init_slidebar();
@@ -82,10 +94,12 @@ bool SlideButton::update_on_interaction(const Panel::intersection_t isec, const 
 		const float global_y = std::min(std::max(y, y0), y1);
 		y = (global_y - y0) / (y1 - y0);                   // relative position on slide bar
 
-		m_slide_pos = m_slide_min + y * (m_slide_max - m_slide_min);
+		m_slide_pos = quantize_slide_value(m_slide_min + y * (m_slide_max - m_slide_min), m_slide_min, m_slide_max, m_slide_step);
+		const float snapped_frac = (m_slide_pos - m_slide_min) / (m_slide_max - m_slide_min);
+		const float snapped_global_y = y0 + snapped_frac * (y1 - y0);
 
 		// move button icon to cursor position
-		glm::mat4 shifted_pose = glm::translate(Panel::pose(), glm::vec3(0.0f, global_y, 0.0f));
+		glm::mat4 shifted_pose = glm::translate(Panel::pose(), glm::vec3(0.0f, snapped_global_y, 0.0f));
 		set_graphic_pose(shifted_pose);
 
 		return true;

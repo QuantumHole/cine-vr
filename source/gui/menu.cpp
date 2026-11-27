@@ -327,7 +327,7 @@ void Menu::create_button_panel(const std::vector<action_t>& actions)
 					b = new ToggleButton(act, "images/switch-eyes" + menu_graphics_extension, proj.switch_eyes());
 					break;
 				case ACTION_PARAM_ANGLE:
-					b = new SlideButton(act, "images/angle" + menu_graphics_extension, 0.0f, 2.0f * glm::pi<float>(), proj.angle());
+					b = new SlideButton(act, "images/angle" + menu_graphics_extension, 0.0f, 2.0f * glm::pi<float>(), proj.angle(), 10.0f * glm::pi<float>() / 180.0f);
 					break;
 				case ACTION_PARAM_ZOOM:
 					b = new SlideButton(act, "images/zoom" + menu_graphics_extension, 0.0f, 10.0f, proj.zoom());
