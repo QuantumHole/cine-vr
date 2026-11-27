@@ -10,6 +10,7 @@
 #include "application.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 
 ListElement::ListElement(void)
@@ -22,7 +23,14 @@ size_t ListElement::create_thumbnail_label(const std::string& text, const bool a
 
 	FontRenderer::instance().render_text(text, glyphs);
 	const size_t glyph_width = glyphs.size() / FontRenderer::font_size;
-	const size_t visible_width = std::min(glyph_width, LinePanel::texture_width);
+	const float border = -0.1f;
+	const float top = top_half ? 0.5f : border;
+	const float bottom = top_half ? border : -0.5f;
+	const float band_height = top - bottom;
+	const size_t max_text_width = static_cast<size_t>(std::round(
+		static_cast<float>(LinePanel::texture_width) * static_cast<float>(FontRenderer::font_size) /
+		static_cast<float>(LinePanel::line_height) / band_height));
+	const size_t visible_width = std::min(glyph_width, max_text_width);
 	const size_t texture_width = std::max<size_t>(1, visible_width);
 	std::vector<uint8_t> image(texture_width * FontRenderer::font_size* sizeof(uint32_t), 0);
 
@@ -45,9 +53,8 @@ size_t ListElement::create_thumbnail_label(const std::string& text, const bool a
 		glm::uvec2(static_cast<GLuint>(texture_width), static_cast<GLuint>(FontRenderer::font_size)),
 		GL_RGBA,
 		0);
-	const float top = top_half ? 0.5f : 0.0f;
-	const float bottom = top_half ? 0.0f : -0.5f;
-	const float display_width = 0.5f * static_cast<float>(visible_width) / static_cast<float>(LinePanel::texture_width);
+	const float display_width = band_height * static_cast<float>(LinePanel::line_height) / static_cast<float>(LinePanel::texture_width) *
+	                            static_cast<float>(visible_width) / static_cast<float>(FontRenderer::font_size);
 	const float left = align_right ? 0.5f - display_width : -0.5f;
 	const float right = left + display_width;
 	const std::vector<Vertex> vertices = {
