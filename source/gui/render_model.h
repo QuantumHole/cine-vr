@@ -7,7 +7,6 @@
 
 #include <string>
 #include <openvr/openvr.h>
-#include <GL/glu.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "opengl/shape.h"
