@@ -35,6 +35,7 @@ Users can configure some display options via the OpenVR controller.
 * [GNU make](https://www.gnu.org/software/make) build configuration
 * [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config) automatic configuration of compiler and linker flags
 * [GLM](https://github.com/g-truc/glm) OpenGL mathematics library
+* `scan-build` static analyzer from the LLVM Clang tools
 
 ## Lint Dependencies
 

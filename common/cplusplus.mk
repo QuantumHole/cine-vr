@@ -4,6 +4,7 @@
 
 BUILD_DIR=build
 ANALYSIS_DIR=analysis
+SCAN_BUILD ?= $(shell command -v scan-build 2>/dev/null || { version=$$(clang -dumpversion 2>/dev/null | cut -d. -f1); command -v scan-build-$$version 2>/dev/null; })
 
 ifeq ($(PROJECT_ROOT),)
 	$(error PROJECT_ROOT is undefined)
@@ -202,7 +203,8 @@ endif
 .PHONY: all gnu llvm format clean analyse
 
 all:
-	scan-build -o $(ANALYSIS_DIR) --use-cc="$(CC)" --use-c++="$(CXX)" $(MAKE) $(TARGET) COMPILER=$(COMPILER)
+	@test -n "$(SCAN_BUILD)" || { echo "scan-build not found; install clang-tools"; exit 127; }
+	$(SCAN_BUILD) -o $(ANALYSIS_DIR) --use-cc="$(CC)" --use-c++="$(CXX)" $(MAKE) $(TARGET) COMPILER=$(COMPILER)
 
 gnu:
 	CC="gcc" CXX="g++" $(MAKE) all CC="gcc" CXX="g++" COMPILER="gnu"
