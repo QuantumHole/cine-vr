@@ -31,6 +31,7 @@ endif
 ifeq ($(COMPILER), llvm)
 	WARNINGS = \
 		-Weverything \
+		-Wno-unknown-warning-option \
 		-Wno-padded \
 		-Wno-undefined-func-template \
 		-Wno-switch-enum \
