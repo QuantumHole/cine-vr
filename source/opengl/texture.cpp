@@ -232,12 +232,6 @@ void Texture::init_data_3d(const std::vector<uint8_t>& data, const glm::uvec3& s
 	glPixelStorei(GL_UNPACK_ALIGNMENT, unpack_alignment);
 }
 
-void Texture::init_sdl(const SDL_Surface* surface, const GLuint slot)
-{
-	init(slot);
-	glTexImage2D(m_target, 0, internal_format, surface->w, surface->h, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, surface->pixels);
-}
-
 void Texture::init_openvr_model(const std::string& name, const GLuint slot)
 {
 	vr::RenderModel_t* model;
