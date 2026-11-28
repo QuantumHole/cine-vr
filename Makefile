@@ -89,6 +89,9 @@ lint:
 doc: doxygen-doc
 	$(MAKE) doxygen-show
 
+compile-headless:
+	$(MAKE) clean && $(MAKE) -j gnu && $(MAKE) clean && $(MAKE) -j llvm
+
 compile:
 	clear && $(MAKE) clean && $(MAKE) -j gnu && $(MAKE) clean && $(MAKE) -j llvm
 

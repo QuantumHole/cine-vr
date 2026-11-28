@@ -16,9 +16,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Install dependencies
       run: |
         lsb_release -a && sudo apt-get update && sudo apt-get install --assume-yes gcc clang imagemagick libglfw3-dev libopenvr-dev libmpv-dev
     - name: make
-      run: make compile
+      run: make compile-headless
