@@ -19,6 +19,6 @@ jobs:
     - uses: actions/checkout@v7
     - name: Install dependencies
       run: |
-        lsb_release -a && sudo apt-get update && sudo apt-get install --assume-yes gcc clang imagemagick libglfw3-dev libopenvr-dev libmpv-dev
+        lsb_release -a && sudo apt-get update && sudo apt-get install --assume-yes gcc clang imagemagick libglfw3-dev libopenvr-dev libglm-dev libmpv-dev
     - name: make
       run: make compile-headless

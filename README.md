@@ -34,6 +34,8 @@ Users can configure some display options via the OpenVR controller.
 * [gcc](https://gcc.gnu.org) or [clang](https://clang.llvm.org) C++ compiler
 * [GNU make](https://www.gnu.org/software/make) build configuration
 * [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config) automatic configuration of compiler and linker flags
+* [GLM](https://github.com/g-truc/glm) OpenGL mathematics library
+
 ## Lint Dependencies
 
 * [uncrustify](https://github.com/uncrustify/uncrustify) source code formatter
